@@ -1,0 +1,28 @@
+openapi: 3.0.1
+info:
+  title: Ping API
+  description: Простое API для проверки доступности сервера.
+  version: 1.0.0
+servers:
+  - url: http://127.0.0.1
+paths:
+  /ping:
+    get:
+      summary: Проверить доступность сервера
+      responses:
+        '200':
+          description: Успешный ответ
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PingResponse'
+components:
+  schemas:
+    PingResponse:
+      type: object
+      properties:
+        ping:
+          type: string
+          example: pong
+      required:
+        - ping
