@@ -11,33 +11,36 @@ import (
 //go:embed migrations/*.sql
 var migrations embed.FS
 
+const migrationPath string = "migrations"
+const postgresDialect string = "postgres"
+
 func Migrate(url string) error {
 	db, err := sql.Open("pgx", url)
 	if err != nil {
-		return errors.Wrap(err, "cannot connect to db")
+		return errors.Wrap(err, "connecting to db")
 	}
 	defer db.Close()
 
 	if err = db.Ping(); err != nil {
-		return errors.Wrap(err, "cannot ping db")
+		return errors.Wrap(err, "pinging db")
 	}
 	goose.SetBaseFS(migrations)
-	if err := goose.SetDialect("postgres"); err != nil {
-		return err
+	if err := goose.SetDialect(postgresDialect); err != nil {
+		return errors.Wrap(err, "setting dialect")
 	}
 
 	version, err := goose.GetDBVersion(db)
 	if err != nil {
-		return err
+		return errors.Wrap(err, "getting db version")
 	}
 
-	err = goose.Up(db, "migrations")
+	err = goose.Up(db, migrationPath)
 	if err != nil {
-		if err := goose.DownTo(db, "migrations", version); err != nil {
-			return err
+		if err := goose.DownTo(db, migrationPath, version); err != nil {
+			return errors.Wrap(err, "cannot rollback db")
 		}
 
-		return err
+		return errors.Wrap(err, "cannot migrate db")
 	}
 
 	return nil

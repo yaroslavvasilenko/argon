@@ -29,7 +29,9 @@ func (s *Storage) CreatePoster(p entity.Poster) error {
 func (s *Storage) GetPoster(pID string) (entity.Poster, error) {
 	poster := entity.Poster{}
 
-	err := s.gorm.Table(posterTable).First(&poster).Where("id = ?, deleted_at IS NULL", pID).
+	err := s.gorm.Table(posterTable).
+		First(&poster).
+		Where("id = ?, deleted_at IS NULL", pID).
 		Error
 	if err != nil {
 		return entity.Poster{}, err
@@ -39,8 +41,10 @@ func (s *Storage) GetPoster(pID string) (entity.Poster, error) {
 }
 
 func (s *Storage) DeletePoster(pID string) error {
-	err := s.gorm.Table(posterTable).Where("id = ? AND deleted_at IS NULL", pID).
-		Update("deleted_at", time.Now()).Error
+	err := s.gorm.Table(posterTable).
+		Where("id = ? AND deleted_at IS NULL", pID).
+		Update("deleted_at", time.Now()).
+		Error
 	if err != nil {
 		return err
 	}
@@ -49,7 +53,9 @@ func (s *Storage) DeletePoster(pID string) error {
 }
 
 func (s *Storage) UpdatePoster(p entity.Poster) error {
-	err := s.gorm.Updates(&p).Where("deleted_at IS NULL").Error
+	err := s.gorm.Updates(&p).
+		Where("deleted_at IS NULL").
+		Error
 	if err != nil {
 		return err
 	}
