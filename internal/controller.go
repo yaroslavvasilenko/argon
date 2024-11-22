@@ -45,7 +45,7 @@ func (h *Handler) CreatePoster(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetPoster(c *fiber.Ctx) error {
-	chatID := c.Params("chat_id")
+	chatID := c.Params("poster_id")
 
 	poster, err := h.s.GetPoster(chatID)
 	if err != nil {

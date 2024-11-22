@@ -10,9 +10,11 @@ import (
 )
 
 func NewSqlDB(ctx context.Context, dbUrl string) (*gorm.DB, *pgxpool.Pool, error) {
-	gormInstance, err := gorm.Open(postgres.Open(dbUrl), &gorm.Config{
-		Logger: gormlog.Default.LogMode(gormlog.Info),
-	})
+	gormInstance, err := gorm.Open(
+		postgres.Open(dbUrl),
+		&gorm.Config{
+			Logger: gormlog.Default.LogMode(gormlog.Info),
+		})
 	if err != nil {
 		return nil, nil, err
 	}
