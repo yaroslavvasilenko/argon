@@ -1,8 +1,10 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"github.com/yaroslavvasilenko/argon/config"
+	"github.com/yaroslavvasilenko/argon/database"
 	"github.com/yaroslavvasilenko/argon/internal"
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
 	"github.com/yaroslavvasilenko/argon/internal/router"
@@ -15,13 +17,21 @@ func main() {
 
 	cfg := config.GetConfig()
 
-	gorm, err := db.NewSqlDB(cfg)
+	ctx := context.Background()
+
+	gorm, pool, err := db.NewSqlDB(ctx, cfg.DB.Url)
 	if err != nil {
 		fmt.Println(err)
 		return
 	}
 
-	storagesDB := internal.NewStorage(gorm)
+	err = database.Migrate(cfg.DB.Url)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	storagesDB := internal.NewStorage(gorm, pool)
 
 	service := internal.NewService(storagesDB)
 	controller := internal.NewHandler(service)

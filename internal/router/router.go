@@ -21,5 +21,11 @@ func NewApiRouter(controllers *internal.Handler) *fiber.App {
 
 	r.Get("/ping", controllers.Ping)
 
+	//  poster
+	r.Post("/api/v1/poster", controllers.CreatePoster)
+	r.Get("/api/v1/poster/:poster_id", controllers.GetPoster)
+	r.Delete("/api/v1/poster/:poster_id", controllers.DeletePoster)
+	r.Put("/api/v1/poster/:poster_id", controllers.UpdatePoster)
+
 	return r
 }
