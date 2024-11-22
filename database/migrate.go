@@ -26,7 +26,7 @@ func Migrate(url string) error {
 	}
 	goose.SetBaseFS(migrations)
 	if err := goose.SetDialect(postgresDialect); err != nil {
-		return err
+		return errors.Wrap(err, "setting dialect")
 	}
 
 	version, err := goose.GetDBVersion(db)
@@ -37,7 +37,7 @@ func Migrate(url string) error {
 	err = goose.Up(db, migrationPath)
 	if err != nil {
 		if err := goose.DownTo(db, migrationPath, version); err != nil {
-			return err
+			return errors.Wrap(err, "cannot rollback db")
 		}
 
 		return errors.Wrap(err, "cannot migrate db")
