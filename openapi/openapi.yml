@@ -136,10 +136,10 @@ components:
           example: "123e4567-e89b-12d3-a456-426614174000"
         title:
           type: string
-          example: создал
+          example: Часы
         text:
           type: string
-          example: one one
+          example: супер товар
       required:
         - id
         - title
