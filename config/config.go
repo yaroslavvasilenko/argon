@@ -14,6 +14,12 @@ type Config struct {
 	DB   struct {
 		Url string
 	}
+	OpenSearch struct {
+		Addr        []string
+		Login       string
+		Password    string
+		PosterIndex string
+	}
 }
 
 var cfg = Config{}

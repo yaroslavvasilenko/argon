@@ -6,11 +6,11 @@ import (
 )
 
 type Poster struct {
-	ID    uuid.UUID
-	Title string
-	Text  string
+	ID    uuid.UUID `json:"id"`
+	Title string    `json:"title"`
+	Text  string    `json:"text"`
 
-	CreatedAt time.Time
-	UpdatedAt time.Time
-	DeletedAt *time.Time
+	CreatedAt time.Time  `json:"created_at"`
+	UpdatedAt time.Time  `json:"updated_at"`
+	DeletedAt *time.Time `json:"deleted_at"`
 }
