@@ -83,7 +83,7 @@ func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = h.s.UpdatePoster(c.UserContext(), entity.Poster{
+	poster, err := h.s.UpdatePoster(c.UserContext(), entity.Poster{
 		ID:    posterID,
 		Title: r.Title,
 		Text:  r.Text,
@@ -92,7 +92,7 @@ func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	return nil
+	return c.JSON(poster)
 }
 
 func (h *Handler) SearchPosters(c *fiber.Ctx) error {

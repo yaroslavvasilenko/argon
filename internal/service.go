@@ -51,15 +51,15 @@ func (s *Service) DeletePoster(ctx context.Context, pID string) error {
 	return nil
 }
 
-func (s *Service) UpdatePoster(ctx context.Context, p entity.Poster) error {
+func (s *Service) UpdatePoster(ctx context.Context, p entity.Poster) (entity.Poster, error) {
 	timeNow := time.Now()
 	p.UpdatedAt = timeNow
 	err := s.s.UpdatePoster(ctx, p)
 	if err != nil {
-		return err
+		return entity.Poster{}, err
 	}
 
-	return nil
+	return s.GetPoster(ctx, p.ID.String())
 }
 
 func (s *Service) SearchPosters(ctx context.Context, query string) ([]entity.Poster, error) {
