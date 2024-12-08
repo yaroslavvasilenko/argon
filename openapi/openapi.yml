@@ -1,4 +1,4 @@
-openapi: 3.0.1
+openapi: 3.1.1
 info:
   title: Ping API
   description: Простое API для проверки доступности сервера.
@@ -16,6 +16,94 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/PingResponse'
+
+  /api/v1/poster:
+    post:
+      summary: Создать новый постер
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PosterRequest'
+      responses:
+        '200':
+          description: Постер успешно создан
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PosterResponse'
+
+  /api/v1/poster/{poster_id}:
+    get:
+      summary: Получить постер по ID
+      parameters:
+        - name: poster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Успешно найденный постер
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PosterResponse'
+
+    delete:
+      summary: Удалить постер по ID
+      parameters:
+        - name: poster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Постер успешно удален
+
+    put:
+      summary: Обновить постер по ID
+      parameters:
+        - name: poster_id
+          in: path
+          required: true
+          schema:
+            type: string
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/PosterRequest'
+      responses:
+        '200':
+          description: Постер успешно обновлен
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/PosterResponse'
+
+  /api/v1/search:
+    get:
+      summary: Искать постеры по ключевым словам
+      parameters:
+        - name: query
+          in: query
+          required: true
+          schema:
+            type: string
+      responses:
+        '200':
+          description: Результаты поиска
+          content:
+            application/json:
+              schema:
+                type: array
+                items:
+                  $ref: '#/components/schemas/PosterResponse'
+
 components:
   schemas:
     PingResponse:
@@ -26,3 +114,33 @@ components:
           example: pong
       required:
         - ping
+
+    PosterRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Часы
+        text:
+          type: string
+          example: супер товар
+      required:
+        - title
+        - text
+
+    PosterResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          example: Часы
+        text:
+          type: string
+          example: супер товар
+      required:
+        - id
+        - title
+        - text
