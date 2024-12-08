@@ -3,10 +3,11 @@ package config
 import (
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf"
+	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
-	"strings"
-
+	"github.com/knadh/koanf/providers/file"
 	"log"
+	"strings"
 )
 
 type Config struct {
@@ -18,7 +19,10 @@ type Config struct {
 		Addr        []string
 		Login       string
 		Password    string
-		PosterIndex string
+		PosterIndex string `koanf:"poster_index"`
+	}
+	Logger struct {
+		Level string
 	}
 }
 
@@ -28,16 +32,21 @@ func LoadConfig() {
 	// Загрузка .env файла
 	err := godotenv.Load(".env")
 	if err != nil {
-		log.Fatalf("Ошибка загрузки .env файла: %v", err)
+		log.Printf("Ошибка загрузки .env файла: %v", err)
 	}
 
 	// Инициализация Koanf
 	k := koanf.New(".")
 
-	// Загрузка переменных окружения
+	// Загрузка конфигурации из config.toml
+	if err := k.Load(file.Provider("./config/config.toml"), toml.Parser()); err != nil {
+		log.Printf("Ошибка загрузки config.toml: %v", err)
+	}
+
+	// Загрузка переменных окружения (перекрывают значения из TOML)
 	err = k.Load(env.Provider("", "_", func(s string) string {
-		// Переводим ключи переменных в верхний регистр
-		return strings.ToUpper(s)
+		// Переводим ключи переменных в нижний регистр для совместимости
+		return strings.ToLower(strings.ReplaceAll(s, "_", "."))
 	}), nil)
 	if err != nil {
 		log.Fatalf("Ошибка загрузки переменных окружения: %v", err)

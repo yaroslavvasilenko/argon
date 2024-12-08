@@ -23,9 +23,9 @@ func NewSqlDB(ctx context.Context, dbUrl string) (*gorm.DB, *pgxpool.Pool, error
 	if err != nil {
 		return nil, nil, err
 	}
-	defer pool.Close()
 
 	if err = pool.Ping(ctx); err != nil {
+		pool.Close()
 		return nil, nil, err
 	}
 

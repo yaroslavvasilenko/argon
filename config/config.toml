@@ -1,0 +1,17 @@
+# Порт приложения
+port = 8080
+
+# Настройки базы данных
+[db]
+url = "postgresql://postgres:postgres@127.0.0.1:5435/postgres"
+
+# Настройки OpenSearch
+[opensearch]
+login = "admin"
+password = "StrongPass#2024"
+addr = "http://127.0.0.1:9200"
+poster_index = "posters"
+
+# Настройки логгера
+[logger]
+level = "info"

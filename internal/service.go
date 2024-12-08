@@ -3,13 +3,16 @@ package internal
 import (
 	"context"
 	"fmt"
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/vertica/vertica-sql-go/logger"
 	"github.com/yaroslavvasilenko/argon/internal/entity"
 	"time"
 )
 
 type Service struct {
 	s *Storage
+	logger.Logger
 }
 
 func NewService(s *Storage) *Service {
@@ -36,6 +39,8 @@ func (s *Service) CreatePoster(ctx context.Context, p entity.Poster) (entity.Pos
 func (s *Service) GetPoster(ctx context.Context, pID string) (entity.Poster, error) {
 	poster, err := s.s.GetPoster(ctx, pID)
 	if err != nil {
+		err = fiber.NewError(fiber.StatusNotFound, err.Error())
+
 		return entity.Poster{}, err
 	}
 
