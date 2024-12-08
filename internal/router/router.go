@@ -27,5 +27,8 @@ func NewApiRouter(controllers *internal.Handler) *fiber.App {
 	r.Delete("/api/v1/poster/:poster_id", controllers.DeletePoster)
 	r.Put("/api/v1/poster/:poster_id", controllers.UpdatePoster)
 
+	//  search
+	r.Get("/api/v1/search", controllers.SearchPosters)
+
 	return r
 }

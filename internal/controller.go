@@ -33,7 +33,7 @@ func (h *Handler) CreatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = h.s.CreatePoster(entity.Poster{
+	poster, err := h.s.CreatePoster(c.UserContext(), entity.Poster{
 		Title: r.Title,
 		Text:  r.Text,
 	})
@@ -41,13 +41,13 @@ func (h *Handler) CreatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	return nil
+	return c.JSON(poster)
 }
 
 func (h *Handler) GetPoster(c *fiber.Ctx) error {
 	chatID := c.Params("poster_id")
 
-	poster, err := h.s.GetPoster(chatID)
+	poster, err := h.s.GetPoster(c.UserContext(), chatID)
 	if err != nil {
 		return err
 	}
@@ -58,7 +58,7 @@ func (h *Handler) GetPoster(c *fiber.Ctx) error {
 func (h *Handler) DeletePoster(c *fiber.Ctx) error {
 	chatID := c.Params("poster_id")
 
-	err := h.s.DeletePoster(chatID)
+	err := h.s.DeletePoster(c.UserContext(), chatID)
 	if err != nil {
 		return err
 	}
@@ -83,7 +83,7 @@ func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	err = h.s.UpdatePoster(entity.Poster{
+	poster, err := h.s.UpdatePoster(c.UserContext(), entity.Poster{
 		ID:    posterID,
 		Title: r.Title,
 		Text:  r.Text,
@@ -92,5 +92,22 @@ func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	return nil
+	return c.JSON(poster)
+}
+
+func (h *Handler) SearchPosters(c *fiber.Ctx) error {
+	q := new(struct {
+		Query string `json:"query" validate:"required,min=1,max=64"`
+	})
+
+	if err := c.QueryParser(q); err != nil {
+		return err
+	}
+
+	posters, err := h.s.SearchPosters(c.UserContext(), q.Query)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(posters)
 }

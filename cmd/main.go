@@ -7,6 +7,7 @@ import (
 	"github.com/yaroslavvasilenko/argon/database"
 	"github.com/yaroslavvasilenko/argon/internal"
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
+	"github.com/yaroslavvasilenko/argon/internal/opensearch"
 	"github.com/yaroslavvasilenko/argon/internal/router"
 )
 
@@ -31,7 +32,13 @@ func main() {
 		return
 	}
 
-	storagesDB := internal.NewStorage(gorm, pool)
+	os, err := opensearch.NewOpenSearch(cfg.OpenSearch.Addr, cfg.OpenSearch.Login, cfg.OpenSearch.Password, cfg.OpenSearch.PosterIndex)
+	if err != nil {
+		fmt.Println(err)
+		return
+	}
+
+	storagesDB := internal.NewStorage(gorm, pool, os)
 
 	service := internal.NewService(storagesDB)
 	controller := internal.NewHandler(service)
