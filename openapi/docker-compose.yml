@@ -6,4 +6,4 @@ services:
       - ./openapi.yml:/usr/share/nginx/html/openapi.yml:ro
       - ./index.html:/usr/share/nginx/html/index.html:ro
     ports:
-      - "8081:80"
+      - "8082:80"

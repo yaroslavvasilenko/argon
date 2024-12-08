@@ -9,9 +9,13 @@ require (
 	github.com/joho/godotenv v1.5.1
 	github.com/knadh/koanf v1.5.0
 	github.com/opensearch-project/opensearch-go v1.1.0
+	github.com/phuslu/log v1.0.113
 	github.com/pkg/errors v0.9.1
 	github.com/pressly/goose/v3 v3.22.1
+	github.com/rs/zerolog v1.33.0
+	github.com/samber/slog-zerolog/v2 v2.7.1
 	github.com/tidwall/gjson v1.18.0
+	github.com/vertica/vertica-sql-go v1.3.3
 	gorm.io/driver/postgres v1.5.2
 	gorm.io/gorm v1.25.12
 )
@@ -32,7 +36,10 @@ require (
 	github.com/mitchellh/copystructure v1.2.0 // indirect
 	github.com/mitchellh/mapstructure v1.5.0 // indirect
 	github.com/mitchellh/reflectwalk v1.0.2 // indirect
+	github.com/pelletier/go-toml v1.7.0 // indirect
 	github.com/rivo/uniseg v0.4.7 // indirect
+	github.com/samber/lo v1.44.0 // indirect
+	github.com/samber/slog-common v0.17.1 // indirect
 	github.com/sethvargo/go-retry v0.3.0 // indirect
 	github.com/tidwall/match v1.1.1 // indirect
 	github.com/tidwall/pretty v1.2.1 // indirect

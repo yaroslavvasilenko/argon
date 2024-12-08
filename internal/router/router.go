@@ -10,7 +10,7 @@ const AppName = "argon"
 func NewApiRouter(controllers *internal.Handler) *fiber.App {
 	// Application (fiber)
 	r := fiber.New(fiber.Config{
-		//ErrorHandler:            handler.ErrorHandler,
+		ErrorHandler:            ErrorHandler,
 		DisableStartupMessage:   false,
 		AppName:                 AppName,
 		EnableTrustedProxyCheck: false,
