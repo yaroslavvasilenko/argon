@@ -3,7 +3,7 @@ services:
   redoc:
     image: nginx:alpine
     volumes:
-      - ./openapi.yml:/usr/share/nginx/html/openapi.yml:ro
+      - ./openapi:/usr/share/nginx/html/openapi:ro
       - ./index.html:/usr/share/nginx/html/index.html:ro
     ports:
       - "8082:80"

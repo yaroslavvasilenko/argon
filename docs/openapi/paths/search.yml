@@ -1,0 +1,20 @@
+search:
+  get:
+    summary: Искать объявления по ключевым словам
+    tags:
+      - Search
+    parameters:
+      - name: query
+        in: query
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Результаты поиска
+        content:
+          application/json:
+            schema:
+              type: array
+              items:
+                $ref: '../components/schemas.yml#/ItemResponse'

@@ -5,7 +5,7 @@ import (
 	"errors"
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
-	"github.com/yaroslavvasilenko/argon/internal/entity"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/opensearch"
 	"gorm.io/gorm"
 	"time"
@@ -17,42 +17,42 @@ type Storage struct {
 	os   *opensearch.OpenSearch
 }
 
-const posterTable = "posters"
+const itemTable = "items"
 
 func NewStorage(db *gorm.DB, pool *pgxpool.Pool, os *opensearch.OpenSearch) *Storage {
 	return &Storage{gorm: db, pool: pool, os: os}
 }
 
-func (s *Storage) CreatePoster(ctx context.Context, p entity.Poster) error {
+func (s *Storage) CreateItem(ctx context.Context, p models.Item) error {
 	err := s.gorm.Create(&p).WithContext(ctx).Error
 	if err != nil {
 		return err
 	}
 
-	go s.os.IndexPosters(ctx, []entity.Poster{p})
+	go s.os.IndexItems(ctx, []models.Item{p})
 
 	return nil
 }
 
-func (s *Storage) GetPoster(ctx context.Context, pID string) (entity.Poster, error) {
-	poster := entity.Poster{}
+func (s *Storage) GetItem(ctx context.Context, pID string) (models.Item, error) {
+	poster := models.Item{}
 
-	err := s.gorm.Table(posterTable).WithContext(ctx).
+	err := s.gorm.Table(itemTable).WithContext(ctx).
 		Where("id = ? AND deleted_at IS NULL", pID).
 		First(&poster).
 		Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return entity.Poster{}, fiber.NewError(fiber.StatusNotFound, err.Error())
+			return models.Item{}, fiber.NewError(fiber.StatusNotFound, err.Error())
 		}
-		return entity.Poster{}, err
+		return models.Item{}, err
 	}
 
 	return poster, nil
 }
 
-func (s *Storage) DeletePoster(ctx context.Context, pID string) error {
-	err := s.gorm.Table(posterTable).WithContext(ctx).
+func (s *Storage) DeleteItem(ctx context.Context, pID string) error {
+	err := s.gorm.Table(itemTable).WithContext(ctx).
 		Where("id = ? AND deleted_at IS NULL", pID).
 		Update("deleted_at", time.Now()).
 		Error
@@ -60,12 +60,12 @@ func (s *Storage) DeletePoster(ctx context.Context, pID string) error {
 		return err
 	}
 
-	go s.os.DeletePoster(ctx, pID)
+	go s.os.DeleteItem(ctx, pID)
 
 	return nil
 }
 
-func (s *Storage) UpdatePoster(ctx context.Context, p entity.Poster) error {
+func (s *Storage) UpdateItem(ctx context.Context, p models.Item) error {
 	err := s.gorm.Updates(&p).WithContext(ctx).
 		Where("deleted_at IS NULL").
 		Error
@@ -73,11 +73,11 @@ func (s *Storage) UpdatePoster(ctx context.Context, p entity.Poster) error {
 		return err
 	}
 
-	go s.os.IndexPosters(ctx, []entity.Poster{p})
+	go s.os.IndexItems(ctx, []models.Item{p})
 
 	return nil
 }
 
-func (s *Storage) SearchPosters(ctx context.Context, query string) ([]entity.PosterSearch, error) {
-	return s.os.SearchPosters(ctx, query)
+func (s *Storage) SearchItems(ctx context.Context, query string) ([]models.ItemSearch, error) {
+	return s.os.SearchItems(ctx, query)
 }

@@ -7,32 +7,32 @@ import (
 	"fmt"
 	"github.com/google/uuid"
 	"github.com/pkg/errors"
-	"github.com/yaroslavvasilenko/argon/internal/entity"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 	"log"
 	"time"
 )
 
-type PosterIndex struct {
+type ItemIndex struct {
 	Index
 }
 
-func (idx *PosterIndex) GetName() string {
+func (idx *ItemIndex) GetName() string {
 	return idx.Name
 }
 
-func (idx *PosterIndex) GetVersion() int64 {
+func (idx *ItemIndex) GetVersion() int64 {
 	return int64(idx.Version)
 }
 
-func (idx *PosterIndex) GetCreatedAt() *time.Time {
+func (idx *ItemIndex) GetCreatedAt() *time.Time {
 	return idx.CreatedAt
 }
 
-func (idx *PosterIndex) SetCreatedAt(t *time.Time) {
+func (idx *ItemIndex) SetCreatedAt(t *time.Time) {
 	idx.CreatedAt = t
 }
 
-func (idx *PosterIndex) GetSettings() string {
+func (idx *ItemIndex) GetSettings() string {
 	return fmt.Sprintf(`{
         "settings": {
             "analysis": {
@@ -60,24 +60,24 @@ func (idx *PosterIndex) GetSettings() string {
 
 }
 
-func (os *OpenSearch) DeletePoster(ctx context.Context, posterID string) {
+func (os *OpenSearch) DeleteItem(ctx context.Context, posterID string) {
 	go func() {
 		if err := os.deletePoster(ctx, posterID); err != nil {
-			log.Printf("Ошибка при удалении постера %v", err)
+			log.Printf("error delete item in index %v", err)
 		}
 	}()
 }
 
-// DeletePoster Удаляет индекс объявления
-func (os *OpenSearch) deletePoster(ctx context.Context, posterID string) error {
-	if err := os.client.Delete(ctx, os.PosterIdx.GetName(), posterID); err != nil {
-		return errors.Wrapf(err, "error delete poster(%s)", posterID)
+// DeleteItem Удаляет индекс объявления
+func (os *OpenSearch) deletePoster(ctx context.Context, itemID string) error {
+	if err := os.client.Delete(ctx, os.ItemIdx.GetName(), itemID); err != nil {
+		return errors.Wrapf(err, "error delete index(%s)", itemID)
 	}
 	return nil
 }
 
-// SearchPosters Поиск чатов
-func (os *OpenSearch) SearchPosters(ctx context.Context, query string) ([]entity.PosterSearch, error) {
+// SearchItems Поиск объявлений
+func (os *OpenSearch) SearchItems(ctx context.Context, query string) ([]models.ItemSearch, error) {
 	reqBody := fmt.Sprintf(`{
     "query": {
         "prefix": {
@@ -86,17 +86,17 @@ func (os *OpenSearch) SearchPosters(ctx context.Context, query string) ([]entity
     }
 }`, query)
 
-	resBody, err := os.client.Search(ctx, os.PosterIdx.GetName(), reqBody)
+	resBody, err := os.client.Search(ctx, os.ItemIdx.GetName(), reqBody)
 	if err != nil {
-		return nil, errors.Wrapf(err, "error searching chats in index(%s)", os.PosterIdx.GetName())
+		return nil, errors.Wrapf(err, "error searching items in index(%s)", os.ItemIdx.GetName())
 	}
 	defer resBody.Close()
 
 	var res struct {
 		Hits struct {
 			Hits []struct {
-				ID     string              `json:"_id"`
-				Source entity.PosterSearch `json:"_source"`
+				ID     string            `json:"_id"`
+				Source models.ItemSearch `json:"_source"`
 			} `json:"hits"`
 		} `json:"hits"`
 	}
@@ -105,52 +105,51 @@ func (os *OpenSearch) SearchPosters(ctx context.Context, query string) ([]entity
 		return nil, errors.Wrap(err, "error unmarshal response")
 	}
 
-	posters := make([]entity.PosterSearch, 0, len(res.Hits.Hits))
+	items := make([]models.ItemSearch, 0, len(res.Hits.Hits))
 	for _, hit := range res.Hits.Hits {
-		posterID, err := uuid.Parse(hit.ID)
+		itemID, err := uuid.Parse(hit.ID)
 		if err != nil {
 			//  ToDo: log warn
 		}
 
-		hit.Source.ID = posterID // Присваиваем ID из ответа Elasticsearch полю UserID так как этого поля нет в source
-		posters = append(posters, hit.Source)
+		hit.Source.ID = itemID // Присваиваем ID из ответа Elasticsearch полю UserID так как этого поля нет в source
+		items = append(items, hit.Source)
 	}
 
-	return posters, nil
+	return items, nil
 }
 
 func (os *OpenSearch) GetChatsIndexCreatedAt(ctx context.Context) (*time.Time, error) {
-	idx := os.PosterIdx
+	idx := os.ItemIdx
 
 	currentCreatedAt, err := os.client.GetIndexCreationDate(ctx, idx.GetName())
 	if err != nil {
-		return nil, errors.Wrap(err, "could not get index(messages) creation date")
+		return nil, errors.Wrap(err, "could not get index(item) creation date")
 	}
 
 	if (idx.GetCreatedAt() != nil || currentCreatedAt != nil) && !(*idx.GetCreatedAt()).Equal(*currentCreatedAt) {
-		return nil, errors.New("index(messages) creation date does not match")
+		return nil, errors.New("index(item) creation date does not match")
 	}
 
 	return idx.GetCreatedAt(), nil
 }
 
-func (os *OpenSearch) IndexPosters(ctx context.Context, posters []entity.Poster, expectCodes ...int) {
+func (os *OpenSearch) IndexItems(ctx context.Context, items []models.Item, expectCodes ...int) {
 	go func() {
-		if err := os.indexPosters(ctx, entity.NewPosterSearch(posters)); err != nil {
+		if err := os.indexItems(ctx, models.NewItemSearch(items)); err != nil {
 			// Логируем ошибку
-			log.Printf("Ошибка при индексировании постера %v", err)
+			log.Printf("error index item %v", err)
 		}
-
 	}()
 }
 
-func (os *OpenSearch) indexPosters(ctx context.Context, posters []entity.PosterSearch, expectCodes ...int) error {
+func (os *OpenSearch) indexItems(ctx context.Context, items []models.ItemSearch, expectCodes ...int) error {
 	var buf bytes.Buffer
 
-	for _, p := range posters {
+	for _, p := range items {
 		meta := map[string]interface{}{
 			"index": map[string]interface{}{
-				"_index": os.PosterIdx.GetName(),
+				"_index": os.ItemIdx.GetName(),
 				"_id":    p.ID,
 			},
 		}
@@ -170,10 +169,10 @@ func (os *OpenSearch) indexPosters(ctx context.Context, posters []entity.PosterS
 		buf.WriteByte('\n')
 	}
 
-	return os.client.RequestBulk(ctx, os.PosterIdx.GetName(), &buf, expectCodes)
+	return os.client.RequestBulk(ctx, os.ItemIdx.GetName(), &buf, expectCodes)
 }
 
-func (os *OpenSearch) DeleteMessages(ctx context.Context, deleteIDs []string, expectCodes ...int) error {
+func (os *OpenSearch) DeleteItems(ctx context.Context, deleteIDs []string, expectCodes ...int) error {
 	var buf bytes.Buffer
 
 	for _, id := range deleteIDs {
@@ -190,5 +189,5 @@ func (os *OpenSearch) DeleteMessages(ctx context.Context, deleteIDs []string, ex
 		buf.WriteByte('\n')
 	}
 
-	return os.client.RequestBulk(ctx, os.PosterIdx.GetName(), &buf, expectCodes)
+	return os.client.RequestBulk(ctx, os.ItemIdx.GetName(), &buf, expectCodes)
 }

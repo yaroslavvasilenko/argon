@@ -1,0 +1,14 @@
+#file: noinspection YAMLSchemaValidation
+OK:
+  description: OK
+  content:
+    application/json:
+      schema:
+        type: object
+
+NotFound:
+  description: Объект не найден
+  content:
+    application/json:
+      schema:
+        $ref: './schemas.yml#/NotFoundContent'

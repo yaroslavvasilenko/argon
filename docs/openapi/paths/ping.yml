@@ -1,0 +1,13 @@
+ping:
+  get:
+    summary: Проверить доступность сервера
+    tags:
+      - System
+    description: Проверяет, доступен ли сервер.
+    responses:
+      '200':
+        description: Успешный ответ
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/PingResponse'

@@ -1,0 +1,104 @@
+PingResponse:
+  type: object
+  properties:
+    ping:
+      type: string
+      example: pong
+  required:
+    - ping
+
+ItemRequest:
+  type: object
+  properties:
+    title:
+      type: string
+      example: Часы
+    text:
+      type: string
+      example: супер товар
+  required:
+    - title
+    - text
+
+ItemResponse:
+  type: object
+  properties:
+    id:
+      type: string
+      example: "123e4567-e89b-12d3-a456-426614174000"
+    title:
+      type: string
+      example: Часы
+    text:
+      type: string
+      example: супер товар
+  required:
+    - id
+    - title
+    - text
+
+NotFoundContent:
+  type: object
+  properties:
+    code:
+      type: string
+      example: NotFound
+    description:
+      type: string
+      example: Объект не найден
+
+
+Category:
+  type: object
+  properties:
+    id:
+      type: integer
+      example: 1000
+    name:
+      type: string
+      example: "Электроника"
+    children:
+      type: array
+      items:
+        $ref: './schemas.yml#/Category1'
+  required:
+    - id
+    - name
+
+Category1:
+  type: object
+  properties:
+    id:
+      type: integer
+      example: 1000
+    name:
+      type: string
+      example: "Электроника"
+  required:
+    - id
+    - name
+
+CategoriesResponse:
+  type: object
+  properties:
+    categories:
+      type: array
+      items:
+        $ref: './schemas.yml#/Category'
+  required:
+    - categories
+  example:
+    Electronics:
+      Smartphones: {}
+      Laptops: {}
+      Tablets: {}
+      Computers: {}
+      Computer Headset: {}
+    Clothing:
+      Men’s Clothing: {}
+      Women’s Clothing: {}
+    Furniture and Interior Items:
+      Sofas: {}
+      Armchairs: {}
+      Tables: {}
+      Cabinets: {}

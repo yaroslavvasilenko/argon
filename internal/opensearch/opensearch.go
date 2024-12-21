@@ -16,8 +16,8 @@ type Indexer interface {
 }
 
 type OpenSearch struct {
-	client    *Client
-	PosterIdx Indexer
+	client  *Client
+	ItemIdx Indexer
 }
 
 // NewOpenSearch создает новый экземпляр OpenSearch
@@ -33,10 +33,10 @@ func NewOpenSearch(addresses []string, login, password, posterIdxName string) (*
 		return nil, errors.Wrap(err, "error creating opensearch client")
 	}
 
-	posterIdx := NewPosterIndex(posterIdxName)
+	posterIdx := NewItemIndex(posterIdxName)
 	return &OpenSearch{
-		client:    newClient(osClient),
-		PosterIdx: posterIdx,
+		client:  newClient(osClient),
+		ItemIdx: posterIdx,
 	}, nil
 }
 
@@ -50,8 +50,8 @@ func (os *OpenSearch) CreateIndex() {
 
 }
 
-func NewPosterIndex(name string) Indexer {
-	return &PosterIndex{
+func NewItemIndex(name string) Indexer {
+	return &ItemIndex{
 		Index: Index{
 			Name:      name,
 			Version:   1,

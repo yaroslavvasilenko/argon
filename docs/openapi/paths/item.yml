@@ -1,0 +1,77 @@
+itemCollection:
+  post:
+    summary: Создать новое объявление
+    tags:
+      - Item
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yml#/ItemRequest'
+    responses:
+      '200':
+        description: Постер успешно создан
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/ItemResponse'
+
+itemById:
+  get:
+    summary: Получить объявление по ID
+    tags:
+      - Item
+    parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Успешно найденное объявление
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/ItemResponse'
+      '404':
+        $ref: '../components/responses.yml#/NotFound'
+
+  delete:
+    summary: Удалить объявление по ID
+    tags:
+      - Item
+    parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+    responses:
+      '200':
+        description: Объявление успешно удалено
+
+  put:
+    summary: Обновить объявление по ID
+    tags:
+      - Item
+    parameters:
+      - name: item_id
+        in: path
+        required: true
+        schema:
+          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yml#/ItemRequest'
+    responses:
+      '200':
+        description: Постер успешно обновлен
+        content:
+          application/json:
+            schema:
+              $ref: '../components/schemas.yml#/ItemResponse'

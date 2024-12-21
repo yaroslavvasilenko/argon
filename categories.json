@@ -1,0 +1,19 @@
+{
+  "Electronics": {
+    "Smartphones": {},
+    "Laptops": {},
+    "Tablets": {},
+    "Computers": {},
+    "Computer Headset": {}
+  },
+  "Clothing": {
+    "Men’s Clothing": {},
+    "Women’s Clothing": {}
+  },
+  "Furniture and Interior Items": {
+    "Sofas": {},
+    "Armchairs": {},
+    "Tables": {},
+    "Cabinets": {}
+  }
+}

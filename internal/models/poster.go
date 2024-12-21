@@ -1,11 +1,11 @@
-package entity
+package models
 
 import (
 	"github.com/google/uuid"
 	"time"
 )
 
-type Poster struct {
+type Item struct {
 	ID    uuid.UUID `json:"id"`
 	Title string    `json:"title"`
 	Text  string    `json:"text"`

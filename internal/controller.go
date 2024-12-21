@@ -3,7 +3,7 @@ package internal
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/yaroslavvasilenko/argon/internal/entity"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
 type Handler struct {
@@ -22,7 +22,7 @@ func (h *Handler) Ping(c *fiber.Ctx) error {
 
 }
 
-func (h *Handler) CreatePoster(c *fiber.Ctx) error {
+func (h *Handler) CreateItem(c *fiber.Ctx) error {
 	r := &struct {
 		Title string `json:"title"`
 		Text  string `json:"text"`
@@ -33,7 +33,7 @@ func (h *Handler) CreatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	poster, err := h.s.CreatePoster(c.UserContext(), entity.Poster{
+	poster, err := h.s.CreateItem(c.UserContext(), models.Item{
 		Title: r.Title,
 		Text:  r.Text,
 	})
@@ -44,21 +44,21 @@ func (h *Handler) CreatePoster(c *fiber.Ctx) error {
 	return c.JSON(poster)
 }
 
-func (h *Handler) GetPoster(c *fiber.Ctx) error {
-	chatID := c.Params("poster_id")
+func (h *Handler) GetItem(c *fiber.Ctx) error {
+	chatID := c.Params("item_id")
 
-	poster, err := h.s.GetPoster(c.UserContext(), chatID)
+	item, err := h.s.GetItem(c.UserContext(), chatID)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(poster)
+	return c.JSON(item)
 }
 
-func (h *Handler) DeletePoster(c *fiber.Ctx) error {
-	chatID := c.Params("poster_id")
+func (h *Handler) DeleteItem(c *fiber.Ctx) error {
+	itemID := c.Params("item_id")
 
-	err := h.s.DeletePoster(c.UserContext(), chatID)
+	err := h.s.DeleteItem(c.UserContext(), itemID)
 	if err != nil {
 		return err
 	}
@@ -66,9 +66,9 @@ func (h *Handler) DeletePoster(c *fiber.Ctx) error {
 	return nil
 }
 
-func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
-	posterID := uuid.UUID{}
-	err := posterID.Scan(c.Params("poster_id"))
+func (h *Handler) UpdateItem(c *fiber.Ctx) error {
+	itemID := uuid.UUID{}
+	err := itemID.Scan(c.Params("item_id"))
 	if err != nil {
 		return err
 	}
@@ -83,8 +83,8 @@ func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	poster, err := h.s.UpdatePoster(c.UserContext(), entity.Poster{
-		ID:    posterID,
+	item, err := h.s.UpdateItem(c.UserContext(), models.Item{
+		ID:    itemID,
 		Title: r.Title,
 		Text:  r.Text,
 	})
@@ -92,12 +92,12 @@ func (h *Handler) UpdatePoster(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(poster)
+	return c.JSON(item)
 }
 
-func (h *Handler) SearchPosters(c *fiber.Ctx) error {
+func (h *Handler) SearchItems(c *fiber.Ctx) error {
 	q := new(struct {
-		Query string `json:"query" validate:"required,min=1,max=64"`
+		Query string `json:"query"`
 	})
 
 	if err := c.QueryParser(q); err != nil {
@@ -110,4 +110,13 @@ func (h *Handler) SearchPosters(c *fiber.Ctx) error {
 	}
 
 	return c.JSON(posters)
+}
+
+func (h *Handler) GetCategories(c *fiber.Ctx) error {
+	resp, err := h.s.GetCategories(c.UserContext())
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(resp)
 }
