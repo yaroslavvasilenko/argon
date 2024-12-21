@@ -22,7 +22,7 @@ paths:
     $ref: './paths/ping.yml#/ping'
   /api/v1/item:
     $ref: './paths/item.yml#/itemCollection'
-  /api/v1/poster/{item_id}:
+  /api/v1/item/{item_id}:
     $ref: './paths/item.yml#/itemById'
 
 
