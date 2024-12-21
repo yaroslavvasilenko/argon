@@ -7,6 +7,7 @@ import (
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
 	"log"
+	"os"
 	"strings"
 )
 
@@ -24,38 +25,46 @@ type Config struct {
 	Logger struct {
 		Level string
 	}
+	CategoriesJson string
 }
 
 var cfg = Config{}
 
 func LoadConfig() {
-	// Загрузка .env файла
+	// Load .env file
 	err := godotenv.Load(".env")
 	if err != nil {
 		log.Printf("Ошибка загрузки .env файла: %v", err)
 	}
 
-	// Инициализация Koanf
+	// Initialize Koanf
 	k := koanf.New(".")
 
-	// Загрузка конфигурации из config.toml
+	// Load config from config.toml
 	if err := k.Load(file.Provider("./config/config.toml"), toml.Parser()); err != nil {
 		log.Printf("Ошибка загрузки config.toml: %v", err)
 	}
 
-	// Загрузка переменных окружения (перекрывают значения из TOML)
+	// Load environment variables
 	err = k.Load(env.Provider("", "_", func(s string) string {
-		// Переводим ключи переменных в нижний регистр для совместимости
 		return strings.ToLower(strings.ReplaceAll(s, "_", "."))
 	}), nil)
 	if err != nil {
 		log.Fatalf("Ошибка загрузки переменных окружения: %v", err)
 	}
 
-	// Маппинг переменных в структуру Config
+	// Map configuration to struct
 	if err := k.Unmarshal("", &cfg); err != nil {
 		log.Fatalf("Ошибка маппинга конфигурации: %v", err)
 	}
+
+	// Read categories.json
+	categoriesFile, err := os.ReadFile("categories.json")
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+	}
+
+	cfg.CategoriesJson = string(categoriesFile)
 }
 
 func GetConfig() Config {
