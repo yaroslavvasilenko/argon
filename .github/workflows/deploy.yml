@@ -1,6 +1,6 @@
 name: Go CI and Deploy
 
-# События, при которых будет запускаться данный workflow:
+# События, при которых будет запускаться данный workflows:
 on:
   push:
     branches: [ "main" ]
