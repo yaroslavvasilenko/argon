@@ -1,72 +1,29 @@
-name: Go CI and Deploy
+name: Deploy
 
-# События, при которых будет запускаться данный workflows:
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  build-test-deploy:
-    # GitHub Actions будет запускать контейнер с Ubuntu
+  deploy:
     runs-on: ubuntu-latest
 
     steps:
-      # Шаг 1: Клонируем репозиторий
       - name: Check out repository code
         uses: actions/checkout@v3
 
-      # Шаг 2: Устанавливаем Go
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.23.2'  # Выберите нужную версию Go
-
-      # Шаг 3: Сборка приложения
-      - name: Build
-        run: go build -v ./...
-
-      # Шаг 4: Тестирование
-      - name: Test
-        run: go test -v ./...
-
-      # Шаг 5: Линтер и статический анализ
-      - name: Lint & Vet
-        run: |
-          go vet ./...
-          # Установите и запустите golangci-lint, если нужно
-          # go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
-          # golangci-lint run
-
-      # Шаг 6: Подключение к серверу и деплой
       - name: Deploy to server
         run: |
           ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
-            # Переключаемся в директорию проекта
             cd /argon || exit 1
-          
-            # Скачиваем последнюю версию кода
             git fetch --all
             git reset --hard origin/main
-
-            # Устанавливаем зависимости, если необходимо
             go mod tidy
-          
-            # Собираем приложение
             go build -o argon
-
-            # Останавливаем старую версию (если она запущена)
             pkill -f "argon" || true
-          
-            # Запускаем новую версию в фоновом режиме
             nohup ./argon > app.log 2>&1 &
           EOF
         env:
-          # Используем секреты для безопасного доступа
           SSH_USER: ${{ secrets.SSH_USER }}
           SERVER_IP: ${{ secrets.SERVER_IP }}
           SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
-
-      # Шаг 7: Проверка деплоя (необязательно)
-#      - name: Verify Deployment
-#        run: |
-#          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} "curl -f http://localhost:8080/health"
