@@ -44,11 +44,11 @@ jobs:
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
-
-      - name: Set up Go
-        uses: actions/setup-go@v3
-        with:
-          go-version: '1.23.2'
+#
+#      - name: Set up Go
+#        uses: actions/setup-go@v3
+#        with:
+#          go-version: '1.23.2'
 
       - name: Deploy to server
         uses: appleboy/ssh-action@v1.2.0
@@ -63,6 +63,9 @@ jobs:
             # Устанавливаем в PATH путь к go
             export PATH=$PATH:/usr/local/go/bin
             go version
+            
+            pwd
+            ls - a
 
             # Скачиваем последнюю версию кода
             git fetch --all
