@@ -63,9 +63,6 @@ jobs:
             # Устанавливаем в PATH путь к go
             export PATH=$PATH:/usr/local/go/bin
             go version
-            
-            pwd
-            ls -a
 
             # Скачиваем последнюю версию кода
             git fetch --all
@@ -76,4 +73,11 @@ jobs:
 
             # Собираем приложение
             go build -o argon ./cmd/main.go
+            
+                        # Останавливаем старую версию (если она запущена)
+            pgrep -f "argon" && pkill -f "argon"
+
+            # Запускаем новую версию в фоновом режиме
+            nohup ./argon > app.log 2>&1 &
+
 
