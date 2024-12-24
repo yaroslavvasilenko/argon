@@ -37,12 +37,38 @@ services:
 #    deploy:
 #      resources:
 #        limits:
-#          memory: 2g         # Ограничение по памяти для контейнера
+#          memory: 2g
 #        reservations:
-#          memory: 1g         # Резервированное количество памяти
+#          memory: 1g
+
+  argon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: argon
+    # Передаём всё, что есть в .env, внутрь контейнера
+    env_file:
+      - .env
+    # Или, если хотите явно перечислять те же переменные:
+    # environment:
+    #   DB_USER: ${DB_USER}
+    #   DB_PASS: ${DB_PASS}
+    #   DB_NAME: ${DB_NAME}
+    #   DB_HOST: postgres
+    #   DB_PORT: ${DB_PORT}
+    #   OPENSEARCH_HOST: opensearch
+    #   OPENSEARCH_PORT: 9200
+    #   OPENSEARCH_LOGIN: ${OPENSEARCH_LOGIN}
+    #   OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
+    ports:
+      - "8080:8080"
+    restart: always
+    depends_on:
+      - postgres
+#      - opensearch
 
 volumes:
   postgres_data:
     driver: local
-#  opensearch_data:
-#    driver: local
+  opensearch_data:
+    driver: local

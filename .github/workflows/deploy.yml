@@ -71,13 +71,8 @@ jobs:
             # Устанавливаем зависимости (если необходимо)
             go mod tidy
 
-            # Собираем приложение
-            go build -o argon ./cmd/main.go
+            docker-compose down argon
             
-                        # Останавливаем старую версию (если она запущена)
-            pkill -f "argon" || true
-
-            # Запускаем новую версию в фоновом режиме
-            nohup ./argon > app.log 2>&1 &
+            docker-compose up -d argon
 
 
