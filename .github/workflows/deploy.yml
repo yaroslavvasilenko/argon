@@ -1,29 +1,77 @@
-name: Deploy
+name: Go CI and Deploy
 
 on:
   push:
     branches: [ "main" ]
 
 jobs:
-  deploy:
+  lint:
     runs-on: ubuntu-latest
-
     steps:
       - name: Check out repository code
         uses: actions/checkout@v3
 
-      - name: Deploy to server
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.2'
+
+      - name: Run Lint & Vet
         run: |
-          ssh -o StrictHostKeyChecking=no ${{ secrets.SSH_USER }}@${{ secrets.SERVER_IP }} << 'EOF'
+          go vet ./...
+          # Установите и запустите golangci-lint, если нужно
+          # go install github.com/golangci/golangci-lint/cmd/golangci-lint@latest
+          # golangci-lint run
+
+  test:
+    runs-on: ubuntu-latest
+    needs: lint
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.2'
+
+      - name: Run Tests
+        run: go test -v ./...
+
+  deploy:
+    runs-on: ubuntu-latest
+    needs: test
+    steps:
+      - name: Check out repository code
+        uses: actions/checkout@v3
+
+      - name: Set up Go
+        uses: actions/setup-go@v3
+        with:
+          go-version: '1.23.2'
+
+      - name: Deploy to server
+        uses: appleboy/ssh-action@v1.2.0
+        with:
+          host: ${{ secrets.SERVER_IP }}
+          username: ${{ secrets.SSH_USER }}
+          key: ${{ secrets.SSH_PRIVATE_KEY }}
+          script: |
+            # Переходим в директорию проекта
             cd /argon || exit 1
+
+            # Скачиваем последнюю версию кода
             git fetch --all
             git reset --hard origin/main
+
+            # Устанавливаем зависимости (если необходимо)
             go mod tidy
+
+            # Собираем приложение
             go build -o argon
+
+            # Останавливаем старую версию (если она запущена)
             pkill -f "argon" || true
+
+            # Запускаем новую версию в фоновом режиме
             nohup ./argon > app.log 2>&1 &
-          EOF
-        env:
-          SSH_USER: ${{ secrets.SSH_USER }}
-          SERVER_IP: ${{ secrets.SERVER_IP }}
-          SSH_PRIVATE_KEY: ${{ secrets.SSH_PRIVATE_KEY }}
