@@ -75,7 +75,7 @@ jobs:
             go mod tidy
 
             # Собираем приложение
-            go build -o argon ./cmd/main.go
+            go build -o argon ./cmd
 
             # Останавливаем старую версию (если она запущена)
             pkill -f "argon" || true
