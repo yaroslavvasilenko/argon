@@ -59,6 +59,10 @@ jobs:
           script: |
             # Переходим в директорию проекта
             cd /argon || exit 1
+            
+            # Устанавливаем в PATH путь к go
+            export PATH=$PATH:/usr/local/go/bin
+            go version
 
             # Скачиваем последнюю версию кода
             git fetch --all
