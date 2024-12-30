@@ -31,31 +31,30 @@ type Config struct {
 var cfg = Config{}
 
 func LoadConfig() {
-	// Load .env file
-	err := godotenv.Load(".env")
-	if err != nil {
-		log.Printf("Ошибка загрузки .env файла: %v", err)
-	}
-
 	// Initialize Koanf
 	k := koanf.New(".")
 
-	// Load config from config.toml
+	// Load config from config.toml first
 	if err := k.Load(file.Provider("./config/config.toml"), toml.Parser()); err != nil {
 		log.Printf("Ошибка загрузки config.toml: %v", err)
 	}
 
-	// Load environment variables
-	err = k.Load(env.Provider("", "_", func(s string) string {
-		return strings.ToLower(strings.ReplaceAll(s, "_", "."))
-	}), nil)
-	if err != nil {
-		log.Fatalf("Ошибка загрузки переменных окружения: %v", err)
+	// Load .env file if exists
+	if err := godotenv.Load(".env"); err != nil {
+		log.Printf("Информация: .env файл не найден: %v", err)
 	}
 
-	// Map configuration to struct
+	// Load environment variables with prefix APP_
+	callback := func(s string) string {
+		return strings.ToLower(strings.ReplaceAll(strings.TrimPrefix(s, "APP_"), "_", "."))
+	}
+	if err := k.Load(env.Provider("APP_", "_", callback), nil); err != nil {
+		log.Printf("Ошибка загрузки переменных окружения: %v", err)
+	}
+
+	// Unmarshal config into struct
 	if err := k.Unmarshal("", &cfg); err != nil {
-		log.Fatalf("Ошибка маппинга конфигурации: %v", err)
+		log.Fatalf("Ошибка при разборе конфигурации: %v", err)
 	}
 
 	// Read categories.json

@@ -21,9 +21,9 @@ RUN CGO_ENABLED=0 GOOS=linux go build -o /go/bin/app
 FROM alpine:latest
 WORKDIR /root/
 
-
-
+# Копируем бинарник из builder-контейнера
 COPY --from=builder /go/bin/app .
+
 COPY --from=builder /app/config/config.toml ./config/
 COPY --from=builder /app/categories.json .
 
