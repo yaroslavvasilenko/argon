@@ -36,20 +36,21 @@ func LoadConfig() {
 
 	// Load config from config.toml first
 	if err := k.Load(file.Provider("./config/config.toml"), toml.Parser()); err != nil {
-		log.Printf("Ошибка загрузки config.toml: %v", err)
+		log.Printf("Warning: error loading config.toml: %v", err)
 	}
 
 	// Load .env file if exists
 	if err := godotenv.Load(".env"); err != nil {
-		log.Printf("Информация: .env файл не найден: %v", err)
+		log.Printf("Info: .env file not found: %v", err)
 	}
 
 	// Load environment variables with prefix APP_
-	callback := func(s string) string {
-		return strings.ToLower(strings.ReplaceAll(strings.TrimPrefix(s, "APP_"), "_", "."))
-	}
-	if err := k.Load(env.Provider("APP_", "_", callback), nil); err != nil {
-		log.Printf("Ошибка загрузки переменных окружения: %v", err)
+	err := k.Load(env.Provider("APP_", ".", func(s string) string {
+		return strings.Replace(strings.ToLower(
+			strings.TrimPrefix(s, "APP_")), "_", ".", -1)
+	}), nil)
+	if err != nil {
+		log.Fatalf("Ошибка при загрузке переменных окружения: %v", err)
 	}
 
 	// Unmarshal config into struct
