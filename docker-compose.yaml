@@ -14,58 +14,32 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-#  opensearch:
-#    image: opensearchproject/opensearch:2.13.0
-#    container_name: opensearch
-#    restart: always
-#    environment:
-#      discovery.type: single-node
-#      plugins.security.disabled: 'true'
-#      bootstrap.memory_lock: 'true'
-#      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
-#      OPENSEARCH_INITIAL_ADMIN_USERNAME: ${OPENSEARCH_LOGIN}
-#      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_PASSWORD}
-#    ulimits:
-#      memlock:
-#        soft: -1
-#        hard: -1
-#    ports:
-#      - "9200:9200"
-#      - "9600:9600"
-#    volumes:
-#      - opensearch_data:/usr/share/opensearch/data
-#    deploy:
-#      resources:
-#        limits:
-#          memory: 2g
-#        reservations:
-#          memory: 1g
-
-  argon:
-    build:
-      context: .
-      dockerfile: Dockerfile
-    container_name: argon
-    # Передаём всё, что есть в .env, внутрь контейнера
-    env_file:
-      - .env
-    # Или, если хотите явно перечислять те же переменные:
-    # environment:
-    #   DB_USER: ${DB_USER}
-    #   DB_PASS: ${DB_PASS}
-    #   DB_NAME: ${DB_NAME}
-    #   DB_HOST: postgres
-    #   DB_PORT: ${DB_PORT}
-    #   OPENSEARCH_HOST: opensearch
-    #   OPENSEARCH_PORT: 9200
-    #   OPENSEARCH_LOGIN: ${OPENSEARCH_LOGIN}
-    #   OPENSEARCH_PASSWORD: ${OPENSEARCH_PASSWORD}
-    ports:
-      - "8080:8080"
+  opensearch:
+    image: opensearchproject/opensearch:2.13.0
+    container_name: opensearch
     restart: always
-    depends_on:
-      - postgres
-#      - opensearch
+    environment:
+      discovery.type: single-node
+      plugins.security.disabled: 'true'
+      bootstrap.memory_lock: 'true'
+      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
+      OPENSEARCH_INITIAL_ADMIN_USERNAME: ${OPENSEARCH_LOGIN}
+      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_PASSWORD}
+    ulimits:
+      memlock:
+        soft: -1
+        hard: -1
+    ports:
+      - "9200:9200"
+      - "9600:9600"
+    volumes:
+      - opensearch_data:/usr/share/opensearch/data
+    deploy:
+      resources:
+        limits:
+          memory: 2g
+        reservations:
+          memory: 1g
 
 volumes:
   postgres_data:
