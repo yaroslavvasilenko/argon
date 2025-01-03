@@ -7,7 +7,7 @@ PingResponse:
   required:
     - ping
 
-ItemRequest:
+ListingRequest:
   type: object
   properties:
     title:
@@ -20,7 +20,7 @@ ItemRequest:
     - title
     - text
 
-ItemResponse:
+ListingResponse:
   type: object
   properties:
     id:

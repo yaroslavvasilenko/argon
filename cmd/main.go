@@ -8,7 +8,6 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal"
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
-	"github.com/yaroslavvasilenko/argon/internal/opensearch"
 	"github.com/yaroslavvasilenko/argon/internal/router"
 	"os"
 )
@@ -25,7 +24,7 @@ func main() {
 	lg.Info().Msg("starting app...")
 
 	exit := func(msg string, err error) {
-		lg.Err(err).Msg("exiting")
+		lg.Err(err).Msg(msg)
 		os.Exit(1)
 	}
 
@@ -41,12 +40,8 @@ func main() {
 		exit(fmt.Sprintf("migrating db %s", cfg.DB.Url), err)
 	}
 
-	openSearch, err := opensearch.NewOpenSearch(cfg.OpenSearch.Addr, cfg.OpenSearch.Login, cfg.OpenSearch.Password, cfg.OpenSearch.PosterIndex)
-	if err != nil {
-		exit(fmt.Sprintf("connecting to opensearch %+v", cfg.OpenSearch), err)
-	}
 
-	storagesDB := internal.NewStorage(gorm, pool, openSearch)
+	storagesDB := internal.NewStorage(gorm, pool)
 
 	service := internal.NewService(storagesDB)
 	controller := internal.NewHandler(service)

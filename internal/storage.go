@@ -6,7 +6,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yaroslavvasilenko/argon/internal/models"
-	"github.com/yaroslavvasilenko/argon/internal/opensearch"
 	"gorm.io/gorm"
 	"time"
 )
@@ -14,28 +13,25 @@ import (
 type Storage struct {
 	gorm *gorm.DB
 	pool *pgxpool.Pool
-	os   *opensearch.OpenSearch
 }
 
-const itemTable = "items"
+const itemTable = "listings"
 
-func NewStorage(db *gorm.DB, pool *pgxpool.Pool, os *opensearch.OpenSearch) *Storage {
-	return &Storage{gorm: db, pool: pool, os: os}
+func NewStorage(db *gorm.DB, pool *pgxpool.Pool) *Storage {
+	return &Storage{gorm: db, pool: pool}
 }
 
-func (s *Storage) CreateItem(ctx context.Context, p models.Item) error {
+func (s *Storage) CreateListing(ctx context.Context, p models.Listing) error {
 	err := s.gorm.Create(&p).WithContext(ctx).Error
 	if err != nil {
 		return err
 	}
 
-	go s.os.IndexItems(ctx, []models.Item{p})
-
 	return nil
 }
 
-func (s *Storage) GetItem(ctx context.Context, pID string) (models.Item, error) {
-	poster := models.Item{}
+func (s *Storage) GetListing(ctx context.Context, pID string) (models.Listing, error) {
+	poster := models.Listing{}
 
 	err := s.gorm.Table(itemTable).WithContext(ctx).
 		Where("id = ? AND deleted_at IS NULL", pID).
@@ -43,15 +39,15 @@ func (s *Storage) GetItem(ctx context.Context, pID string) (models.Item, error) 
 		Error
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.Item{}, fiber.NewError(fiber.StatusNotFound, err.Error())
+			return models.Listing{}, fiber.NewError(fiber.StatusNotFound, err.Error())
 		}
-		return models.Item{}, err
+		return models.Listing{}, err
 	}
 
 	return poster, nil
 }
 
-func (s *Storage) DeleteItem(ctx context.Context, pID string) error {
+func (s *Storage) DeleteListing(ctx context.Context, pID string) error {
 	err := s.gorm.Table(itemTable).WithContext(ctx).
 		Where("id = ? AND deleted_at IS NULL", pID).
 		Update("deleted_at", time.Now()).
@@ -60,12 +56,10 @@ func (s *Storage) DeleteItem(ctx context.Context, pID string) error {
 		return err
 	}
 
-	go s.os.DeleteItem(ctx, pID)
-
 	return nil
 }
 
-func (s *Storage) UpdateItem(ctx context.Context, p models.Item) error {
+func (s *Storage) UpdateListing(ctx context.Context, p models.Listing) error {
 	err := s.gorm.Updates(&p).WithContext(ctx).
 		Where("deleted_at IS NULL").
 		Error
@@ -73,11 +67,9 @@ func (s *Storage) UpdateItem(ctx context.Context, p models.Item) error {
 		return err
 	}
 
-	go s.os.IndexItems(ctx, []models.Item{p})
-
 	return nil
 }
 
-func (s *Storage) SearchItems(ctx context.Context, query string) ([]models.ItemSearch, error) {
-	return s.os.SearchItems(ctx, query)
+func (s *Storage) SearchListings(ctx context.Context, query string) ([]models.ListingSearch, error) {
+	return []models.ListingSearch{}, nil
 }

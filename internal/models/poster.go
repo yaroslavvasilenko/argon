@@ -5,7 +5,7 @@ import (
 	"time"
 )
 
-type Item struct {
+type Listing struct {
 	ID    uuid.UUID `json:"id"`
 	Title string    `json:"title"`
 	Text  string    `json:"text"`

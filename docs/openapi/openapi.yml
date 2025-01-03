@@ -6,11 +6,10 @@ info:
 servers:
   - url: http://127.0.0.1
 
-
 tags:
   - name: System
     description: Системные операции
-  - name: Item
+  - name: Listing
     description: Работа с объявлениями
   - name: Categories
     description: Работа с категориями
@@ -20,20 +19,67 @@ tags:
 paths:
   /ping:
     $ref: './paths/ping.yml#/ping'
-  /api/v1/item:
-    $ref: './paths/item.yml#/itemCollection'
-  /api/v1/item/{item_id}:
-    $ref: './paths/item.yml#/itemById'
-
-
+  /api/v1/listing:
+    $ref: './paths/listing.yml#/listingCollection'
+  /api/v1/listing/{listing_id}:
+    $ref: './paths/listing.yml#/listingById'
   /api/v1/categories:
     $ref: './paths/categories.yml#/categoriesCollection'
-
   /api/v1/search:
     $ref: './paths/search.yml#/search'
 
 components:
   schemas:
-    $ref: './components/schemas.yml'
+    PingResponse:
+      type: object
+      properties:
+        ping:
+          type: string
+          example: pong
+      required:
+        - ping
+
+    ListingRequest:
+      type: object
+      properties:
+        title:
+          type: string
+          example: Часы
+        text:
+          type: string
+          example: супер товар
+      required:
+        - title
+        - text
+
+    ListingResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          example: Часы
+        text:
+          type: string
+          example: супер товар
+      required:
+        - id
+        - title
+        - text
+
   responses:
-    $ref: './components/responses.yml'
+    NotFound:
+      description: Объект не найден
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: NotFound
+              description:
+                type: string
+                example: Объект не найден

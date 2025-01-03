@@ -14,35 +14,21 @@ services:
     volumes:
       - postgres_data:/var/lib/postgresql/data
 
-  opensearch:
-    image: opensearchproject/opensearch:2.13.0
-    container_name: opensearch
-    restart: always
+  argon:
+    build:
+      context: .
+      dockerfile: Dockerfile
+    container_name: argon
+    # Передаём всё, что есть в .env, внутрь контейнера
     environment:
-      discovery.type: single-node
-      plugins.security.disabled: 'true'
-      bootstrap.memory_lock: 'true'
-      OPENSEARCH_JAVA_OPTS: "-Xms512m -Xmx512m"
-      OPENSEARCH_INITIAL_ADMIN_USERNAME: ${OPENSEARCH_LOGIN}
-      OPENSEARCH_INITIAL_ADMIN_PASSWORD: ${OPENSEARCH_PASSWORD}
-    ulimits:
-      memlock:
-        soft: -1
-        hard: -1
+      # Передаём всё, что есть в .env, внутрь контейнера
+      - APP_DB_URL="postgresql://postgres:postgres@db:5432/postgres"
     ports:
-      - "9200:9200"
-      - "9600:9600"
-    volumes:
-      - opensearch_data:/usr/share/opensearch/data
-    deploy:
-      resources:
-        limits:
-          memory: 2g
-        reservations:
-          memory: 1g
+      - "8080:8080"
+    restart: always
+    depends_on:
+      - postgres
 
 volumes:
   postgres_data:
-    driver: local
-  opensearch_data:
     driver: local

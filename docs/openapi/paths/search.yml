@@ -17,4 +17,4 @@ search:
             schema:
               type: array
               items:
-                $ref: '../components/schemas.yml#/ItemResponse'
+                $ref: '../components/schemas.yml#/ListingResponse'

@@ -1,6 +1,6 @@
 -- +goose Up
 -- +goose StatementBegin
-CREATE TABLE IF NOT EXISTS items (
+CREATE TABLE IF NOT EXISTS listings (
     id UUID NOT NULL PRIMARY KEY,
     title VARCHAR(255) NOT NULL,
     text TEXT NOT NULL,
@@ -15,5 +15,5 @@ CREATE TABLE IF NOT EXISTS items (
 
 -- +goose Down
 -- +goose StatementBegin
-DROP TABLE IF EXISTS posters;
+DROP TABLE IF EXISTS listings;
 -- +goose StatementEnd
