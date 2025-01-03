@@ -22,7 +22,7 @@ func (h *Handler) Ping(c *fiber.Ctx) error {
 
 }
 
-func (h *Handler) CreateItem(c *fiber.Ctx) error {
+func (h *Handler) CreateListing(c *fiber.Ctx) error {
 	r := &struct {
 		Title string `json:"title"`
 		Text  string `json:"text"`
@@ -33,7 +33,7 @@ func (h *Handler) CreateItem(c *fiber.Ctx) error {
 		return err
 	}
 
-	poster, err := h.s.CreateItem(c.UserContext(), models.Item{
+	listing, err := h.s.CreateListing(c.UserContext(), models.Listing{
 		Title: r.Title,
 		Text:  r.Text,
 	})
@@ -41,24 +41,24 @@ func (h *Handler) CreateItem(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(poster)
+	return c.JSON(listing)
 }
 
-func (h *Handler) GetItem(c *fiber.Ctx) error {
-	chatID := c.Params("item_id")
+func (h *Handler) GetListing(c *fiber.Ctx) error {
+	listingID := c.Params("listing_id")
 
-	item, err := h.s.GetItem(c.UserContext(), chatID)
+	listing, err := h.s.GetListing(c.UserContext(), listingID)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(item)
+	return c.JSON(listing)
 }
 
-func (h *Handler) DeleteItem(c *fiber.Ctx) error {
-	itemID := c.Params("item_id")
+func (h *Handler) DeleteListing(c *fiber.Ctx) error {
+	listingID := c.Params("listing_id")
 
-	err := h.s.DeleteItem(c.UserContext(), itemID)
+	err := h.s.DeleteListing(c.UserContext(), listingID)
 	if err != nil {
 		return err
 	}
@@ -66,9 +66,9 @@ func (h *Handler) DeleteItem(c *fiber.Ctx) error {
 	return nil
 }
 
-func (h *Handler) UpdateItem(c *fiber.Ctx) error {
-	itemID := uuid.UUID{}
-	err := itemID.Scan(c.Params("item_id"))
+func (h *Handler) UpdateListing(c *fiber.Ctx) error {
+	listingID := uuid.UUID{}
+	err := listingID.Scan(c.Params("listing_id"))
 	if err != nil {
 		return err
 	}
@@ -83,8 +83,8 @@ func (h *Handler) UpdateItem(c *fiber.Ctx) error {
 		return err
 	}
 
-	item, err := h.s.UpdateItem(c.UserContext(), models.Item{
-		ID:    itemID,
+	listing, err := h.s.UpdateListing(c.UserContext(), models.Listing{
+		ID:    listingID,
 		Title: r.Title,
 		Text:  r.Text,
 	})
@@ -92,10 +92,10 @@ func (h *Handler) UpdateItem(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(item)
+	return c.JSON(listing)
 }
 
-func (h *Handler) SearchItems(c *fiber.Ctx) error {
+func (h *Handler) SearchListings(c *fiber.Ctx) error {
 	q := new(struct {
 		Query string `json:"query"`
 	})
@@ -104,12 +104,12 @@ func (h *Handler) SearchItems(c *fiber.Ctx) error {
 		return err
 	}
 
-	posters, err := h.s.SearchPosters(c.UserContext(), q.Query)
+	listings, err := h.s.SearchListings(c.UserContext(), q.Query)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(posters)
+	return c.JSON(listings)
 }
 
 func (h *Handler) GetCategories(c *fiber.Ctx) error {

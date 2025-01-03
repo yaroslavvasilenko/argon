@@ -3,12 +3,15 @@ package internal
 import (
 	"context"
 	"encoding/json"
+	"errors"
+	"time"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/vertica/vertica-sql-go/logger"
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/models"
-	"time"
+	"gorm.io/gorm"
 )
 
 type Service struct {
@@ -24,72 +27,73 @@ func (s *Service) Ping() string {
 	return "pong"
 }
 
-func (s *Service) CreateItem(ctx context.Context, p models.Item) (models.Item, error) {
-	timeNow := time.Now()
+func (s *Service) CreateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
 	p.ID = uuid.New()
-	p.CreatedAt = timeNow
-	p.UpdatedAt = timeNow
-	err := s.s.CreateItem(ctx, p)
-	if err != nil {
-		return models.Item{}, err
-	}
+	p.CreatedAt = time.Now()
 
-	return s.s.GetItem(ctx, p.ID.String())
+	err := s.s.CreateListing(ctx, p)
+	if err != nil {
+		return models.Listing{}, err
+	}
+	return s.s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Service) GetItem(ctx context.Context, pID string) (models.Item, error) {
-	poster, err := s.s.GetItem(ctx, pID)
+func (s *Service) GetListing(ctx context.Context, pID string) (models.Listing, error) {
+	listing, err := s.s.GetListing(ctx, pID)
 	if err != nil {
-		err = fiber.NewError(fiber.StatusNotFound, err.Error())
-
-		return models.Item{}, err
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return models.Listing{}, err
+		}
+		return models.Listing{}, err
 	}
 
-	return poster, nil
+	return listing, nil
 }
 
-func (s *Service) DeleteItem(ctx context.Context, pID string) error {
-	err := s.s.DeleteItem(ctx, pID)
+func (s *Service) DeleteListing(ctx context.Context, pID string) error {
+	err := s.s.DeleteListing(ctx, pID)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return fiber.NewError(fiber.StatusNotFound, err.Error())
+		}
 		return err
 	}
 
 	return nil
 }
 
-func (s *Service) UpdateItem(ctx context.Context, p models.Item) (models.Item, error) {
-	timeNow := time.Now()
-	p.UpdatedAt = timeNow
-	err := s.s.UpdateItem(ctx, p)
+func (s *Service) UpdateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
+	p.UpdatedAt = time.Now()
+
+	err := s.s.UpdateListing(ctx, p)
 	if err != nil {
-		return models.Item{}, err
+		return models.Listing{}, err
 	}
 
-	return s.GetItem(ctx, p.ID.String())
+	return s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Service) SearchPosters(ctx context.Context, query string) ([]models.Item, error) {
-	itemsSearch, err := s.s.SearchItems(ctx, query)
+func (s *Service) SearchListings(ctx context.Context, query string) ([]models.Listing, error) {
+	listingsSearch, err := s.s.SearchListings(ctx, query)
 	if err != nil {
+		if errors.Is(err, gorm.ErrRecordNotFound) {
+			return nil, fiber.NewError(fiber.StatusNotFound, err.Error())
+		}
 		return nil, err
 	}
 
-	if len(itemsSearch) == 0 {
-		return nil, nil
-	}
+	listings := make([]models.Listing, 0, len(listingsSearch))
 
-	posters := make([]models.Item, 0, len(itemsSearch))
-
-	for _, p := range itemsSearch {
-		poster, err := s.s.GetItem(ctx, p.ID.String())
+	for _, p := range listingsSearch {
+		listing, err := s.s.GetListing(ctx, p.ID.String())
 		if err != nil {
 			return nil, err
 		}
 
-		posters = append(posters, poster)
+		listings = append(listings, listing)
 	}
 
-	return posters, nil
+	return listings, nil
 }
 
 func (s *Service) GetCategories(ctx context.Context) (map[string]interface{}, error) {

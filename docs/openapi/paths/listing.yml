@@ -1,29 +1,29 @@
-itemCollection:
+listingCollection:
   post:
     summary: Создать новое объявление
     tags:
-      - Item
+      - Listing
     requestBody:
       required: true
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yml#/ItemRequest'
+            $ref: '../components/schemas.yml#/ListingRequest'
     responses:
       '200':
-        description: Постер успешно создан
+        description: Объявление успешно создано
         content:
           application/json:
             schema:
-              $ref: '../components/schemas.yml#/ItemResponse'
+              $ref: '../components/schemas.yml#/ListingResponse'
 
-itemById:
+listingById:
   get:
     summary: Получить объявление по ID
     tags:
-      - Item
+      - Listing
     parameters:
-      - name: item_id
+      - name: listing_id
         in: path
         required: true
         schema:
@@ -34,16 +34,16 @@ itemById:
         content:
           application/json:
             schema:
-              $ref: '../components/schemas.yml#/ItemResponse'
+              $ref: '../components/schemas.yml#/ListingResponse'
       '404':
         $ref: '../components/responses.yml#/NotFound'
 
   delete:
     summary: Удалить объявление по ID
     tags:
-      - Item
+      - Listing
     parameters:
-      - name: item_id
+      - name: listing_id
         in: path
         required: true
         schema:
@@ -55,9 +55,9 @@ itemById:
   put:
     summary: Обновить объявление по ID
     tags:
-      - Item
+      - Listing
     parameters:
-      - name: item_id
+      - name: listing_id
         in: path
         required: true
         schema:
@@ -67,11 +67,11 @@ itemById:
       content:
         application/json:
           schema:
-            $ref: '../components/schemas.yml#/ItemRequest'
+            $ref: '../components/schemas.yml#/ListingRequest'
     responses:
       '200':
-        description: Постер успешно обновлен
+        description: Объявление успешно обновлено
         content:
           application/json:
             schema:
-              $ref: '../components/schemas.yml#/ItemResponse'
+              $ref: '../components/schemas.yml#/ListingResponse'

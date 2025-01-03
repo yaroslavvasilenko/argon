@@ -1,26 +1,21 @@
 package config
 
 import (
+	"log"
+	"os"
+	"strings"
+
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-	"log"
-	"os"
-	"strings"
 )
 
 type Config struct {
 	Port string
 	DB   struct {
-		Url string
-	}
-	OpenSearch struct {
-		Addr        []string
-		Login       string
-		Password    string
-		PosterIndex string `koanf:"poster_index"`
+		Url string `koanf:"url"`
 	}
 	Logger struct {
 		Level string
