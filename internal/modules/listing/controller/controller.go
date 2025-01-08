@@ -1,16 +1,18 @@
-package internal
+package controller
 
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/internal/models"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
 )
 
 type Handler struct {
-	s *Service
+	s *service.Service
 }
 
-func NewHandler(s *Service) *Handler {
+func NewHandler(s *service.Service) *Handler {
 	return &Handler{s: s}
 }
 
@@ -96,15 +98,16 @@ func (h *Handler) UpdateListing(c *fiber.Ctx) error {
 }
 
 func (h *Handler) SearchListings(c *fiber.Ctx) error {
-	q := new(struct {
-		Query string `json:"query"`
-	})
+	req := listing.SearchListingsRequest{}
 
-	if err := c.QueryParser(q); err != nil {
+	if err := c.QueryParser(&req); err != nil {
 		return err
 	}
+	if req.Limit == 0 {
+		req.Limit = 20
+	}
 
-	listings, err := h.s.SearchListings(c.UserContext(), q.Query)
+	listings, err := h.s.SearchListings(c.UserContext(), req)
 	if err != nil {
 		return err
 	}

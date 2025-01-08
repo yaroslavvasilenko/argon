@@ -1,20 +1,21 @@
 search:
-  get:
-    summary: Искать объявления по ключевым словам
+  post:
+    summary: Поиск объявлений
+    description: Поиск объявлений по ключевым словам с поддержкой пагинации
     tags:
       - Search
-    parameters:
-      - name: query
-        in: query
-        required: true
-        schema:
-          type: string
+    requestBody:
+      required: true
+      content:
+        application/json:
+          schema:
+            $ref: '../components/schemas.yml#/SearchListingsRequest'
     responses:
       '200':
-        description: Результаты поиска
+        description: Успешный поиск
         content:
           application/json:
             schema:
-              type: array
-              items:
-                $ref: '../components/schemas.yml#/ListingResponse'
+              $ref: '../components/schemas.yml#/SearchListingsResponse'
+      '400':
+        $ref: '../components/responses.yml#/BadRequest'

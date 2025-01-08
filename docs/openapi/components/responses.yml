@@ -12,3 +12,20 @@ NotFound:
     application/json:
       schema:
         $ref: './schemas.yml#/NotFoundContent'
+
+BadRequest:
+  description: Некорректный запрос
+  content:
+    application/json:
+      schema:
+        type: object
+        properties:
+          code:
+            type: string
+            example: BadRequest
+          description:
+            type: string
+            example: Некорректные параметры запроса
+        required:
+          - code
+          - description

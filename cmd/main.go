@@ -5,9 +5,11 @@ import (
 	"fmt"
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/database"
-	"github.com/yaroslavvasilenko/argon/internal"
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing/controller"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
 	"github.com/yaroslavvasilenko/argon/internal/router"
 	"os"
 )
@@ -30,7 +32,7 @@ func main() {
 
 	ctx := context.Background()
 
-	gorm, pool, err := db.NewSqlDB(ctx, cfg.DB.Url)
+	gorm, pool, err := db.NewSqlDB(ctx, cfg.DB.Url, lg.Logger, true)
 	if err != nil {
 		exit(fmt.Sprintf("connecting to db %s", cfg.DB.Url), err)
 	}
@@ -41,10 +43,10 @@ func main() {
 	}
 
 
-	storagesDB := internal.NewStorage(gorm, pool)
+	storagesDB := storage.NewStorage(gorm, pool)
 
-	service := internal.NewService(storagesDB)
-	controller := internal.NewHandler(service)
+	service := service.NewService(storagesDB)
+	controller := controller.NewHandler(service)
 	// init router
 	r := router.NewApiRouter(controller)
 
