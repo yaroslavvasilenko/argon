@@ -2,12 +2,13 @@ package router
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/yaroslavvasilenko/argon/internal"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing/controller"
+
 )
 
 const AppName = "argon"
 
-func NewApiRouter(controllers *internal.Handler) *fiber.App {
+func NewApiRouter(controllers *controller.Handler) *fiber.App {
 	// Application (fiber)
 	r := fiber.New(fiber.Config{
 		ErrorHandler:            ErrorHandler,

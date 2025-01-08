@@ -102,3 +102,39 @@ CategoriesResponse:
       Armchairs: {}
       Tables: {}
       Cabinets: {}
+
+SearchListingsRequest:
+  type: object
+  properties:
+    query:
+      type: string
+      description: Поисковый запрос
+      example: "iphone"
+    limit:
+      type: integer
+      minimum: 1
+      maximum: 100
+      default: 20
+      description: Максимальное количество результатов (по умолчанию 20)
+      example: 20
+    cursor:
+      type: string
+      description: Курсор для пагинации
+  required:
+    - query
+
+SearchListingsResponse:
+  type: object
+  properties:
+    results:
+      type: array
+      items:
+        $ref: '#/ListingResponse'
+    cursor_after:
+      type: string
+      description: Курсор для следующей страницы
+    cursor_before:
+      type: string
+      description: Курсор для предыдущей страницы
+  required:
+    - results
