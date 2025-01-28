@@ -1,0 +1,19 @@
+-- +goose Up
+ALTER TABLE listings
+    ADD COLUMN IF NOT EXISTS price DECIMAL(10, 2) NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS views_count INTEGER NOT NULL DEFAULT 0,
+    ADD COLUMN IF NOT EXISTS currency VARCHAR(3) NOT NULL DEFAULT 'USD';
+
+ALTER TABLE listings
+    ALTER COLUMN price DROP DEFAULT,
+    ALTER COLUMN views_count DROP DEFAULT,
+    ALTER COLUMN currency DROP DEFAULT;
+
+
+
+
+-- +goose Down
+ALTER TABLE listings
+    DROP COLUMN price,
+    DROP COLUMN views_count,
+    DROP COLUMN currency;

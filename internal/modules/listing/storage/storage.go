@@ -3,8 +3,9 @@ package storage
 import (
 	"context"
 	"errors"
-	"strings"
+	"log"
 	"time"
+	"strings"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -12,6 +13,7 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"gorm.io/gorm"
+
 )
 
 type Storage struct {
@@ -19,7 +21,7 @@ type Storage struct {
 	pool *pgxpool.Pool
 }
 
-const itemTable = "listings"
+
 
 func NewStorage(db *gorm.DB, pool *pgxpool.Pool) *Storage {
 	return &Storage{gorm: db, pool: pool}
@@ -74,52 +76,67 @@ func (s *Storage) UpdateListing(ctx context.Context, p models.Listing) error {
 	return nil
 }
 
-func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID) ([]models.Listing, error) {
+func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort string) ([]models.Listing, error) {
 	var (
 		rows pgx.Rows
 		err  error
 	)
 
+	log.Printf("SearchListingsByTitle: received sort parameter: %s", sort)
+
+	// Если параметр сортировки не указан, используем сортировку по умолчанию
+	if sort == "" {
+		sort = "created_at desc"
+	}
+
+	sortSplit := strings.Split(sort, "_")
+	log.Printf("SearchListingsByTitle: split sort parameter: %v", sortSplit)
+	if len(sortSplit) != 2 {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "invalid sort parameter format")
+	}
+
+	orderExpr := getSortExpression(sortSplit[0], sortSplit[1])
+
 	if cursorID == nil {
 		rows, err = s.pool.Query(ctx, `
-		SELECT l.*
+		SELECT `+listingFields+`
         FROM listings l
         INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
         WHERE lsr.title_vector @@ to_tsquery('russian', $1)
         AND l.deleted_at IS NULL
-        ORDER BY ts_rank(lsr.title_vector, to_tsquery('russian', $1)) DESC
+        ORDER BY `+orderExpr+`
 		LIMIT $2
 		`, createSearchQuery(query), limit)
 	} else if limit > 0 {
 		rows, err = s.pool.Query(ctx, `
 		WITH ranked_listings AS (
 			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY ts_rank(lsr.title_vector, to_tsquery('russian', $1)) DESC) AS row_number
+			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
 			FROM listings l
 			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE lsr.title_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
 		)
-		SELECT id, title, original_description, created_at, updated_at, deleted_at
-		FROM ranked_listings
+		SELECT `+listingFields+`
+		FROM ranked_listings l
         WHERE row_number > (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number DESC
+		ORDER BY row_number
 		LIMIT $2
 		`, createSearchQuery(query), limit, cursorID)
 	} else if limit < 0 {
 		rows, err = s.pool.Query(ctx, `
 		WITH ranked_listings AS (
 			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY ts_rank(lsr.title_vector, to_tsquery('russian', $1)) DESC) AS row_number
+			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
 			FROM listings l
 			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE lsr.title_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
 		)
-		SELECT id, title, original_description, created_at, updated_at, deleted_at
+		SELECT id, title, original_description as description, price, currency, views_count, created_at, updated_at, deleted_at
 		FROM ranked_listings
 		WHERE row_number < (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number ASC
+		ORDER BY row_number DESC
 		LIMIT $2
 		`, createSearchQuery(query), -limit, cursorID)
 	}
@@ -132,52 +149,56 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 	return s.scanListings(rows)
 }
 
-func (s *Storage) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID) ([]models.Listing, error) {
+func (s *Storage) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sortOrder string) ([]models.Listing, error) {
 	var (
 		rows pgx.Rows
 		err  error
 	)
 
+	sortSplit := strings.Split(sortOrder, "_")
+
+	orderExpr := getSortExpression(sortSplit[0], sortSplit[1])
+
 	if cursorID == nil {
 		rows, err = s.pool.Query(ctx, `
-		SELECT l.*
+		SELECT `+listingFields+`
         FROM listings l
         INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
         WHERE lsr.description_vector @@ to_tsquery('russian', $1)
         AND l.deleted_at IS NULL
-        ORDER BY ts_rank(lsr.description_vector, to_tsquery('russian', $1)) DESC
+        ORDER BY ` + orderExpr + `
 		LIMIT $2
 		`, createSearchQuery(query), limit)
 	} else if limit > 0 {
 		rows, err = s.pool.Query(ctx, `
 		WITH ranked_listings AS (
 			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY ts_rank(lsr.description_vector, to_tsquery('russian', $1)) DESC) AS row_number
+			       ROW_NUMBER() OVER (ORDER BY ` + orderExpr + `) AS row_number
 			FROM listings l
 			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE lsr.description_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
 		)
-		SELECT id, title, original_description, created_at, updated_at, deleted_at
+		SELECT `+listingFields+`
 		FROM ranked_listings
         WHERE row_number > (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number DESC
+		ORDER BY row_number
 		LIMIT $2
 		`, createSearchQuery(query), limit, cursorID)
 	} else if limit < 0 {
 		rows, err = s.pool.Query(ctx, `
 		WITH ranked_listings AS (
 			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY ts_rank(lsr.description_vector, to_tsquery('russian', $1)) DESC) AS row_number
+			       ROW_NUMBER() OVER (ORDER BY ` + orderExpr + `) AS row_number
 			FROM listings l
 			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE lsr.description_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
 		)
-		SELECT id, title, original_description, created_at, updated_at, deleted_at
+		SELECT `+listingFields+`
 		FROM ranked_listings
 		WHERE row_number < (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number ASC
+		ORDER BY row_number DESC
 		LIMIT $2
 		`, createSearchQuery(query), -limit, cursorID)
 	}
@@ -188,53 +209,4 @@ func (s *Storage) SearchListingsByDescription(ctx context.Context, query string,
 	defer rows.Close()
 
 	return s.scanListings(rows)
-}
-
-func createSearchQuery(query string) string {
-    words := strings.Fields(query)
-    if len(words) == 0 {
-        return ""
-    }
-    
-    if len(words) == 1 {
-        // Для одного слова используем префиксный поиск
-        return words[0] + ":*"
-    }
-    
-    // Для нескольких слов обрабатываем каждое слово отдельно
-    var queryParts []string
-    for i, word := range words {
-        if i == len(words)-1 {
-            // Последнее слово с префиксным поиском
-            queryParts = append(queryParts, word + ":*")
-        } else {
-            // Предыдущие слова ищутся полностью
-            queryParts = append(queryParts, word)
-        }
-    }
-    
-    // Соединяем слова оператором &
-    return strings.Join(queryParts, " & ")
-}
-
-func (s *Storage) scanListings(rows pgx.Rows) ([]models.Listing, error) {
-	var listings []models.Listing
-	for rows.Next() {
-		var listing models.Listing
-		if err := rows.Scan(
-			&listing.ID,
-			&listing.Title,
-			&listing.Text,
-			&listing.CreatedAt,
-			&listing.UpdatedAt,
-			&listing.DeletedAt,
-		); err != nil {
-			return nil, err
-		}
-		listings = append(listings, listing)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, err
-	}
-	return listings, nil
 }

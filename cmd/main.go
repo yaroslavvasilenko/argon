@@ -3,15 +3,16 @@ package main
 import (
 	"context"
 	"fmt"
+	"os"
+
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/database"
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/controller"
-	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
 	"github.com/yaroslavvasilenko/argon/internal/router"
-	"os"
 )
 
 // main initializes the application, loads environment variables from the .env file,
@@ -42,10 +43,9 @@ func main() {
 		exit(fmt.Sprintf("migrating db %s", cfg.DB.Url), err)
 	}
 
-
 	storagesDB := storage.NewStorage(gorm, pool)
 
-	service := service.NewService(storagesDB)
+	service := service.NewService(storagesDB, lg)
 	controller := controller.NewHandler(service)
 	// init router
 	r := router.NewApiRouter(controller)
