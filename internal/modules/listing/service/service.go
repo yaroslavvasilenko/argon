@@ -8,6 +8,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yaroslavvasilenko/argon/config"
 
 	"github.com/gofiber/fiber/v2"
@@ -23,10 +24,10 @@ type Service struct {
 	cache  *storage.Cache
 }
 
-func NewService(s *storage.Storage, logger *logger.LogPhuslu) *Service {
+func NewService(s *storage.Storage, pool *pgxpool.Pool, logger *logger.LogPhuslu) *Service {
 	srv := &Service{
 		s:      s,
-		cache:  storage.NewCache(),
+		cache:  storage.NewCache(pool),
 		logger: logger,
 	}
 

@@ -3,9 +3,8 @@ package storage
 import (
 	"context"
 	"errors"
-	"log"
-	"time"
 	"strings"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -13,15 +12,12 @@ import (
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"gorm.io/gorm"
-
 )
 
 type Storage struct {
 	gorm *gorm.DB
 	pool *pgxpool.Pool
 }
-
-
 
 func NewStorage(db *gorm.DB, pool *pgxpool.Pool) *Storage {
 	return &Storage{gorm: db, pool: pool}
@@ -82,15 +78,13 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 		err  error
 	)
 
-	log.Printf("SearchListingsByTitle: received sort parameter: %s", sort)
-
 	// Если параметр сортировки не указан, используем сортировку по умолчанию
 	if sort == "" {
 		sort = "created_at desc"
 	}
 
 	sortSplit := strings.Split(sort, "_")
-	log.Printf("SearchListingsByTitle: split sort parameter: %v", sortSplit)
+
 	if len(sortSplit) != 2 {
 		return nil, fiber.NewError(fiber.StatusBadRequest, "invalid sort parameter format")
 	}
@@ -166,18 +160,28 @@ func (s *Storage) SearchListingsByDescription(ctx context.Context, query string,
         INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
         WHERE lsr.description_vector @@ to_tsquery('russian', $1)
         AND l.deleted_at IS NULL
-        ORDER BY ` + orderExpr + `
+        AND NOT EXISTS (
+            SELECT 1 FROM listings_search_ru lsr2
+            WHERE lsr2.listing_id = l.id
+            AND lsr2.title_vector @@ to_tsquery('russian', $1)
+        )
+        ORDER BY `+orderExpr+`
 		LIMIT $2
 		`, createSearchQuery(query), limit)
 	} else if limit > 0 {
 		rows, err = s.pool.Query(ctx, `
 		WITH ranked_listings AS (
 			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY ` + orderExpr + `) AS row_number
+			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
 			FROM listings l
 			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE lsr.description_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM listings_search_ru lsr2
+                WHERE lsr2.listing_id = l.id
+                AND lsr2.title_vector @@ to_tsquery('russian', $1)
+            )
 		)
 		SELECT `+listingFields+`
 		FROM ranked_listings
@@ -189,11 +193,16 @@ func (s *Storage) SearchListingsByDescription(ctx context.Context, query string,
 		rows, err = s.pool.Query(ctx, `
 		WITH ranked_listings AS (
 			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY ` + orderExpr + `) AS row_number
+			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
 			FROM listings l
 			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE lsr.description_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
+            AND NOT EXISTS (
+                SELECT 1 FROM listings_search_ru lsr2
+                WHERE lsr2.listing_id = l.id
+                AND lsr2.title_vector @@ to_tsquery('russian', $1)
+            )
 		)
 		SELECT `+listingFields+`
 		FROM ranked_listings

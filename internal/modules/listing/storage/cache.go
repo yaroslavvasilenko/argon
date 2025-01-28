@@ -1,40 +1,38 @@
 package storage
 
 import (
+	"context"
 	"crypto/hmac"
 	"crypto/sha256"
 	"encoding/hex"
 	"encoding/json"
 	"errors"
-	"sync"
 	"time"
 
+	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 )
 
 type Cache struct {
-	cursors    map[string]CursorInfo
-	cursorsMu  sync.RWMutex
-	searches   map[string]SearchIdInfo
-	searchesMu sync.RWMutex
-	secret     []byte
+	pool   *pgxpool.Pool
+	secret []byte
 }
 
-func NewCache() *Cache {
+func NewCache(pool *pgxpool.Pool) *Cache {
+
+
 	cache := &Cache{
-		secret:   []byte("your-secret-key-here"), // в реальном приложении брать из конфига
-		cursors:  make(map[string]CursorInfo),
-		searches: make(map[string]SearchIdInfo),
+		pool:   pool,
+		secret: []byte("your-secret-key-here"), // в реальном приложении брать из конфига
 	}
 
-	// Запускаем процесс очистки курсоров
+	// Запускаем процесс очистки устаревших записей
 	go cache.cleanExpired()
 
 	return cache
 }
 
 func (s *Cache) StoreCursor(cursorInfo listing.SearchCursor) string {
-	// Сериализуем курсор в JSON
 	cursorBytes, err := json.Marshal(cursorInfo)
 	if err != nil {
 		return ""
@@ -45,19 +43,22 @@ func (s *Cache) StoreCursor(cursorInfo listing.SearchCursor) string {
 	h.Write(cursorBytes)
 	hash := hex.EncodeToString(h.Sum(nil))
 
-	// Сохраняем информацию о курсоре
-	info := CursorInfo{
-		Cursor:    cursorInfo,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	// Сохраняем в базу
+	_, err = s.pool.Exec(context.Background(),
+		"INSERT INTO search_cursors (id, cursor_data, expires_at) VALUES ($1, $2, $3) "+
+			"ON CONFLICT (id) DO UPDATE SET cursor_data = $2, expires_at = $3",
+		hash,
+		cursorBytes,
+		time.Now().Add(7*24*time.Hour),
+	)
+	if err != nil {
+		return ""
 	}
-	s.cursorsMu.Lock()
-	s.cursors[hash] = info
-	s.cursorsMu.Unlock()
+
 	return hash
 }
 
 func (s *Cache) StoreSearchInfo(searchInfo listing.SearchId) string {
-	// Сериализуем в JSON
 	searchBytes, err := json.Marshal(searchInfo)
 	if err != nil {
 		return ""
@@ -68,84 +69,91 @@ func (s *Cache) StoreSearchInfo(searchInfo listing.SearchId) string {
 	h.Write(searchBytes)
 	hash := hex.EncodeToString(h.Sum(nil))
 
-	// Сохраняем информацию о поиске
-	infoSearch := SearchIdInfo{
-		SearchId:  searchInfo,
-		ExpiresAt: time.Now().Add(7 * 24 * time.Hour),
+	// Сохраняем в базу
+	_, err = s.pool.Exec(context.Background(),
+		"INSERT INTO search_info (id, search_data, expires_at) VALUES ($1, $2, $3) "+
+			"ON CONFLICT (id) DO UPDATE SET search_data = $2, expires_at = $3",
+		hash,
+		searchBytes,
+		time.Now().Add(7*24*time.Hour),
+	)
+	if err != nil {
+		return ""
 	}
-	s.searchesMu.Lock()
-	s.searches[hash] = infoSearch
-	s.searchesMu.Unlock()
+
 	return hash
 }
 
 func (s *Cache) GetCursor(cursorId string) (listing.SearchCursor, error) {
-	s.cursorsMu.RLock()
-	info, ok := s.cursors[cursorId]
-	s.cursorsMu.RUnlock()
+	var cursorBytes []byte
+	var expiresAt time.Time
 
-	if ok {
-		if time.Now().After(info.ExpiresAt) {
-			s.cursorsMu.Lock()
-			delete(s.cursors, cursorId)
-			s.cursorsMu.Unlock()
-			return listing.SearchCursor{}, errors.New("cursor expired")
-		}
-		return info.Cursor, nil
+	err := s.pool.QueryRow(context.Background(),
+		"SELECT cursor_data, expires_at FROM search_cursors WHERE id = $1",
+		cursorId,
+	).Scan(&cursorBytes, &expiresAt)
+
+	if err != nil {
+		return listing.SearchCursor{}, errors.New("invalid cursor")
 	}
-	return listing.SearchCursor{}, errors.New("invalid cursor")
+
+	if time.Now().After(expiresAt) {
+		// Удаляем устаревший курсор
+		_, _ = s.pool.Exec(context.Background(),
+			"DELETE FROM search_cursors WHERE id = $1",
+			cursorId,
+		)
+		return listing.SearchCursor{}, errors.New("cursor expired")
+	}
+
+	var cursor listing.SearchCursor
+	if err := json.Unmarshal(cursorBytes, &cursor); err != nil {
+		return listing.SearchCursor{}, errors.New("invalid cursor data")
+	}
+
+	return cursor, nil
 }
 
 func (s *Cache) GetSearchInfo(searchId string) (listing.SearchId, error) {
-	s.searchesMu.RLock()
-	info, ok := s.searches[searchId]
-	s.searchesMu.RUnlock()
+	var searchBytes []byte
+	var expiresAt time.Time
 
-	if ok {
-		if time.Now().After(info.ExpiresAt) {
-			s.searchesMu.Lock()
-			delete(s.searches, searchId)
-			s.searchesMu.Unlock()
-			return listing.SearchId{}, errors.New("search expired")
-		}
-		return info.SearchId, nil
+	err := s.pool.QueryRow(context.Background(),
+		"SELECT search_data, expires_at FROM search_info WHERE id = $1",
+		searchId,
+	).Scan(&searchBytes, &expiresAt)
+
+	if err != nil {
+		return listing.SearchId{}, errors.New("invalid search id")
 	}
-	return listing.SearchId{}, errors.New("invalid search")
+
+	if time.Now().After(expiresAt) {
+		// Удаляем устаревшую информацию о поиске
+		_, _ = s.pool.Exec(context.Background(),
+			"DELETE FROM search_info WHERE id = $1",
+			searchId,
+		)
+		return listing.SearchId{}, errors.New("search info expired")
+	}
+
+	var searchInfo listing.SearchId
+	if err := json.Unmarshal(searchBytes, &searchInfo); err != nil {
+		return listing.SearchId{}, errors.New("invalid search info data")
+	}
+
+	return searchInfo, nil
 }
 
 func (s *Cache) cleanExpired() {
-	ticker := time.NewTicker(time.Hour) // проверяем раз в час
-	defer ticker.Stop()
-
+	ticker := time.NewTicker(1 * time.Hour)
 	for range ticker.C {
-		now := time.Now()
-
-		// Очистка устаревших курсоров
-		s.cursorsMu.Lock()
-		for key, info := range s.cursors {
-			if now.After(info.ExpiresAt) {
-				delete(s.cursors, key)
-			}
-		}
-		s.cursorsMu.Unlock()
-
-		// Очистка устаревших поисков
-		s.searchesMu.Lock()
-		for key, info := range s.searches {
-			if now.After(info.ExpiresAt) {
-				delete(s.searches, key)
-			}
-		}
-		s.searchesMu.Unlock()
+		_, _ = s.pool.Exec(context.Background(),
+			"DELETE FROM search_cursors WHERE expires_at < $1",
+			time.Now(),
+		)
+		_, _ = s.pool.Exec(context.Background(),
+			"DELETE FROM search_info WHERE expires_at < $1",
+			time.Now(),
+		)
 	}
-}
-
-type CursorInfo struct {
-	Cursor    listing.SearchCursor
-	ExpiresAt time.Time
-}
-
-type SearchIdInfo struct {
-	SearchId  listing.SearchId
-	ExpiresAt time.Time
 }

@@ -45,7 +45,7 @@ func main() {
 
 	storagesDB := storage.NewStorage(gorm, pool)
 
-	service := service.NewService(storagesDB, lg)
+	service := service.NewService(storagesDB, pool, lg)
 	controller := controller.NewHandler(service)
 	// init router
 	r := router.NewApiRouter(controller)
