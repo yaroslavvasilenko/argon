@@ -6,6 +6,7 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
+	"github.com/go-playground/validator/v10"
 )
 
 type Handler struct {
@@ -17,7 +18,6 @@ func NewHandler(s *service.Service) *Handler {
 }
 
 func (h *Handler) Ping(c *fiber.Ctx) error {
-
 	return c.JSON(fiber.Map{
 		"ping": h.s.Ping(),
 	})
@@ -26,8 +26,10 @@ func (h *Handler) Ping(c *fiber.Ctx) error {
 
 func (h *Handler) CreateListing(c *fiber.Ctx) error {
 	r := &struct {
-		Title string `json:"title"`
-		Text  string `json:"text"`
+		Title    string          `json:"title" validate:"required"`
+		Description string          `json:"description" validate:"required"`
+		Price    float64         `json:"price" validate:"required,gte=0"`
+		Currency models.Currency `json:"currency" validate:"required,oneof=USD EUR RUB"`
 	}{}
 
 	err := c.BodyParser(r)
@@ -36,8 +38,10 @@ func (h *Handler) CreateListing(c *fiber.Ctx) error {
 	}
 
 	listing, err := h.s.CreateListing(c.UserContext(), models.Listing{
-		Title: r.Title,
-		Text:  r.Text,
+		Title:       r.Title,
+		Description: r.Description,
+		Price:       r.Price,
+		Currency:    r.Currency,
 	})
 	if err != nil {
 		return err
@@ -76,8 +80,10 @@ func (h *Handler) UpdateListing(c *fiber.Ctx) error {
 	}
 
 	r := &struct {
-		Title string `json:"title"`
-		Text  string `json:"text"`
+		Title    string          `json:"title" validate:"required"`
+		Text     string          `json:"text" validate:"required"`
+		Price    float64         `json:"price" validate:"required,gte=0"`
+		Currency models.Currency `json:"currency" validate:"required,oneof=USD EUR RUB"`
 	}{}
 
 	err = c.BodyParser(r)
@@ -86,9 +92,11 @@ func (h *Handler) UpdateListing(c *fiber.Ctx) error {
 	}
 
 	listing, err := h.s.UpdateListing(c.UserContext(), models.Listing{
-		ID:    listingID,
-		Title: r.Title,
-		Text:  r.Text,
+		ID:          listingID,
+		Title:       r.Title,
+		Description: r.Text,
+		Price:       r.Price,
+		Currency:    r.Currency,
 	})
 	if err != nil {
 		return err
@@ -99,12 +107,21 @@ func (h *Handler) UpdateListing(c *fiber.Ctx) error {
 
 func (h *Handler) SearchListings(c *fiber.Ctx) error {
 	req := listing.SearchListingsRequest{}
-
 	if err := c.QueryParser(&req); err != nil {
 		return err
 	}
+
+	validate := validator.New()
+	if err := validate.Struct(req); err != nil {
+		return fiber.NewError(fiber.StatusBadRequest, err.Error())
+	}
+
 	if req.Limit == 0 {
 		req.Limit = 20
+	}
+
+	if req.Query == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "query parameter is required")
 	}
 
 	listings, err := h.s.SearchListings(c.UserContext(), req)
