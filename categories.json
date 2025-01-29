@@ -1,19 +1,48 @@
-{
-  "Electronics": {
-    "Smartphones": {},
-    "Laptops": {},
-    "Tablets": {},
-    "Computers": {},
-    "Computer Headset": {}
+[
+  {
+    "category": {
+      "id": "electronics"
+    },
+    "subcategories": [
+      {
+        "category": {
+          "id": "smartphones"
+        },
+        "subcategories": [
+          {
+            "category": {
+              "id": "iphone"
+            }
+          },
+          {
+            "category": {
+              "id": "google pixel"
+            }
+          }
+        ]
+      }
+    ]
   },
-  "Clothing": {
-    "Men’s Clothing": {},
-    "Women’s Clothing": {}
+  {
+    "category": {
+      "id": "clothing"
+    },
+    "subcategories": [
+      {
+        "category": {
+          "id": "men's clothing"
+        }
+      },
+      {
+        "category": {
+          "id": "women's clothing"
+        }
+      }
+    ]
   },
-  "Furniture and Interior Items": {
-    "Sofas": {},
-    "Armchairs": {},
-    "Tables": {},
-    "Cabinets": {}
+  {
+    "category": {
+      "id": "furniture"
+    }
   }
-}
+]
