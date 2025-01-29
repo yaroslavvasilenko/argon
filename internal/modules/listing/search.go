@@ -4,9 +4,6 @@ import (
 	"github.com/google/uuid"
 )
 
-
-
-
 type SearchBlock string
 
 const (
@@ -19,11 +16,10 @@ type SearchCursor struct {
 	LastIndex *uuid.UUID
 }
 
-
 type SearchId struct {
-	Category    string
-	Filters     Filters
-	SortOrder   string
+	Category  string
+	Filters   Filters
+	SortOrder string
 }
 
 type PriceFilterParams struct {
@@ -43,9 +39,9 @@ const (
 )
 
 type Filter struct {
-	Type   FilterType        `json:"type"`
-	Color  ColorFilterParams `json:"сolor,omitempty"`
-	Price  PriceFilterParams `json:"price,omitempty"`
+	Type  FilterType        `json:"type"`
+	Color ColorFilterParams `json:"сolor,omitempty"`
+	Price PriceFilterParams `json:"price,omitempty"`
 }
 
 type Filters []Filter

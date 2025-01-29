@@ -34,7 +34,6 @@ func main() {
 	ctx := context.Background()
 
 	gorm, pool, err := db.NewSqlDB(ctx, cfg.DB.Url, lg.Logger, true)
-	gorm, pool, err := db.NewSqlDB(ctx, cfg.DB.Url, lg.Logger, true)
 	if err != nil {
 		exit(fmt.Sprintf("connecting to db %s", cfg.DB.Url), err)
 	}
