@@ -22,7 +22,14 @@ type Config struct {
 	Logger struct {
 		Level string
 	}
-	CategoriesJson string
+
+	Categories struct {
+		Json string
+		Lang struct {
+			Ru string
+			En string
+		}
+	}
 }
 
 var cfg = Config{}
@@ -64,13 +71,29 @@ func LoadConfig() {
 	}
 
 	// Read categories.json
-	categoriesPath := filepath.Join(projectRoot, "categories.json")
+	categoriesPath := filepath.Join(projectRoot, "./categories/categories.json")
 	categoriesFile, err := os.ReadFile(categoriesPath)
 	if err != nil {
 		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
 	}
 
-	cfg.CategoriesJson = string(categoriesFile)
+	cfg.Categories.Json = string(categoriesFile)
+
+	categoriesPath = filepath.Join(projectRoot, "./categories/lang/ru.json")
+	categoriesFile, err = os.ReadFile(categoriesPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+	}
+
+	cfg.Categories.Lang.Ru = string(categoriesFile)
+
+	categoriesPath = filepath.Join(projectRoot, "./categories/lang/en.json")
+	categoriesFile, err = os.ReadFile(categoriesPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+	}
+
+	cfg.Categories.Lang.En = string(categoriesFile)
 }
 
 // getProjectRoot returns the absolute path to the project root directory
