@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"errors"
+	"slices"
 	"strings"
 	"time"
 
@@ -140,7 +141,16 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 	}
 	defer rows.Close()
 
-	return s.scanListings(rows)
+	res, err := s.scanListings(rows)
+	if err != nil {
+		return nil, err
+	}
+
+	if limit < 0 {
+		slices.Reverse(res)
+	}
+
+	return res, nil
 }
 
 func (s *Storage) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sortOrder string) ([]models.Listing, error) {

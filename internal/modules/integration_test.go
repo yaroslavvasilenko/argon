@@ -78,7 +78,7 @@ func TestCreateListing(t *testing.T) {
 	// Инициализация тестовой БД и роутера
 	app := createTestApp(t)
 	user := app.createUser(t)
-	t.Run("Успешное создание объявления", func(t *testing.T) {
+	t.Run("Success create listing", func(t *testing.T) {
 		listingInput := models.Listing{
 			Title:       "Тестовая квартира",
 			Description: "Просторная квартира в центре",
@@ -125,7 +125,7 @@ func TestSearchListings(t *testing.T) {
 	resp := user.createListing(t, iphone1)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	t.Run("Успешный поиск объявления", func(t *testing.T) {
+	t.Run("Successful search 1 listing", func(t *testing.T) {
 		// Выполняем поиск объявления
 		req := getSearchListingsRequest("iPhone", 10, "", "relevance_desc", "")
 
@@ -157,13 +157,13 @@ func TestSearchListings(t *testing.T) {
 	resp = user.createListing(t, iphone3)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	t.Run("Успешный поиск объявлений", func(t *testing.T) {
+	t.Run("Successful search 3 listings and check cursor", func(t *testing.T) {
 		// Выполняем поиск объявления
-		req := getSearchListingsRequest("iPhone", 2, "", "price_asc", "")
+		req := getSearchListingsRequest("iPhone", 3, "", "price_asc", "")
 
 		resp := user.searchListings(t, req)
 
-		require.Len(t, resp.Results, 2)
+		require.Len(t, resp.Results, 3)
 		assert.Equal(t, iphone1.Title, resp.Results[0].Title)
 		assert.Equal(t, iphone2.Title, resp.Results[1].Title)
 
@@ -172,6 +172,13 @@ func TestSearchListings(t *testing.T) {
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 1)
 		assert.Equal(t, iphone3.Title, resp.Results[0].Title)
+
+		req = getSearchListingsRequest("iPhone", -2, resp.CursorBefore, "price_asc", resp.SearchID)
+
+		resp = user.searchListings(t, req)
+		require.Len(t, resp.Results, 2)
+		assert.Equal(t, iphone1.Title, resp.Results[0].Title)
+		assert.Equal(t, iphone2.Title, resp.Results[1].Title)
 	})
 }
 
@@ -193,7 +200,7 @@ func (user *user) searchListings(t *testing.T, req listing.SearchListingsRequest
 	if req.Query != "" {
 		params.Add("query", req.Query)
 	}
-	if req.Limit > 0 {
+	if req.Limit != 0 {
 		params.Add("limit", strconv.Itoa(req.Limit))
 	}
 	if req.Cursor != "" {
