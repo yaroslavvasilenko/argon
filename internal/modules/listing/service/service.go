@@ -86,14 +86,28 @@ func (s *Service) UpdateListing(ctx context.Context, p models.Listing) (models.L
 	return s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Service) GetCategories(ctx context.Context) (map[string]interface{}, error) {
-	var catMap map[string]interface{}
+func (s *Service) GetCategories(ctx context.Context) ([]models.CategoryNode, error) {
+	lang := ctx.Value("lang").(string)
 
-	// Преобразуем CategoriesJson из конфига в map[string]interface{}
-	err := json.Unmarshal([]byte(config.GetConfig().CategoriesJson), &catMap)
+	var categories []models.CategoryNode
+	var err error
+
+	err = json.Unmarshal([]byte(config.GetConfig().Categories.Json), &categories)
 	if err != nil {
-		return catMap, err
+		return nil, err
 	}
 
-	return catMap, nil
+	switch lang {
+	case "ru":
+		err = json.Unmarshal([]byte(config.GetConfig().Categories.Lang.Ru), &categories)
+	case "en":
+		err = json.Unmarshal([]byte(config.GetConfig().Categories.Lang.En), &categories)
+	default:
+		err = json.Unmarshal([]byte(config.GetConfig().Categories.Lang.En), &categories)
+	}
+	if err != nil {
+		return nil, err
+	}
+
+	return categories, nil
 }

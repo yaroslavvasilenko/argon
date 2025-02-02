@@ -1,0 +1,56 @@
+[
+  {
+    "category": {
+      "id": "electronics",
+      "name": "Электроника"
+    },
+    "subcategories": [
+      {
+        "category": {
+          "id": "smartphones",
+          "name": "Смартфоны"
+        },
+        "subcategories": [
+          {
+            "category": {
+              "id": "iphone",
+              "name": "iPhone"
+            }
+          },
+          {
+            "category": {
+              "id": "google pixel",
+              "name": "Google Pixel"
+            }
+          }
+        ]
+      }
+    ]
+  },
+  {
+    "category": {
+      "id": "clothing",
+      "name": "Одежда"
+    },
+    "subcategories": [
+      {
+        "category": {
+          "id": "men's clothing",
+          "name": "Мужская одежда"
+        }
+      },
+      {
+        "category": {
+          "id": "women's clothing",
+          "name": "Женская одежда"
+        }
+      }
+    ]
+  },
+  {
+    "category": {
+      "id": "furniture",
+      "name": "Мебель"
+    }
+  }
+]
