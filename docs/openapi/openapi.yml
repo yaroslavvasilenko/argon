@@ -195,59 +195,72 @@ paths:
       tags:
         - Categories
       description: Возвращает иерархию категорий с подкатегориями.
+      parameters:
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            enum: [en, ru]
+            default: en
+          required: false
+          description: Язык ответа (по умолчанию en)
       responses:
         '200':
           description: Успешный ответ с иерархией категорий
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  categories:
-                    type: array
-                    items:
+                type: array
+                items:
+                  type: object
+                  required:
+                    - category
+                  properties:
+                    category:
                       type: object
-                      properties:
-                        id:
-                          type: integer
-                          example: 1000
-                        name:
-                          type: string
-                          example: "Электроника"
-                        children:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              id:
-                                type: integer
-                                example: 1000
-                              name:
-                                type: string
-                                example: "Электроника"
-                            required:
-                              - id
-                              - name
                       required:
                         - id
                         - name
-                required:
-                  - categories
-                example:
-                  Electronics:
-                    Smartphones: {}
-                    Laptops: {}
-                    Tablets: {}
-                    Computers: {}
-                    Computer Headset: {}
-                  Clothing:
-                    Men's Clothing: {}
-                    Women's Clothing: {}
-                  Furniture and Interior Items:
-                    Sofas: {}
-                    Armchairs: {}
-                    Tables: {}
-                    Cabinets: {}
+                      properties:
+                        id:
+                          type: string
+                          example: "electronics"
+                        name:
+                          type: string
+                          example: "Электроника"
+                    subcategories:
+                      type: array
+                      description: Список подкатегорий, если они существуют
+                      items:
+                        $ref: '#/components/schemas/CategoryWithSubcategories'
+              example:
+                - category:
+                    id: "electronics"
+                    name: "Электроника"
+                  subcategories:
+                    - category:
+                        id: "smartphones"
+                        name: "Смартфоны"
+                      subcategories:
+                        - category:
+                            id: "iphone"
+                            name: "iPhone"
+                        - category:
+                            id: "google_pixel"
+                            name: "Google Pixel"
+                - category:
+                    id: "clothing"
+                    name: "Одежда"
+                  subcategories:
+                    - category:
+                        id: "mens_clothing"
+                        name: "Мужская одежда"
+                    - category:
+                        id: "womens_clothing"
+                        name: "Женская одежда"
+                - category:
+                    id: "furniture"
+                    name: "Мебель"
 
   /api/v1/search:
     get:
@@ -378,6 +391,28 @@ components:
         - id
         - title
         - text
+
+    CategoryWithSubcategories:
+      type: object
+      required:
+        - category
+      properties:
+        category:
+          type: object
+          required:
+            - id
+            - name
+          properties:
+            id:
+              type: string
+              example: "smartphones"
+            name:
+              type: string
+              example: "Смартфоны"
+        subcategories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryWithSubcategories'
 
   responses:
     NotFound:
