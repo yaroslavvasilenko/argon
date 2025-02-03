@@ -9,7 +9,7 @@ type SearchListingsRequest struct {
 	// Query is the search query.
 	Query string `json:"query" query:"query" validate:"required"`
 	// Limit is the maximum number of results to return.
-	Limit int `json:"limit,omitempty" query:"limit" validate:"omitempty,min=1,max=100"` // default: 20
+	Limit int `json:"limit,omitempty" query:"limit" validate:"omitempty,min=-100,max=100"` // default: 20
 	// Cursor is the cursor for pagination.
 	Cursor string `json:"cursor,omitempty" query:"cursor"`
 	// SortOrder is the order in which to sort the results.

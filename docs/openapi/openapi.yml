@@ -200,13 +200,14 @@ paths:
         - Categories
       description: Возвращает иерархию категорий с подкатегориями.
       parameters:
-        - name: Accept-Language
-          in: header
-          description: Язык для локализации названий категорий
-          required: true
+        - in: header
+          name: Accept-Language
           schema:
             type: string
-            example: ru-RU
+            enum: [en, ru]
+            default: en
+          required: false
+          description: Язык ответа (по умолчанию en)
       responses:
         '200':
           description: Успешный ответ с иерархией категорий
@@ -460,6 +461,34 @@ components:
       properties:
         categories:
           type: array
+          example:
+            - category:
+                id: "electronics"
+                name: "Электроника"
+              subcategories:
+                - category:
+                    id: "smartphones"
+                    name: "Смартфоны"
+                  subcategories:
+                    - category:
+                        id: "iphone"
+                        name: "iPhone"
+                    - category:
+                        id: "google_pixel"
+                        name: "Google Pixel"
+            - category:
+                id: "clothing"
+                name: "Одежда"
+              subcategories:
+                - category:
+                    id: "mens_clothing"
+                    name: "Мужская одежда"
+                - category:
+                    id: "womens_clothing"
+                    name: "Женская одежда"
+            - category:
+                id: "furniture"
+                name: "Мебель"
           items:
             $ref: '#/components/schemas/CategoryNode'
       required:

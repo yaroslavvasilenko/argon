@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"context"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/internal/models"
@@ -133,7 +134,14 @@ func (h *Handler) SearchListings(c *fiber.Ctx) error {
 }
 
 func (h *Handler) GetCategories(c *fiber.Ctx) error {
-	resp, err := h.s.GetCategories(c.UserContext())
+	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
+	lang := c.Get("Accept-Language", "en")
+	
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), "lang", lang)
+	
+	
+	resp, err := h.s.GetCategories(ctx)
 	if err != nil {
 		return err
 	}
