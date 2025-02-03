@@ -270,7 +270,7 @@ paths:
                   description: Поисковый запрос, может быть пустой строкой, но быть должен.
                   example: "Часы от бабки"
                 currency:
-                  description: Валюта, в которой происходит поиск. Влияет на поля price и currency, не влияет на originalPrice и originalCurrency.
+                  description: Валюта, в которой происходит поиск. Влияет на поля price и currency, не влияет на original_price и original_currency.
                   $ref: '#/components/schemas/SupportedCurrency'
                 cursor:
                   type: string
@@ -288,20 +288,22 @@ paths:
                   maximum: 100
                   default: 20
                   description: Количество результатов на странице, если отрицательное, от курсора идти в обратную сторону
-                categoryId:
+                category_id:
                   type: string
-                  description: Id категории, в которой происходит поиск, если не указана, то по всем категориям
+                  nullable: true
+                  description: ID категории, в которой происходит поиск, если не указана, то по всем категориям
                   example: "electronics"
-                location:
+                location_id:
                   type: string
-                  description: Id локации, в которой происходит поиск, если не указана, то по всем локациям
+                  nullable: true
+                  description: ID локации, в которой происходит поиск, если не указана, то по всем локациям
                   example: "cordoba-123e456"
                 filters:
                   description: НЕЛОКАЛИЗОВАННЫЕ значения фильтров, которые были использованы в поиске
                   type: array
                   items:
                     $ref: '#/components/schemas/FilterValue'
-                sortOrder:
+                sort_order:
                   description: Сортировка, если не указано, то по релевантности
                   $ref: '#/components/schemas/SortOrder'
               required:
@@ -613,12 +615,12 @@ components:
           type: array
           items:
             $ref: '#/components/schemas/SearchItem'
-        cursorBefore:
+        cursor_before:
           type: string
           nullable: true
           description: Курсор для предыдущей страницы, указывается в следующем запросе. Содержит информацию о элементе предшествующем текущей странице (или, что то же самое, последнем элементе предыдущей страницы).
           example: "123e4567-e89b-12d3-a456-426614174000"
-        cursorAfter:
+        cursor_after:
           type: string
           nullable: true
           description: Курсор для следующей страницы, указывается в следующем запросе. Содержит информацию о последнем элементе текущей страницы (или, что то же самое, эелементе, предшествующем следующей странице).
@@ -629,8 +631,8 @@ components:
           example: "123e4567-e89b-12d3-a456-426614174000"
       required:
         - items
-        - cursorBefore
-        - cursorAfter
+        - cursor_before
+        - cursor_after
         - qid
 
     SearchParamsResponse:
@@ -647,14 +649,14 @@ components:
           description: Фильтры, которые были использованы в поиске
           items:
             $ref: '#/components/schemas/FilterValue'
-        sortOrder:
+        sort_order:
           description: Сортировка, если не указано, то по релевантности
           $ref: '#/components/schemas/SortOrder'
 
     SearchItem:
       type: object
       properties:
-        itemId:
+        item_id:
           type: string
           description: Уникальный айди объявления
           example: "123e4567-e89b-12d3-a456-426614174000"
@@ -669,11 +671,11 @@ components:
         currency:
           $ref: '#/components/schemas/SupportedCurrency'
           description: Валюта, которая была указана в запросе
-        originalPrice:
+        original_price:
           type: number
           description: Цена в исходной валюте, которую указал автор объявления
           example: 1000
-        originalCurrency:
+        original_currency:
           $ref: '#/components/schemas/SupportedCurrency'
           description: Валюта, которая была указана автором объявления
         description:
@@ -693,12 +695,12 @@ components:
             description: URL картинки объявления высотой не больше 200 пикселей, размерностью не выше 3к1 (идеально 1к1).
             example: "https://example.com/image.png"
       required:
-        - itemId
+        - item_id
         - title
         - price
         - currency
-        - originalPrice
-        - originalCurrency
+        - original_price
+        - original_currency
         - description
         - location
         - category
