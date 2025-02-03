@@ -12,8 +12,12 @@ tags:
     description: Системные операции
   - name: Listing
     description: Операции с объявлениями
+  - name: Currency
+    description: Операции с валютами
   - name: Categories
     description: Операции с категориями
+  - name: Filters
+    description: Операции с фильтрами
   - name: Search
     description: Поиск объявлений
 
@@ -195,131 +199,172 @@ paths:
       tags:
         - Categories
       description: Возвращает иерархию категорий с подкатегориями.
+      parameters:
+        - name: Accept-Language
+          in: header
+          description: Язык для локализации названий категорий
+          required: true
+          schema:
+            type: string
+            example: ru-RU
       responses:
         '200':
           description: Успешный ответ с иерархией категорий
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  categories:
-                    type: array
-                    items:
-                      type: object
-                      properties:
-                        id:
-                          type: integer
-                          example: 1000
-                        name:
-                          type: string
-                          example: "Электроника"
-                        children:
-                          type: array
-                          items:
-                            type: object
-                            properties:
-                              id:
-                                type: integer
-                                example: 1000
-                              name:
-                                type: string
-                                example: "Электроника"
-                            required:
-                              - id
-                              - name
-                      required:
-                        - id
-                        - name
-                required:
-                  - categories
-                example:
-                  Electronics:
-                    Smartphones: {}
-                    Laptops: {}
-                    Tablets: {}
-                    Computers: {}
-                    Computer Headset: {}
-                  Clothing:
-                    Men's Clothing: {}
-                    Women's Clothing: {}
-                  Furniture and Interior Items:
-                    Sofas: {}
-                    Armchairs: {}
-                    Tables: {}
-                    Cabinets: {}
+                $ref: '#/components/schemas/GetCategoriesResponse'
+
+  /api/v1/filters:
+    get:
+      summary: Получить фильтры для категории
+      tags:
+        - Filters
+      parameters:
+        - name: Accept-Language
+          in: header
+          description: Язык для локализации фильтров
+          required: true
+          schema:
+            type: string
+            example: ru-RU
+        - name: category_id
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID категории для получения фильтров
+      responses:
+        '200':
+          description: Успешный ответ со списком фильтров
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetFiltersByCategoryResponse'
 
   /api/v1/search:
-    get:
+    post:
       summary: Поиск объявлений
       tags:
         - Search
       parameters:
-        - name: query
-          in: query
+        - name: Accept-Language
+          in: header
+          description: Язык локализации
           required: true
           schema:
             type: string
-          description: Поисковый запрос
-        - name: limit
-          in: query
-          required: false
-          schema:
-            type: integer
-            minimum: 1
-            maximum: 100
-            default: 20
-          description: Максимальное количество результатов
-        - name: cursor
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Курсор для пагинации
-        - name: sort_order
-          in: query
-          required: true
-          schema:
-            type: string
-            enum: [price_asc, price_desc, relevance_asc, relevance_desc, popularity_asc, popularity_desc]
-          description: Порядок сортировки результатов
-        - name: search_id
-          in: query
-          required: false
-          schema:
-            type: string
-          description: данные для пагинации
-        - name: category
-          in: query
-          required: false
-          schema:
-            type: string
-          description: Категория для поиска
+            example: ru-RU
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                query:
+                  type: string
+                  description: Поисковый запрос, может быть пустой строкой, но быть должен.
+                  example: "Часы от бабки"
+                currency:
+                  description: Валюта, в которой происходит поиск. Влияет на поля price и currency, не влияет на originalPrice и originalCurrency.
+                  $ref: '#/components/schemas/SupportedCurrency'
+                cursor:
+                  type: string
+                  nullable: true
+                  description: Курсор для пагинации. Если не указан, то первая страница (или последняя, при отрицательном лимите). Указывает на элемент, предшествующий первому в результатах запроса, при положительном лимите. При отрицательном лимите, указывает на последний элемент в результатах запроса.
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                qid:
+                  type: string
+                  nullable: true
+                  description: ID поискового запроса, если указан, то соответствующий ему набор поисковой строки, категории, фильтров, локации и сортировки должен быть использован даже если указаны другие параметры.
+                  example: "123e4567-e89b-12d3-a456-426614174000"
+                limit:
+                  type: number
+                  minimum: 1
+                  maximum: 100
+                  default: 20
+                  description: Количество результатов на странице, если отрицательное, от курсора идти в обратную сторону
+                category:
+                  description: Категория, в которой происходит поиск, если не указана, то по всем категориям
+                  $ref: '#/components/schemas/Category'
+                location:
+                  description: Локация, в которой происходит поиск, если не указана, то по всем локациям
+                  $ref: '#/components/schemas/Location'
+                filters:
+                  description: Значения фильтров, которые были использованы в поиске
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/FilterValue'
+                sortOrder:
+                  description: Сортировка, если не указано, то по релевантности
+                  $ref: '#/components/schemas/SortOrder'
+              required:
+                - query
+                - currency
+                - limit
       responses:
         '200':
           description: Успешный поиск
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  results:
-                    type: array
-                    items:
-                      $ref: '#/components/schemas/Listing'
-                  cursor_after:
-                    type: string
-                    description: Курсор для следующей страницы
-                  cursor_before:
-                    type: string
-                    description: Курсор для предыдущей страницы
-                  search_id:
-                    type: string
-                    description: ID поискового запроса
-                required:
-                  - results
-        '400':
-          description: Некорректные параметры запроса
+                $ref: '#/components/schemas/SearchResponse'
+
+  /api/v1/search/params:
+    get:
+      summary: Получить параметры поискового запроса
+      tags:
+        - Search
+      parameters:
+        - name: Accept-Language
+          in: header
+          description: Язык локализации
+          required: true
+          schema:
+            type: string
+            example: ru-RU
+        - name: qid
+          in: query
+          required: true
+          schema:
+            type: string
+          description: ID поискового запроса, сгенерированный во время выполнения запроса поиска.
+      responses:
+        '200':
+          description: Параметры поискового запроса
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/SearchParamsResponse'
+
+  /api/v1/currency:
+    get:
+      summary: Получить курс обмена между валютами
+      tags:
+        - Currency
+      parameters:
+        - name: from
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/SupportedCurrency'
+          description: Исходная валюта
+          example: "USD"
+        - name: to
+          in: query
+          required: true
+          schema:
+            $ref: '#/components/schemas/SupportedCurrency'
+          description: Целевая валюта
+          example: "RUB"
+      responses:
+        '200':
+          description: Курс обмена между валютами
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/ExchangeRateResponse'
 
 components:
   schemas:
@@ -378,6 +423,332 @@ components:
         - id
         - title
         - text
+
+    Category:
+      type: object
+      properties:
+        id:
+          type: string
+          example: "electronics"
+          description: Уникальный айди категории
+        name:
+          type: string
+          example: "Электроника"
+          description: Локализованное имя категории
+        image:
+          type: string
+          example: "https://example.com/image.png"
+          description: url картинки категории 32х32
+      required:
+        - id
+        - name
+
+    CategoryNode:
+      type: object
+      properties:
+        category:
+          $ref: '#/components/schemas/Category'
+        subcategories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+      required:
+        - category
+
+    GetCategoriesResponse:
+      type: object
+      properties:
+        categories:
+          type: array
+          items:
+            $ref: '#/components/schemas/CategoryNode'
+      required:
+        - categories
+
+    GetFiltersByCategoryResponse:
+      type: object
+      properties:
+        filters:
+          type: array
+          items:
+            $ref: '#/components/schemas/FilterParams'
+      required:
+        - filters
+
+    FilterParams:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [price, color, condition, season, brand]
+          description: Роль фильтра
+        params:
+          oneOf:
+            - $ref: '#/components/schemas/PriceFilterParams'
+            - $ref: '#/components/schemas/ColorFilterParams'
+            - $ref: '#/components/schemas/DropdownFilterParams'
+      required:
+        - role
+        - params
+
+    PriceFilterValue:
+      type: object
+      properties:
+        min:
+          type: number
+          description: Минимальное значение, которое должна принимать цена. Совпадает с min из PriceFilterParams если null.
+          example: 10
+          nullable: true
+        max:
+          type: number
+          description: Максимальное значение, которое должна принимать цена. Совпадает с max из PriceFilterParams если null.
+          example: 123
+          nullable: true
+      required:
+        - min
+        - max
+
+    PriceFilterParams:
+      type: object
+      properties:
+        min:
+          type: number
+          description: Минимальное значение, которое может принимать цена.
+          example: 0
+        max:
+          type: number
+          description: Максимальное значение, которое может принимать цена.
+          example: 200
+      required:
+        - min
+        - max
+
+    ColorFilterValue:
+      type: array
+      items:
+        $ref: '#/components/schemas/Color'
+
+    ColorFilterParams:
+      type: object
+      description: Пустой объект для цветового фильтра
+
+    Color:
+      type: string
+      enum: [white, red, orange, yellow, olive, green, teal, blue, violet, purple, pink, brown, grey, black]
+
+    DropdownFilterValue:
+      type: array
+      items:
+        type: string
+        description: Значение опции, уникальная строка
+        example: "apple"
+
+    DropdownFilterParams:
+      type: object
+      properties:
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/DropdownOption'
+        label:
+          type: string
+          description: Локализованное название фильтра
+          example: "Брэнд"
+      required:
+        - options
+        - label
+
+    DropdownOption:
+      type: object
+      properties:
+        value:
+          type: string
+          description: Значение опции, уникальная строка
+          example: "apple"
+        label:
+          type: string
+          description: Локализованное название опции
+          example: "Apple"
+      required:
+        - value
+
+    SearchResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        cursorBefore:
+          type: string
+          nullable: true
+          description: Курсор для предыдущей страницы, указывается в следующем запросе. Содержит информацию о элементе предшествующем текущей странице (или, что то же самое, последнем элементе предыдущей страницы).
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        cursorAfter:
+          type: string
+          nullable: true
+          description: Курсор для следующей страницы, указывается в следующем запросе. Содержит информацию о последнем элементе текущей страницы (или, что то же самое, эелементе, предшествующем следующей странице).
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        qid:
+          type: string
+          description: ID поискового запроса, генерируется по набору query, category, location, filters, sortOrder. Для одинаковых значений генерируется один и тот же ID.
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      required:
+        - items
+        - cursorBefore
+        - cursorAfter
+        - qid
+
+    SearchParamsResponse:
+      type: object
+      properties:
+        query:
+          type: string
+          description: Поисковый запрос, может быть пустой строкой, но должен быть.
+          example: "Часы от бабки"
+        category:
+          $ref: '#/components/schemas/Category'
+          description: Категория, в которой происходит поиск, если не указана, то по всем категориям
+        location:
+          $ref: '#/components/schemas/Location'
+          description: Локация, в которой происходит поиск, если не указана, то по всем локациям
+        filters:
+          type: array
+          description: Фильтры, которые были использованы в поиске
+          items:
+            $ref: '#/components/schemas/FilterValue'
+        sortOrder:
+          description: Сортировка, если не указано, то по релевантности
+          $ref: '#/components/schemas/SortOrder'
+      required:
+        - query
+
+    SearchItem:
+      type: object
+      properties:
+        itemId:
+          type: string
+          description: Уникальный айди объявления
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        title:
+          type: string
+          description: Локализованное название объявления
+          example: "Часы Ролекс для элиточек"
+        price:
+          type: number
+          description: Цена в валюте запроса
+          example: 100500
+        currency:
+          $ref: '#/components/schemas/SupportedCurrency'
+          description: Валюта, которая была указана в запросе
+        originalPrice:
+          type: number
+          description: Цена в исходной валюте, которую указал автор объявления
+          example: 1000
+        originalCurrency:
+          $ref: '#/components/schemas/SupportedCurrency'
+          description: Валюта, которая была указана автором объявления
+        description:
+          type: string
+          description: Локализованное описание объявления
+          example: "Эти часы подарила мне моя бабушка, они супер, но мне не подходят, так как я хочу есть, а сколько времени знать не хочу"
+        location:
+          $ref: '#/components/schemas/Location'
+          description: Локация объявления
+        category:
+          $ref: '#/components/schemas/Category'
+          description: Одна из категорий объявления, но первая из тех, что подходит для запроса
+        images:
+          type: array
+          items:
+            type: string
+            description: URL картинки объявления высотой не больше 200 пикселей, размерностью не выше 3к1 (идеально 1к1).
+            example: "https://example.com/image.png"
+      required:
+        - itemId
+        - title
+        - price
+        - currency
+        - originalPrice
+        - originalCurrency
+        - description
+        - location
+        - category
+        - images
+
+    SortOrder:
+      type: string
+      enum: [price_asc, price_desc, newest, relevance]
+
+    Location:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный айди локации
+          example: "cordoba-123e456"
+        name:
+          type: string
+          description: Локализованное название локации
+          example: "Кордоба, центр"
+        radius:
+          type: number
+          description: Радиус поиска в метрах
+          example: 100
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+          description: Точные координаты локации
+      required:
+        - id
+        - name
+        - radius
+        - coordinates
+
+    Coordinates:
+      type: object
+      properties:
+        x:
+          type: number
+          description: Широта
+          example: -31.420208221317445
+        y:
+          type: number
+          description: Долгота
+          example: -64.18894746740074
+      required:
+        - x
+        - y
+
+    SupportedCurrency:
+      type: string
+      enum: [USD, RUB, ARS, EUR]
+      description: Поддерживаемые валюты
+
+    FilterValue:
+      type: object
+      properties:
+        role:
+          type: string
+          enum: [price, color, condition, season, brand]
+          description: Роль фильтра
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/PriceFilterValue'
+            - $ref: '#/components/schemas/ColorFilterValue'
+            - $ref: '#/components/schemas/DropdownFilterValue'
+      required:
+        - role
+        - value
+
+    ExchangeRateResponse:
+      type: object
+      properties:
+        rate:
+          type: number
+          description: Коэффициент для конвертации из исходной валюты в целевую. Умножьте цену в исходной валюте на этот коэффициент, чтобы получить цену в целевой валюте.
+          example: 92.5
+      required:
+        - rate
 
   responses:
     NotFound:
