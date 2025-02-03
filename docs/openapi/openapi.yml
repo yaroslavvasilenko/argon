@@ -204,10 +204,10 @@ paths:
           name: Accept-Language
           schema:
             type: string
-            enum: [en, ru]
-            default: en
+            enum: [en, ru, es]
+            default: es
           required: false
-          description: Язык ответа (по умолчанию en)
+          description: Язык ответа (по умолчанию ИСПАНСКИЙ)
       responses:
         '200':
           description: Успешный ответ с иерархией категорий
@@ -224,11 +224,12 @@ paths:
       parameters:
         - name: Accept-Language
           in: header
-          description: Язык для локализации фильтров
-          required: true
+          description: Язык для локализации фильтров (по умолчанию ИСПАНСКИЙ)
           schema:
             type: string
-            example: ru-RU
+            enum: [en, ru, es]
+            default: es
+          required: false
         - name: category_id
           in: query
           required: true
@@ -251,11 +252,12 @@ paths:
       parameters:
         - name: Accept-Language
           in: header
-          description: Язык локализации
-          required: true
+          description: Язык локализации (по умолчанию ИСПАНСКИЙ)
           schema:
             type: string
-            example: ru-RU
+            enum: [en, ru, es]
+            default: es
+          required: false
       requestBody:
         required: true
         content:
@@ -278,7 +280,7 @@ paths:
                 qid:
                   type: string
                   nullable: true
-                  description: ID поискового запроса, если указан, то соответствующий ему набор поисковой строки, категории, фильтров, локации и сортировки должен быть использован даже если указаны другие параметры.
+                  description: ID поискового запроса, если указан, то соответствующий ему ЛОКАЛИЗОВАННЫЙ набор категории, фильтров, локации и сортировки должен быть использован, даже если они указаны в запросе.
                   example: "123e4567-e89b-12d3-a456-426614174000"
                 limit:
                   type: number
@@ -286,14 +288,16 @@ paths:
                   maximum: 100
                   default: 20
                   description: Количество результатов на странице, если отрицательное, от курсора идти в обратную сторону
-                category:
-                  description: Категория, в которой происходит поиск, если не указана, то по всем категориям
-                  $ref: '#/components/schemas/Category'
+                categoryId:
+                  type: string
+                  description: Id категории, в которой происходит поиск, если не указана, то по всем категориям
+                  example: "electronics"
                 location:
-                  description: Локация, в которой происходит поиск, если не указана, то по всем локациям
-                  $ref: '#/components/schemas/Location'
+                  type: string
+                  description: Id локации, в которой происходит поиск, если не указана, то по всем локациям
+                  example: "cordoba-123e456"
                 filters:
-                  description: Значения фильтров, которые были использованы в поиске
+                  description: НЕЛОКАЛИЗОВАННЫЕ значения фильтров, которые были использованы в поиске
                   type: array
                   items:
                     $ref: '#/components/schemas/FilterValue'
@@ -320,11 +324,12 @@ paths:
       parameters:
         - name: Accept-Language
           in: header
-          description: Язык локализации
-          required: true
+          description: Язык локализации (по умолчанию ИСПАНСКИЙ)
           schema:
             type: string
-            example: ru-RU
+            enum: [en, ru, es]
+            default: es
+          required: false
         - name: qid
           in: query
           required: true
@@ -333,7 +338,7 @@ paths:
           description: ID поискового запроса, сгенерированный во время выполнения запроса поиска.
       responses:
         '200':
-          description: Параметры поискового запроса
+          description: ЛОКАЛИЗОВАННЫЕ в соответствии с языком локализации, параметры поискового запроса.
           content:
             application/json:
               schema:
@@ -620,7 +625,7 @@ components:
           example: "123e4567-e89b-12d3-a456-426614174000"
         qid:
           type: string
-          description: ID поискового запроса, генерируется по набору query, category, location, filters, sortOrder. Для одинаковых значений генерируется один и тот же ID.
+          description: ID поискового запроса, генерируется по НЕЛОКАЛИЗОВАННОМУ набору categoryId, locationId, filters, sortOrder. Для одинаковых значений генерируется один и тот же ID.
           example: "123e4567-e89b-12d3-a456-426614174000"
       required:
         - items
@@ -631,10 +636,6 @@ components:
     SearchParamsResponse:
       type: object
       properties:
-        query:
-          type: string
-          description: Поисковый запрос, может быть пустой строкой, но должен быть.
-          example: "Часы от бабки"
         category:
           $ref: '#/components/schemas/Category'
           description: Категория, в которой происходит поиск, если не указана, то по всем категориям
@@ -649,8 +650,6 @@ components:
         sortOrder:
           description: Сортировка, если не указано, то по релевантности
           $ref: '#/components/schemas/SortOrder'
-      required:
-        - query
 
     SearchItem:
       type: object
