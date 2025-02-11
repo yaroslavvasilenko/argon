@@ -73,7 +73,7 @@ func (s *Storage) UpdateListing(ctx context.Context, p models.Listing) error {
 	return nil
 }
 
-func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort string) ([]models.Listing, error) {
+func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort string) (*models.Listing, []models.Listing, error) {
 	var (
 		rows pgx.Rows
 		err  error
@@ -87,7 +87,7 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 	sortSplit := strings.Split(sort, "_")
 
 	if len(sortSplit) != 2 {
-		return nil, fiber.NewError(fiber.StatusBadRequest, "invalid sort parameter format")
+		return nil, nil, fiber.NewError(fiber.StatusBadRequest, "invalid sort parameter format")
 	}
 
 	orderExpr := getSortExpression(sortSplit[0], sortSplit[1])
@@ -114,9 +114,9 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 		)
 		SELECT `+listingFields+`
 		FROM ranked_listings l
-        WHERE row_number > (SELECT row_number FROM ranked_listings WHERE id = $3)
+        WHERE row_number >= (SELECT row_number FROM ranked_listings WHERE id = $3)
 		ORDER BY row_number
-		LIMIT $2
+		LIMIT $2 + 1
 		`, createSearchQuery(query), limit, cursorID)
 	} else if limit < 0 {
 		rows, err = s.pool.Query(ctx, `
@@ -128,29 +128,54 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 			WHERE lsr.title_vector @@ to_tsquery('russian', $1)
 			AND l.deleted_at IS NULL
 		)
-		SELECT id, title, original_description as description, price, currency, views_count, created_at, updated_at, deleted_at
-		FROM ranked_listings
-		WHERE row_number < (SELECT row_number FROM ranked_listings WHERE id = $3)
+		SELECT `+listingFields+` 
+		FROM ranked_listings l
+		WHERE row_number <= (SELECT row_number FROM ranked_listings WHERE id = $3)
 		ORDER BY row_number DESC
-		LIMIT $2
+		LIMIT $2 + 1
 		`, createSearchQuery(query), -limit, cursorID)
 	}
 
 	if err != nil {
-		return nil, err
+		return nil, nil, err
 	}
 	defer rows.Close()
 
-	res, err := s.scanListings(rows)
-	if err != nil {
-		return nil, err
+	var listings []models.Listing
+	var listingsAnchors *models.Listing
+
+	for rows.Next() {
+		var listing models.Listing
+		if err := rows.Scan(
+			&listing.ID,
+			&listing.Title,
+			&listing.Description,
+			&listing.Price,
+			&listing.Currency,
+			&listing.ViewsCount,
+			&listing.CreatedAt,
+			&listing.UpdatedAt,
+			&listing.DeletedAt,
+		); err != nil {
+			return nil, nil, err
+		}
+
+		listings = append(listings, listing)
+	}
+	if err := rows.Err(); err != nil {
+		return nil, nil, err
 	}
 
 	if limit < 0 {
-		slices.Reverse(res)
+		slices.Reverse(listings)
 	}
 
-	return res, nil
+	if cursorID != nil {
+		listingsAnchors = &listings[0]
+		listings = listings[1:]
+	}
+
+	return listingsAnchors, listings, nil
 }
 
 func (s *Storage) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sortOrder string) ([]models.Listing, error) {

@@ -108,7 +108,7 @@ func (h *Handler) UpdateListing(c *fiber.Ctx) error {
 
 func (h *Handler) SearchListings(c *fiber.Ctx) error {
 	req := listing.SearchListingsRequest{}
-	if err := c.QueryParser(&req); err != nil {
+	if err := c.BodyParser(&req); err != nil {
 		return err
 	}
 
