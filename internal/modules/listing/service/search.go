@@ -2,25 +2,22 @@ package service
 
 import (
 	"context"
+	"math"
 
 	"gorm.io/gorm"
 
 	"errors"
 
 	"github.com/gofiber/fiber/v2"
-	"github.com/google/uuid"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 )
 
 func (s *Service) SearchListings(ctx context.Context, req listing.SearchListingsRequest) (listing.SearchListingsResponse, error) {
 	var cursor listing.SearchCursor
 	var err error
-	if req.Cursor != "" && req.SearchID != "" {
-		cursor, err = s.cache.GetCursor(req.Cursor)
-		if err != nil {
-			return listing.SearchListingsResponse{}, err
-		}
 
+	if req.SearchID != "" {
 		search, err := s.cache.GetSearchInfo(req.SearchID)
 		if err != nil {
 			return listing.SearchListingsResponse{}, err
@@ -30,12 +27,20 @@ func (s *Service) SearchListings(ctx context.Context, req listing.SearchListings
 		req.Filters = search.Filters
 	}
 
+	if req.Cursor != "" {
+		cursor, err = s.cache.GetCursor(req.Cursor)
+		if err != nil {
+			return listing.SearchListingsResponse{}, err
+		}
+	}
+
 	resp := listing.SearchListingsResponse{}
 	var searchTitle, searchDescription bool
-	uniqueListings := make(map[uuid.UUID]struct{}) // Для отслеживания уникальных листингов
+	var listingAnchor *models.Listing
 
 	if cursor.Block == "" || cursor.Block == listing.TitleBlock {
-		listings, err := s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder)
+		var listings []models.Listing
+		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return listing.SearchListingsResponse{}, fiber.NewError(fiber.StatusNotFound, err.Error())
@@ -43,13 +48,7 @@ func (s *Service) SearchListings(ctx context.Context, req listing.SearchListings
 			return listing.SearchListingsResponse{}, err
 		}
 
-		// Добавляем только уникальные листинги
-		for _, l := range listings {
-			if _, exists := uniqueListings[l.ID]; !exists {
-				uniqueListings[l.ID] = struct{}{}
-				resp.Results = append(resp.Results, l)
-			}
-		}
+		resp.Results = append(resp.Results, listings...)
 		searchTitle = true
 	}
 
@@ -59,6 +58,7 @@ func (s *Service) SearchListings(ctx context.Context, req listing.SearchListings
 		}
 
 		remainingLimit := req.Limit - len(resp.Results)
+		//  TODO: сделать исключение по запросу перенести запрос Title
 		listings, err := s.s.SearchListingsByDescription(ctx, req.Query, remainingLimit, cursor.LastIndex, req.SortOrder)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -67,17 +67,11 @@ func (s *Service) SearchListings(ctx context.Context, req listing.SearchListings
 			return listing.SearchListingsResponse{}, err
 		}
 
-		// Добавляем только уникальные листинги из поиска по описанию
-		for _, l := range listings {
-			if _, exists := uniqueListings[l.ID]; !exists {
-				uniqueListings[l.ID] = struct{}{}
-				resp.Results = append(resp.Results, l)
-			}
-		}
+		resp.Results = append(resp.Results, listings...)
 		searchDescription = true
 	}
 
-	if len(resp.Results) > 0 && len(resp.Results) == req.Limit {
+	if len(resp.Results) > 0 && len(resp.Results) == int(math.Abs(float64(req.Limit))) {
 		lastListing := resp.Results[len(resp.Results)-1]
 
 		newCursor := listing.SearchCursor{
@@ -93,8 +87,8 @@ func (s *Service) SearchListings(ctx context.Context, req listing.SearchListings
 		resp.CursorAfter = s.cache.StoreCursor(newCursor)
 	}
 
-	if len(resp.Results) > 0 && req.Cursor != "" {
-		firstListing := resp.Results[0]
+	if listingAnchor != nil {
+		firstListing := listingAnchor
 
 		newCursor := listing.SearchCursor{
 			LastIndex: &firstListing.ID,

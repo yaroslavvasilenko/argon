@@ -6,8 +6,6 @@ import (
 	"encoding/json"
 	"net/http"
 	"net/http/httptest"
-	"net/url"
-	"strconv"
 	"testing"
 
 	"github.com/gofiber/fiber/v2"
@@ -157,6 +155,60 @@ func TestSearchListings(t *testing.T) {
 	resp = user.createListing(t, iphone3)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
+	iphone4 := models.Listing{
+		Title:       "iPhone 17 Pro",
+		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
+		Price:       100004,
+		Currency:    models.Currency("RUB"),
+	}
+	resp = user.createListing(t, iphone4)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	iphone5 := models.Listing{
+		Title:       "iPhone 18 Pro",
+		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
+		Price:       100005,
+		Currency:    models.Currency("RUB"),
+	}
+	resp = user.createListing(t, iphone5)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	iphone6 := models.Listing{
+		Title:       "iPhone 19 Pro",
+		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
+		Price:       100006,
+		Currency:    models.Currency("RUB"),
+	}
+	resp = user.createListing(t, iphone6)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	iphone7 := models.Listing{
+		Title:       "iPhone 20 Pro",
+		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
+		Price:       100007,
+		Currency:    models.Currency("RUB"),
+	}
+	resp = user.createListing(t, iphone7)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	iphone8 := models.Listing{
+		Title:       "iPhone 21 Pro",
+		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
+		Price:       100008,
+		Currency:    models.Currency("RUB"),
+	}
+	resp = user.createListing(t, iphone8)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	iphone9 := models.Listing{
+		Title:       "iPhone 22 Pro",
+		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
+		Price:       100009,
+		Currency:    models.Currency("RUB"),
+	}
+	resp = user.createListing(t, iphone9)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
 	t.Run("Successful search 3 listings and check cursor", func(t *testing.T) {
 		// Выполняем поиск объявления
 		req := getSearchListingsRequest("iPhone", 3, "", "price_asc", "")
@@ -166,62 +218,68 @@ func TestSearchListings(t *testing.T) {
 		require.Len(t, resp.Results, 3)
 		assert.Equal(t, iphone1.Title, resp.Results[0].Title)
 		assert.Equal(t, iphone2.Title, resp.Results[1].Title)
+		assert.Equal(t, iphone3.Title, resp.Results[2].Title)
 
-		req = getSearchListingsRequest("iPhone", 10, resp.CursorAfter, "price_asc", resp.SearchID)
-
-		resp = user.searchListings(t, req)
-		require.Len(t, resp.Results, 1)
-		assert.Equal(t, iphone3.Title, resp.Results[0].Title)
-
-		req = getSearchListingsRequest("iPhone", -2, resp.CursorBefore, "price_asc", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
 
 		resp = user.searchListings(t, req)
-		require.Len(t, resp.Results, 2)
-		assert.Equal(t, iphone1.Title, resp.Results[0].Title)
-		assert.Equal(t, iphone2.Title, resp.Results[1].Title)
+		require.Len(t, resp.Results, 3)
+		assert.Equal(t, iphone4.Title, resp.Results[0].Title)
+		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
+		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
+
+		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "price_asc", resp.SearchID)
+
+		resp = user.searchListings(t, req)
+		require.Len(t, resp.Results, 3)
+		assert.Equal(t, iphone4.Title, resp.Results[0].Title)
+		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
+		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
+
+		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "price_asc", resp.SearchID)
+
+		resp = user.searchListings(t, req)
+		require.Len(t, resp.Results, 3)
+		assert.Equal(t, iphone4.Title, resp.Results[0].Title)
+		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
+		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
+
+		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
+
+		resp = user.searchListings(t, req)
+		require.Len(t, resp.Results, 3)
+		assert.Equal(t, iphone7.Title, resp.Results[0].Title)
+		assert.Equal(t, iphone8.Title, resp.Results[1].Title)
+		assert.Equal(t, iphone9.Title, resp.Results[2].Title)
+
+		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
+
+		resp = user.searchListings(t, req)
+		assert.Empty(t, resp.Results)
+		assert.Empty(t, resp.CursorAfter)
+
 	})
+
 }
 
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
 	return listing.SearchListingsRequest{
-		Query: query,
-		Limit: limit,
-		Cursor: cursor,
+		Query:     query,
+		Limit:     limit,
+		Cursor:    cursor,
 		SortOrder: sortOrder,
-		SearchID: searchID,
+		SearchID:  searchID,
 	}
 }
 
 func (user *user) searchListings(t *testing.T, req listing.SearchListingsRequest) listing.SearchListingsResponse {
 	t.Helper()
-	baseURL := "/api/v1/search"
-	params := url.Values{}
 
-	if req.Query != "" {
-		params.Add("query", req.Query)
-	}
-	if req.Limit != 0 {
-		params.Add("limit", strconv.Itoa(req.Limit))
-	}
-	if req.Cursor != "" {
-		params.Add("cursor", req.Cursor)
-	}
-	if req.SortOrder != "" {
-		params.Add("sort_order", req.SortOrder)
-	}
-	if req.SearchID != "" {
-		params.Add("search_id", req.SearchID)
-	}
-	if req.Category != "" {
-		params.Add("category", req.Category)
-	}
+	body, err := json.Marshal(req)
+	require.NoError(t, err)
 
-	url := baseURL
-	if len(params) > 0 {
-		url += "?" + params.Encode()
-	}
-
-	reqSearch := httptest.NewRequest("GET", url, nil).WithContext(context.Background())
+	reqSearch := httptest.NewRequest("POST", "/api/v1/search", bytes.NewReader(body)).WithContext(context.Background())
+	reqSearch.Header.Set("Content-Type", "application/json")
 	resp, err := user.fiber.Test(reqSearch, -1)
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
@@ -239,7 +297,7 @@ func (user *user) createListing(t *testing.T, l models.Listing) *http.Response {
 	req := httptest.NewRequest("POST", "/api/v1/listing", bytes.NewReader(body)).WithContext(context.Background())
 	req.Header.Set("Content-Type", "application/json")
 
-	resp, err := user.fiber.Test(req)
+	resp, err := user.fiber.Test(req, -1)
 	require.NoError(t, err)
 	return resp
 }

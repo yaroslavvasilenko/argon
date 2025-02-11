@@ -29,7 +29,7 @@ func NewApiRouter(controllers *controller.Handler) *fiber.App {
 	r.Put("/api/v1/listing/:listing_id", controllers.UpdateListing)
 
 	//  search
-	r.Get("/api/v1/search", controllers.SearchListings)
+	r.Post("/api/v1/search", controllers.SearchListings)
 
 	//  categories
 	r.Get("/api/v1/categories", controllers.GetCategories)

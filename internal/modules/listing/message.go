@@ -15,7 +15,7 @@ type SearchListingsRequest struct {
 	// SortOrder is the order in which to sort the results.
 	SortOrder string `json:"sort_order,omitempty" query:"sort_order" validate:"omitempty,oneof=price_asc price_desc relevance_asc relevance_desc popularity_asc popularity_desc"`
 	// SearchID is the ID of the search.
-	SearchID string `json:"search_id,omitempty" query:"search_id,omitempty"`
+	SearchID string `json:"qid,omitempty" query:"search_id,omitempty"`
 	// Filters are the filters to apply to the search.
 	Filters Filters `json:"filters,omitempty"`
 	// Category is the category to search in.
