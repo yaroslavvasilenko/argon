@@ -18,6 +18,8 @@ tags:
     description: Операции с категориями
   - name: Filters
     description: Операции с фильтрами
+  - name: Location
+    description: Операции с локациями
   - name: Search
     description: Поиск объявлений
 
@@ -374,6 +376,39 @@ paths:
               schema:
                 $ref: '#/components/schemas/ExchangeRateResponse'
 
+  /api/v1/location:
+    post:
+      tags:
+        - Location
+      summary: Получить информацию о локации по области
+      description: Возвращает локацию на основе переданной области
+      operationId: getLocationByArea
+      parameters:
+        - name: Accept-Language
+          in: header
+          description: Язык локализации (по умолчанию ИСПАНСКИЙ)
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                area:
+                  $ref: '#/components/schemas/Area'
+      responses:
+        '200':
+          description: Успешный ответ с информацией о локации
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Location'
+
 components:
   schemas:
     PingResponse:
@@ -715,39 +750,68 @@ components:
       properties:
         id:
           type: string
-          description: Уникальный айди локации
+          description: Уникальный идентификатор локации
           example: "cordoba-123e456"
         name:
           type: string
           description: Локализованное название локации
           example: "Кордоба, центр"
-        radius:
-          type: number
-          description: Радиус поиска в метрах
-          example: 100
-        coordinates:
-          $ref: '#/components/schemas/Coordinates'
-          description: Точные координаты локации
+        area:
+          $ref: '#/components/schemas/Area'
       required:
         - id
         - name
-        - radius
+        - area
+
+    Area:
+      type: object
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+        radius:
+          type: number
+          description: Радиус области в метрах
+          example: 1000
+      required:
         - coordinates
+        - radius
+
+    Rectangle:
+      type: object
+      properties:
+        coordinates:
+          $ref: '#/components/schemas/Coordinates'
+        width:
+          type: number
+          description: Ширина прямоугольника в метрах
+          example: 1000
+        height:
+          type: number
+          description: Высота прямоугольника в метрах
+          example: 2000
+      required:
+        - coordinates
+        - width
+        - height
 
     Coordinates:
       type: object
       properties:
-        x:
+        lat:
           type: number
-          description: Широта
+          description: Широта в градусах, от -90° (Южный полюс) до +90° (Северный полюс)
+          minimum: -90
+          maximum: 90
           example: -31.420208221317445
-        y:
+        lng:
           type: number
-          description: Долгота
+          description: Долгота в градусах, от -180° (западная) до +180° (восточная)
+          minimum: -180
+          maximum: 180
           example: -64.18894746740074
       required:
-        - x
-        - y
+        - lat
+        - lng
 
     SupportedCurrency:
       type: string
