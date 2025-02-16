@@ -26,6 +26,7 @@ COPY --from=builder /go/bin/app .
 
 COPY --from=builder /app/config/config.toml ./config/
 COPY --from=builder /app/categories ./categories/
+COPY --from=builder /app/go.mod .
 
 # Пробрасываем порт, на котором слушает Go-приложение
 EXPOSE 8080
