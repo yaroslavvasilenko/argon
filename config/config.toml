@@ -8,3 +8,8 @@ url = "postgresql://postgres:postgres@127.0.0.1:5435/postgres"
 # Настройки логгера
 [logger]
 level = "info"
+
+[binance]
+local = true
+apiKey = ""
+secretKey = ""

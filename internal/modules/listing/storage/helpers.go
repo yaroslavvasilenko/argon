@@ -12,7 +12,7 @@ const (
 	listingFields = "l.id, l.title, l.original_description, l.price, l.currency, l.views_count, l.created_at, l.updated_at, l.deleted_at"
 )
 
-func (s *Storage) scanListings(rows pgx.Rows) ([]models.Listing, error) {
+func (s *Listing) scanListings(rows pgx.Rows) ([]models.Listing, error) {
 	var listings []models.Listing
 	for rows.Next() {
 		var listing models.Listing

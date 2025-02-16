@@ -15,16 +15,16 @@ import (
 	"gorm.io/gorm"
 )
 
-type Storage struct {
+type Listing struct {
 	gorm *gorm.DB
 	pool *pgxpool.Pool
 }
 
-func NewStorage(db *gorm.DB, pool *pgxpool.Pool) *Storage {
-	return &Storage{gorm: db, pool: pool}
+func NewListing(db *gorm.DB, pool *pgxpool.Pool) *Listing {
+	return &Listing{gorm: db, pool: pool}
 }
 
-func (s *Storage) CreateListing(ctx context.Context, p models.Listing) error {
+func (s *Listing) CreateListing(ctx context.Context, p models.Listing) error {
 	err := s.gorm.WithContext(ctx).Create(&p).Error
 	if err != nil {
 		return err
@@ -33,7 +33,7 @@ func (s *Storage) CreateListing(ctx context.Context, p models.Listing) error {
 	return nil
 }
 
-func (s *Storage) GetListing(ctx context.Context, pID string) (models.Listing, error) {
+func (s *Listing) GetListing(ctx context.Context, pID string) (models.Listing, error) {
 	poster := models.Listing{}
 
 	err := s.gorm.Table(itemTable).WithContext(ctx).
@@ -50,7 +50,7 @@ func (s *Storage) GetListing(ctx context.Context, pID string) (models.Listing, e
 	return poster, nil
 }
 
-func (s *Storage) DeleteListing(ctx context.Context, pID string) error {
+func (s *Listing) DeleteListing(ctx context.Context, pID string) error {
 	err := s.gorm.Table(itemTable).WithContext(ctx).
 		Where("id = ? AND deleted_at IS NULL", pID).
 		Update("deleted_at", time.Now()).
@@ -62,7 +62,7 @@ func (s *Storage) DeleteListing(ctx context.Context, pID string) error {
 	return nil
 }
 
-func (s *Storage) UpdateListing(ctx context.Context, p models.Listing) error {
+func (s *Listing) UpdateListing(ctx context.Context, p models.Listing) error {
 	err := s.gorm.Updates(&p).WithContext(ctx).
 		Where("deleted_at IS NULL").
 		Error
@@ -73,7 +73,7 @@ func (s *Storage) UpdateListing(ctx context.Context, p models.Listing) error {
 	return nil
 }
 
-func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort string) (*models.Listing, []models.Listing, error) {
+func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort string) (*models.Listing, []models.Listing, error) {
 	var (
 		rows pgx.Rows
 		err  error
@@ -178,7 +178,7 @@ func (s *Storage) SearchListingsByTitle(ctx context.Context, query string, limit
 	return listingsAnchors, listings, nil
 }
 
-func (s *Storage) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sortOrder string) ([]models.Listing, error) {
+func (s *Listing) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sortOrder string) ([]models.Listing, error) {
 	var (
 		rows pgx.Rows
 		err  error

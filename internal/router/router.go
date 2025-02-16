@@ -2,13 +2,12 @@ package router
 
 import (
 	"github.com/gofiber/fiber/v2"
-	"github.com/yaroslavvasilenko/argon/internal/modules/listing/controller"
-
+	"github.com/yaroslavvasilenko/argon/internal/modules"
 )
 
 const AppName = "argon"
 
-func NewApiRouter(controllers *controller.Handler) *fiber.App {
+func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 	// Application (fiber)
 	r := fiber.New(fiber.Config{
 		ErrorHandler:            ErrorHandler,
@@ -20,19 +19,22 @@ func NewApiRouter(controllers *controller.Handler) *fiber.App {
 		//BodyLimit:               128 * 1024 * 1024,
 	})
 
-	r.Get("/ping", controllers.Ping)
+	r.Get("/ping", controllers.Listing.Ping)
 
 	//  poster
-	r.Post("/api/v1/listing", controllers.CreateListing)
-	r.Get("/api/v1/listing/:listing_id", controllers.GetListing)
-	r.Delete("/api/v1/listing/:listing_id", controllers.DeleteListing)
-	r.Put("/api/v1/listing/:listing_id", controllers.UpdateListing)
+	r.Post("/api/v1/listing", controllers.Listing.CreateListing)
+	r.Get("/api/v1/listing/:listing_id", controllers.Listing.GetListing)
+	r.Delete("/api/v1/listing/:listing_id", controllers.Listing.DeleteListing)
+	r.Put("/api/v1/listing/:listing_id", controllers.Listing.UpdateListing)
 
 	//  search
-	r.Post("/api/v1/search", controllers.SearchListings)
+	r.Post("/api/v1/search", controllers.Listing.SearchListings)
 
 	//  categories
-	r.Get("/api/v1/categories", controllers.GetCategories)
+	r.Get("/api/v1/categories", controllers.Listing.GetCategories)
 
+	//  currency
+	r.Get("/api/v1/currency", controllers.Currency.GetCurrency)
+	
 	return r
 }

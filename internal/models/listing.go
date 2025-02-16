@@ -6,15 +6,6 @@ import (
 	"github.com/google/uuid"
 )
 
-type Currency string
-
-const (
-	USD Currency = "USD"
-	RUB Currency = "RUB"
-	ARS Currency = "ARS"
-	EUR Currency = "EUR"
-)
-
 type Listing struct {
 	ID          uuid.UUID `json:"id"`
 	Title       string    `json:"title"`
