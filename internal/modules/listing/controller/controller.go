@@ -10,22 +10,22 @@ import (
 	"github.com/go-playground/validator/v10"
 )
 
-type Handler struct {
-	s *service.Service
+type Listing struct {
+	s *service.Listing
 }
 
-func NewHandler(s *service.Service) *Handler {
-	return &Handler{s: s}
+func NewListing(s *service.Listing) *Listing {
+	return &Listing{s: s}
 }
 
-func (h *Handler) Ping(c *fiber.Ctx) error {
+func (h *Listing) Ping(c *fiber.Ctx) error {
 	return c.JSON(fiber.Map{
 		"ping": h.s.Ping(),
 	})
 
 }
 
-func (h *Handler) CreateListing(c *fiber.Ctx) error {
+func (h *Listing) CreateListing(c *fiber.Ctx) error {
 	r := &struct {
 		Title    string          `json:"title" validate:"required"`
 		Description string          `json:"description" validate:"required"`
@@ -51,7 +51,7 @@ func (h *Handler) CreateListing(c *fiber.Ctx) error {
 	return c.JSON(listing)
 }
 
-func (h *Handler) GetListing(c *fiber.Ctx) error {
+func (h *Listing) GetListing(c *fiber.Ctx) error {
 	listingID := c.Params("listing_id")
 
 	listing, err := h.s.GetListing(c.UserContext(), listingID)
@@ -62,7 +62,7 @@ func (h *Handler) GetListing(c *fiber.Ctx) error {
 	return c.JSON(listing)
 }
 
-func (h *Handler) DeleteListing(c *fiber.Ctx) error {
+func (h *Listing) DeleteListing(c *fiber.Ctx) error {
 	listingID := c.Params("listing_id")
 
 	err := h.s.DeleteListing(c.UserContext(), listingID)
@@ -73,7 +73,7 @@ func (h *Handler) DeleteListing(c *fiber.Ctx) error {
 	return nil
 }
 
-func (h *Handler) UpdateListing(c *fiber.Ctx) error {
+func (h *Listing) UpdateListing(c *fiber.Ctx) error {
 	listingID := uuid.UUID{}
 	err := listingID.Scan(c.Params("listing_id"))
 	if err != nil {
@@ -106,7 +106,7 @@ func (h *Handler) UpdateListing(c *fiber.Ctx) error {
 	return c.JSON(listing)
 }
 
-func (h *Handler) SearchListings(c *fiber.Ctx) error {
+func (h *Listing) SearchListings(c *fiber.Ctx) error {
 	req := listing.SearchListingsRequest{}
 	if err := c.BodyParser(&req); err != nil {
 		return err
@@ -121,7 +121,7 @@ func (h *Handler) SearchListings(c *fiber.Ctx) error {
 		req.Limit = 20
 	}
 
-	if req.Query == "" {
+	if req.Query == "" {	
 		return fiber.NewError(fiber.StatusBadRequest, "query parameter is required")
 	}
 
@@ -133,7 +133,7 @@ func (h *Handler) SearchListings(c *fiber.Ctx) error {
 	return c.JSON(listings)
 }
 
-func (h *Handler) GetCategories(c *fiber.Ctx) error {
+func (h *Listing) GetCategories(c *fiber.Ctx) error {
 	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
 	lang := c.Get("Accept-Language", "en")
 	

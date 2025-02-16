@@ -30,6 +30,11 @@ type Config struct {
 			En string
 		}
 	}
+	Binance struct {
+		APIKey    string
+		SecretKey string
+		Local    bool
+	}
 }
 
 var cfg = Config{}

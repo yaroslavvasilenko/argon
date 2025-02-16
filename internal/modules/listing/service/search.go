@@ -13,7 +13,7 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 )
 
-func (s *Service) SearchListings(ctx context.Context, req listing.SearchListingsRequest) (listing.SearchListingsResponse, error) {
+func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListingsRequest) (listing.SearchListingsResponse, error) {
 	var cursor listing.SearchCursor
 	var err error
 

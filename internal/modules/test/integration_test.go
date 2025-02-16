@@ -1,4 +1,4 @@
-package iphone
+package modules
 
 import (
 	"bytes"
@@ -28,7 +28,7 @@ import (
 
 type TestApp struct {
 	fiber        *fiber.App
-	listingStore *storage.Storage
+	listingStore *storage.Listing
 	pool         *pgxpool.Pool
 }
 

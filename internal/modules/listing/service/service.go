@@ -18,14 +18,14 @@ import (
 	"gorm.io/gorm"
 )
 
-type Service struct {
-	s      *storage.Storage
+type Listing struct {
+	s      *storage.Listing
 	logger *logger.LogPhuslu
 	cache  *storage.Cache
 }
 
-func NewService(s *storage.Storage, pool *pgxpool.Pool, logger *logger.LogPhuslu) *Service {
-	srv := &Service{
+func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.LogPhuslu) *Listing {
+	srv := &Listing{
 		s:      s,
 		cache:  storage.NewCache(pool),
 		logger: logger,
@@ -34,11 +34,11 @@ func NewService(s *storage.Storage, pool *pgxpool.Pool, logger *logger.LogPhuslu
 	return srv
 }
 
-func (s *Service) Ping() string {
+func (s *Listing) Ping() string {
 	return "pong"
 }
 
-func (s *Service) CreateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
+func (s *Listing) CreateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
 	p.ID = uuid.New()
 	timeNow := time.Now()
 	p.CreatedAt = timeNow
@@ -51,7 +51,7 @@ func (s *Service) CreateListing(ctx context.Context, p models.Listing) (models.L
 	return s.s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Service) GetListing(ctx context.Context, pID string) (models.Listing, error) {
+func (s *Listing) GetListing(ctx context.Context, pID string) (models.Listing, error) {
 	listing, err := s.s.GetListing(ctx, pID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -63,7 +63,7 @@ func (s *Service) GetListing(ctx context.Context, pID string) (models.Listing, e
 	return listing, nil
 }
 
-func (s *Service) DeleteListing(ctx context.Context, pID string) error {
+func (s *Listing) DeleteListing(ctx context.Context, pID string) error {
 	err := s.s.DeleteListing(ctx, pID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -75,7 +75,7 @@ func (s *Service) DeleteListing(ctx context.Context, pID string) error {
 	return nil
 }
 
-func (s *Service) UpdateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
+func (s *Listing) UpdateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
 	p.UpdatedAt = time.Now()
 
 	err := s.s.UpdateListing(ctx, p)
@@ -86,7 +86,7 @@ func (s *Service) UpdateListing(ctx context.Context, p models.Listing) (models.L
 	return s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Service) GetCategories(ctx context.Context) ([]models.CategoryNode, error) {
+func (s *Listing) GetCategories(ctx context.Context) ([]models.CategoryNode, error) {
 	lang := ctx.Value("lang").(string)
 
 	var categories []models.CategoryNode
