@@ -19,9 +19,8 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
 	"github.com/yaroslavvasilenko/argon/internal/models"
+	"github.com/yaroslavvasilenko/argon/internal/modules"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
-	"github.com/yaroslavvasilenko/argon/internal/modules/listing/controller"
-	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
 	"github.com/yaroslavvasilenko/argon/internal/router"
 )
@@ -57,10 +56,9 @@ func createTestApp(t *testing.T) *TestApp {
 	err = database.Migrate(cfg.DB.Url)
 	require.NoError(t, err)
 
-	storagesDB := storage.NewStorage(gorm, pool)
-
-	service := service.NewService(storagesDB, pool, lg)
-	controller := controller.NewHandler(service)
+	storages := modules.NewStorages(cfg, gorm, pool)
+	services := modules.NewServices(storages, pool, lg)
+	controller := modules.NewControllers(services)
 	// init router
 	r := router.NewApiRouter(controller)
 
