@@ -28,6 +28,7 @@ type Config struct {
 		Lang struct {
 			Ru string
 			En string
+			Es string
 		}
 	}
 	Binance struct {
@@ -99,6 +100,14 @@ func LoadConfig() {
 	}
 
 	cfg.Categories.Lang.En = string(categoriesFile)
+
+	categoriesPath = filepath.Join(projectRoot, "./categories/lang/es.json")
+	categoriesFile, err = os.ReadFile(categoriesPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+	}
+
+	cfg.Categories.Lang.Es = string(categoriesFile)
 }
 
 // getProjectRoot returns the absolute path to the project root directory

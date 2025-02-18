@@ -23,10 +23,10 @@ func main() {
 
 	lg := logger.NewLogger(cfg)
 
-	lg.Info().Msg("starting app...")
+	lg.Infof("starting app...")
 
 	exit := func(msg string, err error) {
-		lg.Err(err).Msg(msg)
+		lg.Errorf("%s", msg)
 		os.Exit(1)
 	}
 

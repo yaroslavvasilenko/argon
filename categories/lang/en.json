@@ -1,56 +1,10 @@
-[
-  {
-    "category": {
-      "id": "electronics",
-      "name": "Electronics"
-    },
-    "subcategories": [
-      {
-        "category": {
-          "id": "smartphones",
-          "name": "Smartphones"
-        },
-        "subcategories": [
-          {
-            "category": {
-              "id": "iphone",
-              "name": "iPhone"
-            }
-          },
-          {
-            "category": {
-              "id": "google pixel",
-              "name": "Google Pixel"
-            }
-          }
-        ]
-      }
-    ]
-  },
-  {
-    "category": {
-      "id": "clothing",
-      "name": "Clothing"
-    },
-    "subcategories": [
-      {
-        "category": {
-          "id": "men's clothing",
-          "name": "Men's Clothing"
-        }
-      },
-      {
-        "category": {
-          "id": "women's clothing",
-          "name": "Women's Clothing"
-        }
-      }
-    ]
-  },
-  {
-    "category": {
-      "id": "furniture",
-      "name": "Furniture"
-    }
-  }
-]
+{
+  "electronics": "Electronics",
+  "smartphones": "Smartphones",
+  "iphone": "iPhone",
+  "google pixel": "Google Pixel",
+  "clothing": "Clothing",
+  "men's clothing": "Men's Clothing",
+  "women's clothing": "Women's Clothing",
+  "furniture": "Furniture"
+}

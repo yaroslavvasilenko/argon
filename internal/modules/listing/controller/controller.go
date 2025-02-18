@@ -135,11 +135,10 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 
 func (h *Listing) GetCategories(c *fiber.Ctx) error {
 	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
-	lang := c.Get("Accept-Language", "en")
+	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
 	
 	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), "lang", lang)
-	
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
 	
 	resp, err := h.s.GetCategories(ctx)
 	if err != nil {
