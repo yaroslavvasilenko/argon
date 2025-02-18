@@ -12,11 +12,11 @@ import (
 
 type Currency struct {
 	s      *storage.Currency
-	logger *logger.LogPhuslu
+	logger *logger.Glog
 	b      storage.IBinance
 }
 
-func NewCurrency(s *storage.Currency, b storage.IBinance, logger *logger.LogPhuslu) *Currency {
+func NewCurrency(s *storage.Currency, b storage.IBinance, logger *logger.Glog) *Currency {
 	srv := &Currency{
 		s:      s,
 		logger: logger,

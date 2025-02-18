@@ -8,11 +8,17 @@ import (
 	"github.com/phuslu/log"
 )
 
-type LogPhuslu struct {
-	log.Logger
+type Glog struct {
+	Logger log.Logger
 }
 
-func NewLogger(cfg config.Config) *LogPhuslu {
+func (l *Glog) Infof(fmt string, a ...any) { l.Logger.Info().Msgf(fmt, a...) }
+
+func (l *Glog) Warnf(fmt string, a ...any) { l.Logger.Warn().Msgf(fmt, a...) }
+
+func (l *Glog) Errorf(fmt string, a ...any) { l.Logger.Error().Msgf(fmt, a...) }
+
+func NewLogger(cfg config.Config) *Glog {
 	DefaultLogger := log.Logger{
 		TimeFormat: "15:04:05",
 		Caller:     1,
@@ -33,7 +39,7 @@ func NewLogger(cfg config.Config) *LogPhuslu {
 	}
 
 	log.DefaultLogger = DefaultLogger
-	logInstance := &LogPhuslu{
+	logInstance := &Glog{
 		Logger: DefaultLogger,
 	}
 

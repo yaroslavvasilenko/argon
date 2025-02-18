@@ -19,6 +19,12 @@
 
 # Go workspace file
 go.work
+
+# Debug files
+__debug_*
+
+# macOS system files
+.DS_Store
 go.work.sum
 
 # env file

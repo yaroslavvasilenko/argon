@@ -14,17 +14,18 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
 	"github.com/yaroslavvasilenko/argon/internal/models"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
 	"gorm.io/gorm"
 )
 
 type Listing struct {
 	s      *storage.Listing
-	logger *logger.LogPhuslu
+	logger *logger.Glog
 	cache  *storage.Cache
 }
 
-func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.LogPhuslu) *Listing {
+func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.Glog) *Listing {
 	srv := &Listing{
 		s:      s,
 		cache:  storage.NewCache(pool),
@@ -86,28 +87,55 @@ func (s *Listing) UpdateListing(ctx context.Context, p models.Listing) (models.L
 	return s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Listing) GetCategories(ctx context.Context) ([]models.CategoryNode, error) {
-	lang := ctx.Value("lang").(string)
-
-	var categories []models.CategoryNode
-	var err error
-
-	err = json.Unmarshal([]byte(config.GetConfig().Categories.Json), &categories)
-	if err != nil {
-		return nil, err
+func (s *Listing) GetCategories(ctx context.Context) ([]listing.CategoryNode, error) {
+	// Получаем базовую структуру категорий
+	var categories []listing.CategoryNode
+	if err := json.Unmarshal([]byte(config.GetConfig().Categories.Json), &categories); err != nil {
+		return nil, errors.New("ошибка при разборе базовых категорий: " + err.Error())
 	}
+
+	// Получаем язык из контекста
+	lang := models.Localization(ctx.Value(models.KeyLanguage).(string))
+	if lang == "" {
+		lang = models.LanguageDefault
+	}
+
+	// Загружаем локализации
+	var translations map[string]string
+	var langData string
 
 	switch lang {
-	case "ru":
-		err = json.Unmarshal([]byte(config.GetConfig().Categories.Lang.Ru), &categories)
-	case "en":
-		err = json.Unmarshal([]byte(config.GetConfig().Categories.Lang.En), &categories)
+	case models.LanguageRu:
+		langData = config.GetConfig().Categories.Lang.Ru
+	case models.LanguageEn:
+		langData = config.GetConfig().Categories.Lang.En
+	case models.LanguageEs:
+		langData = config.GetConfig().Categories.Lang.Es
 	default:
-		err = json.Unmarshal([]byte(config.GetConfig().Categories.Lang.En), &categories)
-	}
-	if err != nil {
-		return nil, err
+		s.logger.Warnf("неизвестный язык %s, используем дефолтный", lang)
+		langData = config.GetConfig().Categories.Lang.Es
 	}
 
+	// Распаковываем локализации
+	if err := json.Unmarshal([]byte(langData), &translations); err != nil {
+		return nil, errors.New("ошибка при разборе локализаций: " + err.Error())
+	}
+
+	// Рекурсивно применяем локализации
+	applyTranslations(&categories, translations)
+
 	return categories, nil
+}
+
+// applyTranslations рекурсивно применяет переводы к категориям
+func applyTranslations(nodes *[]listing.CategoryNode, translations map[string]string) {
+	for i := range *nodes {
+		node := &(*nodes)[i]
+		if name, ok := translations[node.Category.ID]; ok {
+			node.Category.Name = name
+		}
+		if len(node.Subcategories) > 0 {
+			applyTranslations(&node.Subcategories, translations)
+		}
+	}
 }

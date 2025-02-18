@@ -36,3 +36,19 @@ type SearchListingsResponse struct {
 	// SearchID is the ID of the search.
 	SearchID string `json:"search_id,omitempty" query:"search_id,omitempty"`
 }
+
+
+type ResponseGetCategories struct {
+	Categories []CategoryNode `json:"categories"`
+}
+
+type CategoryNode struct {
+	Category Category `json:"category"`
+	Subcategories []CategoryNode `json:"subcategories,omitempty"`
+}
+
+type Category struct {
+	ID   string `json:"id"`
+	Name string `json:"name"`
+	Image *string `json:"image,omitempty"`
+}

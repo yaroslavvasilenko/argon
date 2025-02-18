@@ -13,7 +13,7 @@ type Services struct {
 }
 
 
-func NewServices(storages *Storages, pool *pgxpool.Pool, lg *logger.LogPhuslu) *Services {
+func NewServices(storages *Storages, pool *pgxpool.Pool, lg *logger.Glog) *Services {
 	return &Services{
 		listing: lservice.NewListing(storages.listing, pool, lg),
 		currency: cservice.NewCurrency(storages.currency, storages.currencyBinance, lg),

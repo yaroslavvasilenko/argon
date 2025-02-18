@@ -10,7 +10,7 @@ import (
 func (c *Currency) runHourlySync() {
 	// Запускаем сразу при старте
 	if err := c.SyncBinance(); err != nil {
-		c.logger.Error().Err(err).Msg("ошибка синхронизации курса")
+		c.logger.Errorf("ошибка синхронизации курса")
 	}
 
 	// Запускаем таймер на каждый час
@@ -21,7 +21,7 @@ func (c *Currency) runHourlySync() {
 		select {
 		case <-ticker.C:
 			if err := c.SyncBinance(); err != nil {
-				c.logger.Error().Err(err).Msg("ошибка синхронизации курса")
+				c.logger.Errorf("ошибка синхронизации курса")
 			}
 		}
 	}
@@ -44,7 +44,7 @@ func (c *Currency) SyncBinance() error {
 
 			rate, err := c.b.GetExchangeRateFromBinance(symbolPair)
 			if err != nil {
-				c.logger.Error().Err(err).Str("symbol", symbolPair).Msg("ошибка получения курса для пары")
+				c.logger.Errorf("ошибка получения курса для пары")
 				// При ошибке делаем более длительную паузу
 				time.Sleep(500 * time.Millisecond)
 				continue // Продолжаем со следующей парой при ошибке
@@ -56,7 +56,7 @@ func (c *Currency) SyncBinance() error {
 				ExchangeRate: rate,
 			})
 			if err != nil {
-				c.logger.Error().Err(err).Str("symbol", symbolPair).Msg("ошибка сохранения курса для пары")
+				c.logger.Errorf("ошибка сохранения курса для пары")
 				continue
 			}
 		}
