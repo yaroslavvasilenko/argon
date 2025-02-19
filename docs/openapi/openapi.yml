@@ -49,43 +49,28 @@ paths:
       summary: Создать новое объявление
       tags:
         - Listing
+      parameters:
+        - in: header
+          name: Accept-Language
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
+          description: Язык ответа (по умолчанию ИСПАНСКИЙ)
       requestBody:
         required: true
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                  example: Часы
-                text:
-                  type: string
-                  example: супер товар
-              required:
-                - title
-                - text
+              $ref: '#/components/schemas/ListingRequest'
       responses:
         '200':
           description: Объявление успешно создано
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    example: "123e4567-e89b-12d3-a456-426614174000"
-                  title:
-                    type: string
-                    example: Часы
-                  text:
-                    type: string
-                    example: супер товар
-                required:
-                  - id
-                  - title
-                  - text
+                $ref: '#/components/schemas/Listing'
 
   /api/v1/listing/{listing_id}:
     get:
@@ -93,6 +78,14 @@ paths:
       tags:
         - Listing
       parameters:
+        - name: Accept-Language
+          in: header
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
+          description: Язык ответа (по умолчанию ИСПАНСКИЙ)
         - name: listing_id
           in: path
           required: true
@@ -104,34 +97,9 @@ paths:
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    example: "123e4567-e89b-12d3-a456-426614174000"
-                  title:
-                    type: string
-                    example: Часы
-                  text:
-                    type: string
-                    example: супер товар
-                required:
-                  - id
-                  - title
-                  - text
+                $ref: '#/components/schemas/Listing'
         '404':
-          description: Объект не найден
-          content:
-            application/json:
-              schema:
-                type: object
-                properties:
-                  code:
-                    type: string
-                    example: NotFound
-                  description:
-                    type: string
-                    example: Объект не найден
+          $ref: '#/components/responses/NotFound'
 
     delete:
       summary: Удалить объявление по ID
@@ -146,12 +114,22 @@ paths:
       responses:
         '200':
           description: Объявление успешно удалено
+        '404':
+          $ref: '#/components/responses/NotFound'
 
     put:
       summary: Обновить объявление по ID
       tags:
         - Listing
       parameters:
+        - name: Accept-Language
+          in: header
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
+          description: Язык ответа (по умолчанию ИСПАНСКИЙ)
         - name: listing_id
           in: path
           required: true
@@ -162,38 +140,16 @@ paths:
         content:
           application/json:
             schema:
-              type: object
-              properties:
-                title:
-                  type: string
-                  example: Часы
-                text:
-                  type: string
-                  example: супер товар
-              required:
-                - title
-                - text
+              $ref: '#/components/schemas/ListingRequest'
       responses:
         '200':
           description: Объявление успешно обновлено
           content:
             application/json:
               schema:
-                type: object
-                properties:
-                  id:
-                    type: string
-                    example: "123e4567-e89b-12d3-a456-426614174000"
-                  title:
-                    type: string
-                    example: Часы
-                  text:
-                    type: string
-                    example: супер товар
-                required:
-                  - id
-                  - title
-                  - text
+                $ref: '#/components/schemas/Listing'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/categories:
     get:
@@ -202,8 +158,8 @@ paths:
         - Categories
       description: Возвращает иерархию категорий с подкатегориями.
       parameters:
-        - in: header
-          name: Accept-Language
+        - name: Accept-Language
+          in: header
           schema:
             type: string
             enum: [en, ru, es]
@@ -425,28 +381,41 @@ components:
       properties:
         title:
           type: string
+          description: Название объявления
           example: Часы
-        text:
+        description:
           type: string
+          description: Описание объявления
           example: супер товар
+        price:
+          description: Цена в валюте запроса
+          $ref: '#/components/schemas/Price'
+        currency:
+          description: Валюта, в которой была указана цена
+          $ref: '#/components/schemas/SupportedCurrency'
+        location:
+          description: Локация объявления с радиусом в котором продавец осуществляет доставку
+          $ref: '#/components/schemas/Location'
+        categories:
+          type: array
+          description: Категории, в которых находится объявление
+          minItems: 1
+          items:
+            type: string
+            example: "electronics"
+            description: Уникальный айди категории
+        characteristics:
+          type: array
+          description: Характеристики объявления
+          items:
+            $ref: '#/components/schemas/CharacteristicType'
+        images:
+          type: array
+          items:
+            type: string
+            description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
+            example: "https://example.com/image.png"
       required:
-        - title
-        - text
-
-    ListingResponse:
-      type: object
-      properties:
-        id:
-          type: string
-          example: "123e4567-e89b-12d3-a456-426614174000"
-        title:
-          type: string
-          example: Часы
-        text:
-          type: string
-          example: супер товар
-      required:
-        - id
         - title
         - text
 
@@ -455,17 +424,136 @@ components:
       properties:
         id:
           type: string
+          description: Уникальный идентификатор объявления
           example: "123e4567-e89b-12d3-a456-426614174000"
         title:
           type: string
+          description: Локализованное название объявления
           example: Часы
-        text:
+        description:
           type: string
+          description: Локализованное описание объявления
           example: супер товар
+        originalDescription:
+          type: string
+          description: Описание объявления на языке, указанном в запросе на создание объявления
+          example: супер товар
+        price:
+          description: Цена в валюте запроса
+          $ref: '#/components/schemas/Price'
+        currency:
+          description: Валюта, которая была указана в запросе
+          $ref: '#/components/schemas/SupportedCurrency'
+        originalPrice:
+          description: Цена в исходной валюте, которую указал автор объявления
+          $ref: '#/components/schemas/Price'
+        originalCurrency:
+          description: Валюта, которая была указана автором объявления
+          $ref: '#/components/schemas/SupportedCurrency'
+        location:
+          description: Локация объявления с радиусом в котором продавец осуществляет доставку
+          $ref: '#/components/schemas/Location'
+        seller:
+          type: object
+          properties:
+            id:
+              type: string
+              description: Уникальный идентификатор продавца
+              example: "123e4567-e89b-12d3-a456-426614174000"
+            name:
+              type: string
+              description: Имя продавца, в том виде в котором он его указал.
+              example: "John Doe"
+            rating:
+              type: number
+              description: Рейтинг продавца по пятибальной шкале
+              minimum: 0
+              maximum: 5
+              nullable: true
+              example: 4.5
+          required:
+            - id
+            - name
+        categories:
+          type: array
+          description: Категории, в которых находится объявление
+          minItems: 1
+          items:
+            $ref: '#/components/schemas/Category'
+        characteristics:
+          type: array
+          description: Характеристики объявления
+          items:
+            $ref: '#/components/schemas/CharacteristicType'
+        images:
+          type: array
+          items:
+            type: string
+            description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
+            example: "https://example.com/image.png"
+        createdAt:
+          type: integer
+          description: Время создания в миллисекундах
+          example: 1708297118000
+        updatedAt:
+          type: integer
+          description: Время последнего обновления в миллисекундах
+          example: 1708297118000
+        boost:
+          description: Информация о бусте, присутствует только если запрос отправил автор объявления и объявление не содержит запрещенку.
+          $ref: '#/components/schemas/Boost'
+          nullable: true
+        nextBoost:
+          description: Информация о бусте, которым будет продлен текущий. Присутствует только если текущий буст не последний, запрос отправил автор объявления и объявление не содержит запрещенку.
+          $ref: '#/components/schemas/Boost'
+          nullable: true
+        isEditable:
+          type: boolean
+          description: Может ли текущий пользователь редактировать это объявление (он может, если он его создал)
+        isNSFW:
+          type: boolean
+          description: Содержит ли объявление запрещенку
       required:
         - id
         - title
-        - text
+        - description
+        - originalDescription
+        - price
+        - currency
+        - originalPrice
+        - originalCurrency
+        - location
+        - seller
+        - categories
+        - characteristics
+        - images
+        - createdAt
+        - updatedAt
+        - isEditable
+        - isNSFW
+
+    BoostType:
+      type: string
+      enum: [none, daily, monthly, yearly, premium]
+      description: Тип буста объявления
+
+    Boost:
+      type: object
+      properties:
+        type:
+          $ref: '#/components/schemas/BoostType'
+        lastRenewalTime:
+          type: integer
+          description: Время последнего продления буста в миллисекундах
+          example: 1708297118000
+        comissionPercents:
+          type: number
+          description: Процент комиссии для данного типа буста
+          example: 5.5
+      required:
+        - type
+        - lastRenewalTime
+        - comissionPercents
 
     Category:
       type: object
@@ -558,23 +646,29 @@ components:
             - $ref: '#/components/schemas/PriceFilterParams'
             - $ref: '#/components/schemas/ColorFilterParams'
             - $ref: '#/components/schemas/DropdownFilterParams'
+            - $ref: '#/components/schemas/SelectorFilterParams'
+            - $ref: '#/components/schemas/CheckboxFilterParams'
       required:
         - role
         - params
+
+    FilterRole:
+      type: string
+      enum: [price, color, condition, season, brand]
 
     PriceFilterValue:
       type: object
       properties:
         min:
           type: number
+          nullable: true
           description: Минимальное значение, которое должна принимать цена. Совпадает с min из PriceFilterParams если null.
           example: 10
-          nullable: true
         max:
           type: number
+          nullable: true
           description: Максимальное значение, которое должна принимать цена. Совпадает с max из PriceFilterParams если null.
           example: 123
-          nullable: true
       required:
         - min
         - max
@@ -594,6 +688,15 @@ components:
         - min
         - max
 
+    Price:
+      type: number
+      minimum: 0
+      example: 100500
+
+    Color:
+      type: string
+      enum: [white, red, orange, yellow, olive, green, teal, blue, violet, purple, pink, brown, grey, black]
+
     ColorFilterValue:
       type: array
       items:
@@ -603,16 +706,27 @@ components:
       type: object
       description: Пустой объект для цветового фильтра
 
-    Color:
+    DropdownValue:
       type: string
-      enum: [white, red, orange, yellow, olive, green, teal, blue, violet, purple, pink, brown, grey, black]
+      description: Значение опции, уникальная строка
+      example: "apple"
+
+    DropdownOption:
+      type: object
+      properties:
+        value:
+          $ref: '#/components/schemas/DropdownValue'
+        label:
+          type: string
+          description: Локализованное название опции
+          example: "Apple"
+      required:
+        - value
 
     DropdownFilterValue:
       type: array
       items:
-        type: string
-        description: Значение опции, уникальная строка
-        example: "apple"
+        $ref: '#/components/schemas/DropdownValue'
 
     DropdownFilterParams:
       type: object
@@ -629,18 +743,53 @@ components:
         - options
         - label
 
-    DropdownOption:
+    SelectorFilterValue:
+      $ref: '#/components/schemas/DropdownValue'
+
+    SelectorFilterParams:
       type: object
       properties:
-        value:
-          type: string
-          description: Значение опции, уникальная строка
-          example: "apple"
+        options:
+          type: array
+          items:
+            $ref: '#/components/schemas/DropdownOption'
         label:
           type: string
-          description: Локализованное название опции
-          example: "Apple"
+          description: Локализованное название фильтра
+          example: "Состояние"
       required:
+        - options
+        - label
+
+    CheckboxValue:
+      type: boolean
+
+    CheckboxFilterValue:
+      $ref: '#/components/schemas/CheckboxValue'
+
+    CheckboxFilterParams:
+      type: object
+      properties:
+        label:
+          type: string
+          description: Локализованное название фильтра
+          example: "Только с фото"
+      required:
+        - label
+
+    CharacteristicType:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/FilterRole'
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/Price'
+            - $ref: '#/components/schemas/Color'
+            - $ref: '#/components/schemas/DropdownValue'
+            - $ref: '#/components/schemas/CheckboxValue'
+      required:
+        - role
         - value
 
     SearchResponse:
@@ -678,7 +827,7 @@ components:
           description: Категория, в которой происходит поиск, если не указана, то по всем категориям
         location:
           $ref: '#/components/schemas/Location'
-          description: Локация, в которой происходит поиск, если не указана, то по всем локациям
+          description: Локация, в которой происходит поиск, если не указана, то по всем локациям. Радиус локации говорит о том, как далеко покупатель готов пройтись от координат локации.
         filters:
           type: array
           description: Фильтры, которые были использованы в поиске
@@ -700,16 +849,14 @@ components:
           description: Локализованное название объявления
           example: "Часы Ролекс для элиточек"
         price:
-          type: number
           description: Цена в валюте запроса
-          example: 100500
+          $ref: '#/components/schemas/Price'
         currency:
           $ref: '#/components/schemas/SupportedCurrency'
           description: Валюта, которая была указана в запросе
         original_price:
-          type: number
           description: Цена в исходной валюте, которую указал автор объявления
-          example: 1000
+          $ref: '#/components/schemas/Price'
         original_currency:
           $ref: '#/components/schemas/SupportedCurrency'
           description: Валюта, которая была указана автором объявления
@@ -719,7 +866,7 @@ components:
           example: "Эти часы подарила мне моя бабушка, они супер, но мне не подходят, так как я хочу есть, а сколько времени знать не хочу"
         location:
           $ref: '#/components/schemas/Location'
-          description: Локация объявления
+          description: Локация объявления с радиусом в котором продавец осуществляет доставку
         category:
           $ref: '#/components/schemas/Category'
           description: Одна из категорий объявления, но первая из тех, что подходит для запроса
@@ -830,6 +977,8 @@ components:
             - $ref: '#/components/schemas/PriceFilterValue'
             - $ref: '#/components/schemas/ColorFilterValue'
             - $ref: '#/components/schemas/DropdownFilterValue'
+            - $ref: '#/components/schemas/SelectorFilterValue'
+            - $ref: '#/components/schemas/CheckboxFilterValue'
       required:
         - role
         - value
