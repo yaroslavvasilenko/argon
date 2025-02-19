@@ -389,16 +389,15 @@ components:
           example: супер товар
         price:
           description: Цена в валюте запроса
-          $ref: '#/components/schemas/Price'
+          $ref: '#/components/schemas/ListingPrice'
         currency:
           description: Валюта, в которой была указана цена
           $ref: '#/components/schemas/SupportedCurrency'
         location:
-          description: Локация объявления с радиусом в котором продавец осуществляет доставку
-          $ref: '#/components/schemas/Location'
+          $ref: '#/components/schemas/SellerLocation'
         categories:
           type: array
-          description: Категории, в которых находится объявление
+          description: Айди категорий, в которых находится объявление
           minItems: 1
           items:
             type: string
@@ -439,20 +438,17 @@ components:
           description: Описание объявления на языке, указанном в запросе на создание объявления
           example: супер товар
         price:
-          description: Цена в валюте запроса
-          $ref: '#/components/schemas/Price'
+          $ref: '#/components/schemas/ListingPrice'
         currency:
           description: Валюта, которая была указана в запросе
           $ref: '#/components/schemas/SupportedCurrency'
         originalPrice:
-          description: Цена в исходной валюте, которую указал автор объявления
-          $ref: '#/components/schemas/Price'
+          $ref: '#/components/schemas/OriginalListingPrice'
         originalCurrency:
           description: Валюта, которая была указана автором объявления
           $ref: '#/components/schemas/SupportedCurrency'
         location:
-          description: Локация объявления с радиусом в котором продавец осуществляет доставку
-          $ref: '#/components/schemas/Location'
+          $ref: '#/components/schemas/SellerLocation'
         seller:
           type: object
           properties:
@@ -557,19 +553,20 @@ components:
 
     Category:
       type: object
+      description: Категория объявления с локализованным названием
       properties:
         id:
           type: string
+          description: Уникальный идентификатор категории
           example: "electronics"
-          description: Уникальный айди категории
         name:
           type: string
+          description: Локализованное название категории
           example: "Электроника"
-          description: Локализованное имя категории
         image:
           type: string
+          description: URL иконки категории размером 32x32 пикселя
           example: "https://example.com/image.png"
-          description: url картинки категории 32х32
       required:
         - id
         - name
@@ -693,6 +690,16 @@ components:
       minimum: 0
       example: 100500
 
+    ListingPrice:
+      allOf:
+        - $ref: '#/components/schemas/Price'
+        - description: Цена в валюте запроса
+
+    OriginalListingPrice:
+      allOf:
+        - $ref: '#/components/schemas/Price'
+        - description: Цена в исходной валюте, которую указал автор объявления
+
     Color:
       type: string
       enum: [white, red, orange, yellow, olive, green, teal, blue, violet, purple, pink, brown, grey, black]
@@ -784,7 +791,6 @@ components:
           $ref: '#/components/schemas/FilterRole'
         value:
           oneOf:
-            - $ref: '#/components/schemas/Price'
             - $ref: '#/components/schemas/Color'
             - $ref: '#/components/schemas/DropdownValue'
             - $ref: '#/components/schemas/CheckboxValue'
@@ -826,8 +832,7 @@ components:
           $ref: '#/components/schemas/Category'
           description: Категория, в которой происходит поиск, если не указана, то по всем категориям
         location:
-          $ref: '#/components/schemas/Location'
-          description: Локация, в которой происходит поиск, если не указана, то по всем локациям. Радиус локации говорит о том, как далеко покупатель готов пройтись от координат локации.
+          $ref: '#/components/schemas/BuyerLocation'
         filters:
           type: array
           description: Фильтры, которые были использованы в поиске
@@ -849,14 +854,12 @@ components:
           description: Локализованное название объявления
           example: "Часы Ролекс для элиточек"
         price:
-          description: Цена в валюте запроса
-          $ref: '#/components/schemas/Price'
+          $ref: '#/components/schemas/ListingPrice'
         currency:
           $ref: '#/components/schemas/SupportedCurrency'
           description: Валюта, которая была указана в запросе
         original_price:
-          description: Цена в исходной валюте, которую указал автор объявления
-          $ref: '#/components/schemas/Price'
+          $ref: '#/components/schemas/OriginalListingPrice'
         original_currency:
           $ref: '#/components/schemas/SupportedCurrency'
           description: Валюта, которая была указана автором объявления
@@ -865,8 +868,7 @@ components:
           description: Локализованное описание объявления
           example: "Эти часы подарила мне моя бабушка, они супер, но мне не подходят, так как я хочу есть, а сколько времени знать не хочу"
         location:
-          $ref: '#/components/schemas/Location'
-          description: Локация объявления с радиусом в котором продавец осуществляет доставку
+          $ref: '#/components/schemas/SellerLocation'
         category:
           $ref: '#/components/schemas/Category'
           description: Одна из категорий объявления, но первая из тех, что подходит для запроса
@@ -910,8 +912,19 @@ components:
         - name
         - area
 
+    BuyerLocation:
+      allOf:
+        - $ref: '#/components/schemas/Location'
+        - description: Локация, в которой происходит поиск, если не указана, то по всем локациям. Радиус локации говорит о том, как далеко покупатель готов пройтись от координат локации.
+
+    SellerLocation:
+      allOf:
+        - $ref: '#/components/schemas/Location'
+        - description: Локация с радиусом, в котором продавец осуществляет доставку
+
     Area:
       type: object
+      description: Область на карте, определяемая центральной точкой и радиусом
       properties:
         coordinates:
           $ref: '#/components/schemas/Coordinates'
@@ -925,6 +938,7 @@ components:
 
     Rectangle:
       type: object
+      description: Прямоугольная область на карте, определяемая центральной точкой, шириной и высотой
       properties:
         coordinates:
           $ref: '#/components/schemas/Coordinates'
@@ -943,6 +957,7 @@ components:
 
     Coordinates:
       type: object
+      description: Географические координаты точки на карте
       properties:
         lat:
           type: number
@@ -962,8 +977,8 @@ components:
 
     SupportedCurrency:
       type: string
+      description: Поддерживаемые валюты для цен в объявлениях
       enum: [USD, RUB, ARS, EUR]
-      description: Поддерживаемые валюты
 
     FilterValue:
       type: object
