@@ -36,6 +36,9 @@ type Config struct {
 		SecretKey string
 		Local    bool
 	}
+	Nominatim struct {
+		BaseUrl string
+	}
 }
 
 var cfg = Config{}

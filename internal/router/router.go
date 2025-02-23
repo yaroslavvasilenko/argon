@@ -35,6 +35,9 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 
 	//  currency
 	r.Get("/api/v1/currency", controllers.Currency.GetCurrency)
-	
+
+	//  location
+	r.Post("/api/v1/location", controllers.Location.GetLocation)
+
 	return r
 }
