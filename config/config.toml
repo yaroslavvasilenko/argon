@@ -13,3 +13,6 @@ level = "info"
 local = true
 apiKey = ""
 secretKey = ""
+
+[nominatim]
+baseUrl = "https://nominatim.openstreetmap.org/"
