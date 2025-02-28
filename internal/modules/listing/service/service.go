@@ -39,29 +39,60 @@ func (s *Listing) Ping() string {
 	return "pong"
 }
 
-func (s *Listing) CreateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
-	p.ID = uuid.New()
+func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingRequest) (listing.CreateListingResponse, error) {
+	ID := uuid.New()
 	timeNow := time.Now()
-	p.CreatedAt = timeNow
-	p.UpdatedAt = timeNow
 
-	err := s.s.CreateListing(ctx, p)
+	err := s.s.CreateListing(ctx, models.Listing{
+		ID:          ID,
+		Title:       p.Title,
+		Description: p.Description,
+		Price:       p.Price,
+		Currency:    p.Currency,
+		CreatedAt:   timeNow,
+		UpdatedAt:   timeNow,
+	}, p.Categories, p.Location)
 	if err != nil {
-		return models.Listing{}, err
+		return listing.CreateListingResponse{}, err
 	}
-	return s.s.GetListing(ctx, p.ID.String())
+
+	fullListing, err := s.s.GetFullListing(ctx, ID.String())
+	if err != nil {
+		return listing.CreateListingResponse{}, err
+	}
+
+	resp := listing.CreateListingResponse{
+		Title:       fullListing.Listing.Title,
+		Description: fullListing.Listing.Description,
+		Price:       fullListing.Listing.Price,
+		Currency:    fullListing.Listing.Currency,
+		Location:    fullListing.Location,
+		Categories:  fullListing.Categories.ID,
+	}
+
+	return resp, nil
 }
 
-func (s *Listing) GetListing(ctx context.Context, pID string) (models.Listing, error) {
-	listing, err := s.s.GetListing(ctx, pID)
+func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListingResponse, error) {
+	fullListing, err := s.s.GetFullListing(ctx, pID)
 	if err != nil {
 		if errors.Is(err, gorm.ErrRecordNotFound) {
-			return models.Listing{}, err
+			return listing.FullListingResponse{}, err
 		}
-		return models.Listing{}, err
+		return listing.FullListingResponse{}, err
 	}
 
-	return listing, nil
+	resp := listing.FullListingResponse{
+		ID:          fullListing.Listing.ID,
+		Title:       fullListing.Listing.Title,
+		Description: fullListing.Listing.Description,
+		Price:       fullListing.Listing.Price,
+		Currency:    fullListing.Listing.Currency,
+		Location:    fullListing.Location,
+		Categories:  fullListing.Categories.ID,
+	}
+
+	return resp, nil
 }
 
 func (s *Listing) DeleteListing(ctx context.Context, pID string) error {
@@ -76,12 +107,20 @@ func (s *Listing) DeleteListing(ctx context.Context, pID string) error {
 	return nil
 }
 
-func (s *Listing) UpdateListing(ctx context.Context, p models.Listing) (models.Listing, error) {
-	p.UpdatedAt = time.Now()
+func (s *Listing) UpdateListing(ctx context.Context, p listing.UpdateListingRequest) (listing.FullListingResponse, error) {
+	// Устанавливаем ListingID в Location
+	p.Location.ListingID = p.ID
 
-	err := s.s.UpdateListing(ctx, p)
+	err := s.s.UpdateFullListing(ctx, models.Listing{
+		ID:          p.ID,
+		Title:       p.Title,
+		Description: p.Description,
+		Price:       p.Price,
+		Currency:    p.Currency,
+		UpdatedAt:   time.Now(),
+	}, p.Categories, p.Location)
 	if err != nil {
-		return models.Listing{}, err
+		return listing.FullListingResponse{}, err
 	}
 
 	return s.GetListing(ctx, p.ID.String())
