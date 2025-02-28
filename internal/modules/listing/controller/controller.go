@@ -143,5 +143,20 @@ func (h *Listing) GetCategories(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(resp)
+	return c.JSON(resp) 
+}
+
+
+func (h *Listing) SearchListingsParams(c *fiber.Ctx) error {
+	qID :=c.Query("qid")
+	if qID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "qid parameter is required")
+	}
+
+	listings, err := h.s.GetSearchParams(c.UserContext(), qID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(listings)
 }
