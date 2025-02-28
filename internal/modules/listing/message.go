@@ -1,6 +1,7 @@
 package listing
 
 import (
+	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
@@ -37,18 +38,55 @@ type SearchListingsResponse struct {
 	SearchID string `json:"search_id,omitempty" query:"search_id,omitempty"`
 }
 
-
 type ResponseGetCategories struct {
 	Categories []CategoryNode `json:"categories"`
 }
 
 type CategoryNode struct {
-	Category Category `json:"category"`
+	Category      Category       `json:"category"`
 	Subcategories []CategoryNode `json:"subcategories,omitempty"`
 }
 
 type Category struct {
-	ID   string `json:"id"`
-	Name string `json:"name"`
+	ID    string  `json:"id"`
+	Name  string  `json:"name"`
 	Image *string `json:"image,omitempty"`
+}
+
+type CreateListingRequest struct {
+	Title       string          `json:"title"`
+	Description string          `json:"description,omitempty"`
+	Price       float64         `json:"price,omitempty"`
+	Currency    models.Currency `json:"currency,omitempty"`
+	Location    models.Location `json:"location,omitempty"`
+	Categories  []string        `json:"categories,omitempty"`
+}
+
+type CreateListingResponse struct {
+	Title       string          `json:"title" validate:"required"`
+	Description string          `json:"description,omitempty"`
+	Price       float64         `json:"price,omitempty" validate:"gte=0"`
+	Currency    models.Currency `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
+	Location    models.Location `json:"location,omitempty"`
+	Categories  []string        `json:"categories,omitempty" validate:"required"`
+}
+
+type UpdateListingRequest struct {
+	ID          uuid.UUID       `json:"id" validate:"required"`
+	Title       string          `json:"title" validate:"required"`
+	Description string          `json:"description,omitempty"`
+	Price       float64         `json:"price,omitempty" validate:"gte=0"`
+	Currency    models.Currency `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
+	Location    models.Location `json:"location,omitempty"`
+	Categories  []string        `json:"categories,omitempty" validate:"required"`
+}
+
+type FullListingResponse struct {
+	ID          uuid.UUID       `json:"id"`
+	Title       string          `json:"title"`
+	Description string          `json:"description,omitempty"`
+	Price       float64         `json:"price,omitempty"`
+	Currency    models.Currency `json:"currency,omitempty"`
+	Location    models.Location `json:"location,omitempty"`
+	Categories  []string        `json:"categories,omitempty"`
 }

@@ -5,6 +5,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/yaroslavvasilenko/argon/internal/modules/location"
 	"github.com/yaroslavvasilenko/argon/internal/modules/location/service"
+	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 )
 
 type Location struct {
@@ -17,7 +18,7 @@ func NewLocation(s *service.Location) *Location {
 
 func (h *Location) GetLocation(c *fiber.Ctx) error {
 	req := location.GetLocationRequest{}
-	if err := c.BodyParser(&req); err != nil {
+	if err := parser.BodyParser(c, &req); err != nil {
 		return err
 	}
 
