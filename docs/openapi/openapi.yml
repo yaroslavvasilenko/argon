@@ -12,6 +12,8 @@ tags:
     description: Системные операции
   - name: Listing
     description: Операции с объявлениями
+  - name: Boost
+    description: Управление бустами объявлений
   - name: Currency
     description: Операции с валютами
   - name: Categories
@@ -365,6 +367,65 @@ paths:
               schema:
                 $ref: '#/components/schemas/Location'
 
+  /api/v1/boost/{listing_id}:
+    parameters:
+      - name: listing_id
+        in: path
+        required: true
+        schema:
+          type: string
+        description: Уникальный идентификатор объявления
+    get:
+      summary: Получить доступные бусты для объявления
+      tags:
+        - Boost
+      description: Возвращает доступнын бусты объявления и список типов бустов, которые сейчас включены
+      responses:
+        '200':
+          description: Успешный ответ с информацией о бустах
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBoostsResponse'
+        '403':
+          description: Доступ запрещен. Возникает, если пользователь не является автором объявления.
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Установить типы бустов для объявления
+      tags:
+        - Boost
+      description: |
+        Устанавливает список типов бустов, которые будут применены к объявлению.
+        Важно: если массив бустов не пустой, то первым бустом всегда должен быть base.
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                enabledBoostTypes:
+                  type: array
+                  description: Типы бустов, которые нужно включить. Если массив не пустой, то первым элементом должен быть base.
+                  items:
+                    $ref: '#/components/schemas/BoostType'
+              required:
+                - enabledBoostTypes
+      responses:
+        '200':
+          description: Успешный ответ с обновленной информацией о бустах
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetBoostsResponse'
+        '400':
+          $ref: '#/components/responses/InvalidBoostSequence'
+        '403':
+          description: Доступ запрещен. Возникает, если пользователь не является автором объявления.
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   schemas:
     PingResponse:
@@ -410,6 +471,7 @@ components:
             $ref: '#/components/schemas/CharacteristicType'
         images:
           type: array
+          description: URL картинок объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
           items:
             type: string
             description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
@@ -450,26 +512,7 @@ components:
         location:
           $ref: '#/components/schemas/SellerLocation'
         seller:
-          type: object
-          properties:
-            id:
-              type: string
-              description: Уникальный идентификатор продавца
-              example: "123e4567-e89b-12d3-a456-426614174000"
-            name:
-              type: string
-              description: Имя продавца, в том виде в котором он его указал.
-              example: "John Doe"
-            rating:
-              type: number
-              description: Рейтинг продавца по пятибальной шкале
-              minimum: 0
-              maximum: 5
-              nullable: true
-              example: 4.5
-          required:
-            - id
-            - name
+          $ref: '#/components/schemas/Seller'
         categories:
           type: array
           description: Категории, в которых находится объявление
@@ -483,6 +526,7 @@ components:
             $ref: '#/components/schemas/CharacteristicType'
         images:
           type: array
+          description: URL картинок объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
           items:
             type: string
             description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
@@ -495,17 +539,18 @@ components:
           type: integer
           description: Время последнего обновления в миллисекундах
           example: 1708297118000
-        boost:
-          description: Информация о бусте, присутствует только если запрос отправил автор объявления и объявление не содержит запрещенку.
-          $ref: '#/components/schemas/Boost'
+        boosts:
+          type: array
+          description: Информация о бустах объявления. Поле присутствует только если запрос отправил автор объявления и объявление не содержит запрещенку.
           nullable: true
-        nextBoost:
-          description: Информация о бусте, которым будет продлен текущий. Присутствует только если текущий буст не последний, запрос отправил автор объявления и объявление не содержит запрещенку.
-          $ref: '#/components/schemas/Boost'
-          nullable: true
+          items:
+            $ref: '#/components/schemas/Boost'
         isEditable:
           type: boolean
           description: Может ли текущий пользователь редактировать это объявление (он может, если он его создал)
+        isBuyable:
+          type: boolean
+          description: Можно ли купить этот товар через сайт сейчас
         isNSFW:
           type: boolean
           description: Содержит ли объявление запрещенку
@@ -527,28 +572,57 @@ components:
         - updatedAt
         - isEditable
         - isNSFW
+        - isBuyable
+
+    Seller:
+      type: object
+      description: Информация о продавце
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор продавца
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Имя продавца, в том виде в котором он его указал
+          example: "John Doe"
+        rating:
+          type: number
+          description: Рейтинг продавца по пятибальной шкале, может отсутствовать
+          minimum: 0
+          maximum: 5
+          nullable: true
+          example: 4.5
+        available:
+          type: boolean
+          description: Не запретил ли продавец связываться с ним до продажи (True если не запретил)
+          nullable: true
+          example: true
+        image:
+          type: string
+          description: URL аватара продавца, может отсутствовать
+          nullable: true
+          example: "https://example.com/avatar.jpg"
+      required:
+        - id
+        - name
 
     BoostType:
       type: string
-      enum: [none, daily, monthly, yearly, premium]
-      description: Тип буста объявления
+      enum: [base, highlight, upfront]
+      description: Тип буста объявления, если массив объявлений не пустой, то он не может начинаться ни с чего кроме base.
 
     Boost:
       type: object
       properties:
         type:
           $ref: '#/components/schemas/BoostType'
-        lastRenewalTime:
-          type: integer
-          description: Время последнего продления буста в миллисекундах
-          example: 1708297118000
         comissionPercents:
           type: number
-          description: Процент комиссии для данного типа буста
+          description: Процент комиссии для данного типа буста. Размер комиссии base буста равен проценту возвратов но не меньше 2%. Подсветка пока что 7%, Апфронт - 12%.
           example: 5.5
       required:
         - type
-        - lastRenewalTime
         - comissionPercents
 
     Category:
@@ -1008,6 +1082,24 @@ components:
       required:
         - rate
 
+    GetBoostsResponse:
+      type: object
+      description: Ответ с информацией о бустах объявления
+      properties:
+        boosts:
+          type: array
+          description: Доступные для установки бусты
+          items:
+            $ref: '#/components/schemas/Boost'
+        enabledBoostTypes:
+          type: array
+          description: Типы бустов, которые включены для данного объявления
+          items:
+            $ref: '#/components/schemas/BoostType'
+      required:
+        - boosts
+        - enabledBoostTypes
+
   responses:
     NotFound:
       description: Объект не найден
@@ -1022,3 +1114,17 @@ components:
               description:
                 type: string
                 example: Объект не найден
+
+    InvalidBoostSequence:
+      description: Неверная последовательность бустов
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: InvalidBoostSequence
+              description:
+                type: string
+                example: Последовательность бустов должна начинаться с base
