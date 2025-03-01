@@ -709,9 +709,7 @@ components:
       type: object
       properties:
         role:
-          type: string
-          enum: [price, color, condition, season, brand]
-          description: Роль фильтра
+          $ref: '#/components/schemas/FilterRole'
         params:
           oneOf:
             - $ref: '#/components/schemas/PriceFilterParams'
@@ -719,13 +717,15 @@ components:
             - $ref: '#/components/schemas/DropdownFilterParams'
             - $ref: '#/components/schemas/SelectorFilterParams'
             - $ref: '#/components/schemas/CheckboxFilterParams'
+            - $ref: '#/components/schemas/AmountFilterParams'
       required:
         - role
         - params
 
     FilterRole:
       type: string
-      enum: [price, color, condition, season, brand]
+      enum: [price, color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
+      description: Роль фильтра
 
     PriceFilterValue:
       type: object
@@ -862,12 +862,15 @@ components:
       type: object
       properties:
         role:
-          $ref: '#/components/schemas/FilterRole'
+          type: string
+          enum: [color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
+          description: Роль характеристики
         value:
           oneOf:
             - $ref: '#/components/schemas/Color'
             - $ref: '#/components/schemas/DropdownValue'
             - $ref: '#/components/schemas/CheckboxValue'
+            - $ref: '#/components/schemas/Amount'
       required:
         - role
         - value
@@ -1067,7 +1070,7 @@ components:
       properties:
         role:
           type: string
-          enum: [price, color, condition, season, brand]
+          enum: [price, color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
           description: Роль фильтра
         value:
           oneOf:
@@ -1076,6 +1079,7 @@ components:
             - $ref: '#/components/schemas/DropdownFilterValue'
             - $ref: '#/components/schemas/SelectorFilterValue'
             - $ref: '#/components/schemas/CheckboxFilterValue'
+            - $ref: '#/components/schemas/AmountFilterValue'
       required:
         - role
         - value
@@ -1107,6 +1111,84 @@ components:
       required:
         - boosts
         - enabled_boost_types
+
+    Dimension:
+      type: string
+      enum:
+        - cm
+        - m
+        - km
+        - cm2
+        - m2
+        - km2
+        - cm3
+        - m3
+        - km3
+        - ml
+        - l
+        - g
+        - kg
+        - t
+        - ma
+        - a
+        - w
+        - kw
+        - om
+      description: Единица измерения
+
+    Amount:
+      type: object
+      properties:
+        value:
+          type: number
+          description: Числовое значение
+        dimension:
+          $ref: '#/components/schemas/Dimension'
+          description: Единица измерения
+      required:
+        - value
+        - dimension
+
+    AmountFilterValue:
+      type: object
+      properties:
+        min:
+          type: number
+          nullable: true
+          description: Минимальное значение. Совпадает с min из AmountFilterParams если null.
+        max:
+          type: number
+          nullable: true
+          description: Максимальное значение. Совпадает с max из AmountFilterParams если null.
+        dimension:
+          $ref: '#/components/schemas/Dimension'
+          description: Единица измерения для значений
+      required:
+        - dimension
+
+    AmountFilterParams:
+      type: object
+      properties:
+        min:
+          type: number
+          description: Минимальное значение, которое может принимать параметр
+        max:
+          type: number
+          description: Максимальное значение, которое может принимать параметр
+        dimension_options:
+          type: array
+          description: Доступные единицы измерения для этого параметра, лучше, если содержит ровно одно значение
+          items:
+            $ref: '#/components/schemas/Dimension'
+        label:
+          type: string
+          description: Локализованное название фильтра
+          example: "Высота"
+      required:
+        - min
+        - max
+        - dimension_options
+        - label
 
   responses:
     NotFound:
