@@ -1,17 +1,19 @@
 package config
 
 import (
+	"encoding/json"
 	"log"
 	"os"
 	"path/filepath"
 	"strings"
+
+	"fmt"
 
 	"github.com/joho/godotenv"
 	"github.com/knadh/koanf"
 	"github.com/knadh/koanf/parsers/toml"
 	"github.com/knadh/koanf/providers/env"
 	"github.com/knadh/koanf/providers/file"
-	"fmt"
 )
 
 type Config struct {
@@ -30,11 +32,13 @@ type Config struct {
 			En string
 			Es string
 		}
+		// CategoryIds содержит все доступные ID категорий для быстрой валидации
+		CategoryIds map[string]bool
 	}
 	Binance struct {
 		APIKey    string
 		SecretKey string
-		Local    bool
+		Local     bool
 	}
 	Nominatim struct {
 		BaseUrl string
@@ -42,6 +46,13 @@ type Config struct {
 }
 
 var cfg = Config{}
+
+type CategoryNode struct {
+	Category struct {
+		ID string `json:"id"`
+	} `json:"category"`
+	Subcategories []CategoryNode `json:"subcategories,omitempty"`
+}
 
 func LoadConfig() {
 	// Get project root directory
@@ -87,6 +98,25 @@ func LoadConfig() {
 	}
 
 	cfg.Categories.Json = string(categoriesFile)
+
+	// Инициализируем map для ID категорий
+	cfg.Categories.CategoryIds = make(map[string]bool)
+
+	// Парсим категории и собираем их ID
+	var categories []CategoryNode
+	if err := json.Unmarshal(categoriesFile, &categories); err != nil {
+		log.Printf("Ошибка парсинга конфигурации категорий: %v\n", err)
+	} else {
+		// Рекурсивно собираем все ID категорий
+		var collectCategoryIds func(nodes []CategoryNode)
+		collectCategoryIds = func(nodes []CategoryNode) {
+			for _, node := range nodes {
+				cfg.Categories.CategoryIds[node.Category.ID] = true
+				collectCategoryIds(node.Subcategories)
+			}
+		}
+		collectCategoryIds(categories)
+	}
 
 	categoriesPath = filepath.Join(projectRoot, "./categories/lang/ru.json")
 	categoriesFile, err = os.ReadFile(categoriesPath)

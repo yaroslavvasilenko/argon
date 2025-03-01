@@ -29,6 +29,7 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 
 	//  search
 	r.Post("/api/v1/search", controllers.Listing.SearchListings)
+	r.Get("/api/v1/search/params", controllers.Listing.SearchListingsParams)
 
 	//  categories
 	r.Get("/api/v1/categories", controllers.Listing.GetCategories)

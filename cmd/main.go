@@ -26,7 +26,7 @@ func main() {
 	lg.Infof("starting app...")
 
 	exit := func(msg string, err error) {
-		lg.Errorf("%s", msg)
+		lg.Errorf("%s: %v", msg, err)
 		os.Exit(1)
 	}
 

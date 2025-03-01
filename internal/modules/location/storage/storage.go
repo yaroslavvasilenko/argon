@@ -8,14 +8,15 @@ import (
 	"net/http"
 
 	"github.com/pkg/errors"
+	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 )
 
 type LocationResponse struct {
-	PlaceID     int64   `json:"place_id"`
-	Lat         string  `json:"lat"`
-	Lon         string  `json:"lon"`
-	DisplayName string  `json:"display_name"`
-	Address     Address `json:"address"`
+	PlaceID     int64    `json:"place_id"`
+	Lat         string   `json:"lat"`
+	Lon         string   `json:"lon"`
+	DisplayName string   `json:"display_name"`
+	Address     Address  `json:"address"`
 	BoundingBox []string `json:"boundingbox"`
 }
 
@@ -39,13 +40,15 @@ func NewLocation(baseUrlNominatim string) *Location {
 	}
 }
 
-func (l *Location) GetLocation(ctx context.Context, lat, lng float64, zoom int, language string) (*LocationResponse, error) {
+func (l *Location) GetLocation(ctx context.Context, lat, lng float64, zoom int) (*LocationResponse, error) {
 	url := fmt.Sprintf("%s/reverse?lat=%f&lon=%f&zoom=%d&format=json", l.baseUrl, lat, lng, zoom)
 
 	req, err := http.NewRequestWithContext(ctx, http.MethodGet, url, nil)
 	if err != nil {
 		return nil, errors.Wrap(err, "creating request")
 	}
+
+	language := parser.GetLang(ctx)
 
 	if language != "" {
 		req.Header.Set("Accept-Language", language)

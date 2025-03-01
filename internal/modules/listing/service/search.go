@@ -113,3 +113,13 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 
 	return resp, nil
 }
+
+
+func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.SearchId, error) {
+	search, err := s.cache.GetSearchInfo(qID)
+	if err != nil {
+		return listing.SearchId{}, err
+	}
+
+	return search, nil
+}

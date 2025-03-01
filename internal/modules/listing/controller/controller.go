@@ -2,12 +2,15 @@ package controller
 
 import (
 	"context"
+	"errors"
+
+	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
-	"github.com/go-playground/validator/v10"
 )
 
 type Listing struct {
@@ -26,24 +29,22 @@ func (h *Listing) Ping(c *fiber.Ctx) error {
 }
 
 func (h *Listing) CreateListing(c *fiber.Ctx) error {
-	r := &struct {
-		Title    string          `json:"title" validate:"required"`
-		Description string          `json:"description" validate:"required"`
-		Price    float64         `json:"price" validate:"required,gte=0"`
-		Currency models.Currency `json:"currency" validate:"required,oneof=USD EUR RUB"`
-	}{}
+	r := &listing.CreateListingRequest{}
 
 	err := c.BodyParser(r)
 	if err != nil {
 		return err
 	}
 
-	listing, err := h.s.CreateListing(c.UserContext(), models.Listing{
-		Title:       r.Title,
-		Description: r.Description,
-		Price:       r.Price,
-		Currency:    r.Currency,
-	})
+	// Валидируем категории
+	validCategoryIds := config.GetConfig().Categories.CategoryIds
+	for _, categoryId := range r.Categories {
+		if !validCategoryIds[categoryId] {
+			return errors.New("invalid category ID: " + categoryId)
+		}
+	}
+
+	listing, err := h.s.CreateListing(c.UserContext(), r)
 	if err != nil {
 		return err
 	}
@@ -77,28 +78,25 @@ func (h *Listing) UpdateListing(c *fiber.Ctx) error {
 	listingID := uuid.UUID{}
 	err := listingID.Scan(c.Params("listing_id"))
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusBadRequest, "Неверный формат ID листинга")
+	}
+	
+	// Проверяем, что UUID не пустой
+	if listingID == uuid.Nil {
+		return fiber.NewError(fiber.StatusBadRequest, "ID листинга не может быть пустым")
 	}
 
-	r := &struct {
-		Title    string          `json:"title" validate:"required"`
-		Text     string          `json:"text" validate:"required"`
-		Price    float64         `json:"price" validate:"required,gte=0"`
-		Currency models.Currency `json:"currency" validate:"required,oneof=USD EUR RUB"`
-	}{}
+	r := listing.UpdateListingRequest{}
 
-	err = c.BodyParser(r)
+	err = c.BodyParser(&r)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusBadRequest, "Ошибка при разборе тела запроса: "+err.Error())
 	}
+	
+	// Устанавливаем ID из параметра URL в запрос
+	r.ID = listingID
 
-	listing, err := h.s.UpdateListing(c.UserContext(), models.Listing{
-		ID:          listingID,
-		Title:       r.Title,
-		Description: r.Text,
-		Price:       r.Price,
-		Currency:    r.Currency,
-	})
+	listing, err := h.s.UpdateListing(c.UserContext(), r)
 	if err != nil {
 		return err
 	}
@@ -121,7 +119,7 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 		req.Limit = 20
 	}
 
-	if req.Query == "" {	
+	if req.Query == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "query parameter is required")
 	}
 
@@ -136,14 +134,29 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 func (h *Listing) GetCategories(c *fiber.Ctx) error {
 	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
 	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
-	
+
 	// Создаем контекст с информацией о языке
 	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
-	
+
 	resp, err := h.s.GetCategories(ctx)
 	if err != nil {
 		return err
 	}
 
-	return c.JSON(resp)
+	return c.JSON(resp) 
+}
+
+
+func (h *Listing) SearchListingsParams(c *fiber.Ctx) error {
+	qID :=c.Query("qid")
+	if qID == "" {
+		return fiber.NewError(fiber.StatusBadRequest, "qid parameter is required")
+	}
+
+	listings, err := h.s.GetSearchParams(c.UserContext(), qID)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(listings)
 }

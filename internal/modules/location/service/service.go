@@ -24,9 +24,8 @@ func NewLocation(s *storage.Location, logger *logger.Glog) *Location {
 	return srv
 }
 
-
 func (l *Location) GetLocation(ctx context.Context, req location.GetLocationRequest) (location.GetLocationResponse, error) {
-	locResp, err := l.s.GetLocation(ctx, req.Area.Coordinates.Lat, req.Area.Coordinates.Lng, calculateZoomForRadius(req.Area.Radius, req.Area.Coordinates.Lat), req.Language)
+	locResp, err := l.s.GetLocation(ctx, req.Area.Coordinates.Lat, req.Area.Coordinates.Lng, calculateZoomForRadius(req.Area.Radius, req.Area.Coordinates.Lat))
 	if err != nil {
 		return location.GetLocationResponse{}, err
 	}
