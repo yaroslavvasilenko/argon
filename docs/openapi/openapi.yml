@@ -405,13 +405,13 @@ paths:
             schema:
               type: object
               properties:
-                enabledBoostTypes:
+                enabled_boost_types:
                   type: array
                   description: Типы бустов, которые нужно включить. Если массив не пустой, то первым элементом должен быть base.
                   items:
                     $ref: '#/components/schemas/BoostType'
               required:
-                - enabledBoostTypes
+                - enabled_boost_types
       responses:
         '200':
           description: Успешный ответ с обновленной информацией о бустах
@@ -531,11 +531,11 @@ components:
             type: string
             description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
             example: "https://example.com/image.png"
-        createdAt:
+        created_at:
           type: integer
           description: Время создания в миллисекундах
           example: 1708297118000
-        updatedAt:
+        updated_at:
           type: integer
           description: Время последнего обновления в миллисекундах
           example: 1708297118000
@@ -545,13 +545,13 @@ components:
           nullable: true
           items:
             $ref: '#/components/schemas/Boost'
-        isEditable:
+        is_editable:
           type: boolean
           description: Может ли текущий пользователь редактировать это объявление (он может, если он его создал)
-        isBuyable:
+        is_buyable:
           type: boolean
           description: Можно ли купить этот товар через сайт сейчас
-        isNSFW:
+        is_nsfw:
           type: boolean
           description: Содержит ли объявление запрещенку
       required:
@@ -568,11 +568,11 @@ components:
         - categories
         - characteristics
         - images
-        - createdAt
-        - updatedAt
-        - isEditable
-        - isNSFW
-        - isBuyable
+        - created_at
+        - updated_at
+        - is_editable
+        - is_nsfw
+        - is_buyable
 
     Seller:
       type: object
@@ -617,13 +617,13 @@ components:
       properties:
         type:
           $ref: '#/components/schemas/BoostType'
-        comissionPercents:
+        comission_percents:
           type: number
           description: Процент комиссии для данного типа буста. Размер комиссии base буста равен проценту возвратов но не меньше 2%. Подсветка пока что 7%, Апфронт - 12%.
           example: 5.5
       required:
         - type
-        - comissionPercents
+        - comission_percents
 
     Category:
       type: object
@@ -952,6 +952,14 @@ components:
             type: string
             description: URL картинки объявления высотой не больше 200 пикселей, размерностью не выше 3к1 (идеально 1к1).
             example: "https://example.com/image.png"
+        is_highlighted:
+          type: boolean
+          description: Объявление отмечено как выделенное рекламным цветом
+          example: true
+        is_buyable:
+          type: boolean
+          description: Объявление отмечено как куплю
+          example: true
       required:
         - item_id
         - title
@@ -1091,14 +1099,14 @@ components:
           description: Доступные для установки бусты
           items:
             $ref: '#/components/schemas/Boost'
-        enabledBoostTypes:
+        enabled_boost_types:
           type: array
           description: Типы бустов, которые включены для данного объявления
           items:
             $ref: '#/components/schemas/BoostType'
       required:
         - boosts
-        - enabledBoostTypes
+        - enabled_boost_types
 
   responses:
     NotFound:
