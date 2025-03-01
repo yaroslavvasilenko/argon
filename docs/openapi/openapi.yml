@@ -974,6 +974,8 @@ components:
         - location
         - category
         - images
+        - is_highlighted
+        - is_buyable
 
     SortOrder:
       type: string
