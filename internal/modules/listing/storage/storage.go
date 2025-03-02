@@ -3,6 +3,7 @@ package storage
 import (
 	"context"
 	"database/sql"
+	"encoding/json"
 	"errors"
 	"slices"
 	"strings"
@@ -25,7 +26,7 @@ func NewListing(db *gorm.DB, pool *pgxpool.Pool) *Listing {
 	return &Listing{gorm: db, pool: pool}
 }
 
-func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, categories []string, location models.Location) error {
+func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, categories []string, location models.Location, characteristics map[string]interface{}) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -140,6 +141,29 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 		}
 	}
 
+	// Вставляем характеристики, если они предоставлены
+	if characteristics != nil && len(characteristics) > 0 {
+		// Преобразуем map в JSON
+		characteristicsJSON, err := json.Marshal(characteristics)
+		if err != nil {
+			return err
+		}
+
+		// Вставляем характеристики в таблицу
+		_, err = tx.Exec(ctx, `
+			INSERT INTO listing_characteristics (
+				listing_id,
+				characteristics
+			) VALUES ($1, $2)
+		`,
+			listing.ID,
+			characteristicsJSON,
+		)
+		if err != nil {
+			return err
+		}
+	}
+
 	// Если все операции успешны, фиксируем транзакцию
 	return tx.Commit(ctx)
 }
@@ -162,9 +186,10 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (models.Listing, e
 }
 
 type FullListing struct {
-	Listing    models.Listing
-	Categories models.Category
-	Location   models.Location
+	Listing         models.Listing
+	Categories      models.Category
+	Location        models.Location
+	Characteristics map[string]interface{}
 }
 
 func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, error) {
@@ -272,6 +297,15 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 		resp.Location = location
 	}
 
+	// Получаем характеристики объявления
+	characteristics, err := s.GetListingCharacteristics(ctx, listingID)
+	if err == nil { // Игнорируем ошибку, так как характеристики могут отсутствовать
+		resp.Characteristics = characteristics
+	} else {
+		// Инициализируем пустую карту, чтобы избежать nil в ответе
+		resp.Characteristics = make(map[string]interface{})
+	}
+
 	return resp, nil
 }
 
@@ -287,7 +321,7 @@ func (s *Listing) DeleteListing(ctx context.Context, pID string) error {
 	return nil
 }
 
-func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing, categories []string, location models.Location) error {
+func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing, categories []string, location models.Location, characteristics map[string]interface{}) error {
 	tx, err := s.pool.Begin(ctx)
 	if err != nil {
 		return err
@@ -405,6 +439,47 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 	} else {
 		// Если локация не предоставлена, удаляем существующую (если есть)
 		_, err = tx.Exec(ctx, `DELETE FROM locations WHERE listing_id = $1`, listing.ID)
+		if err != nil {
+			return err
+		}
+	}
+
+	// Обновляем характеристики объявления
+	if characteristics != nil && len(characteristics) > 0 {
+		// Преобразуем map в JSON
+		characteristicsJSON, err := json.Marshal(characteristics)
+		if err != nil {
+			return err
+		}
+
+		// Проверяем, существуют ли уже характеристики для этого объявления
+		var characteristicsExists bool
+		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM listing_characteristics WHERE listing_id = $1)`, listing.ID).Scan(&characteristicsExists)
+		if err != nil {
+			return err
+		}
+
+		if characteristicsExists {
+			// Обновляем существующие характеристики
+			_, err = tx.Exec(ctx, `
+				UPDATE listing_characteristics 
+				SET characteristics = $1 
+				WHERE listing_id = $2
+			`, characteristicsJSON, listing.ID)
+		} else {
+			// Вставляем новые характеристики
+			_, err = tx.Exec(ctx, `
+				INSERT INTO listing_characteristics (listing_id, characteristics) 
+				VALUES ($1, $2)
+			`, listing.ID, characteristicsJSON)
+		}
+
+		if err != nil {
+			return err
+		}
+	} else {
+		// Если характеристики не предоставлены, удаляем существующие (если есть)
+		_, err = tx.Exec(ctx, `DELETE FROM listing_characteristics WHERE listing_id = $1`, listing.ID)
 		if err != nil {
 			return err
 		}
@@ -595,3 +670,34 @@ func (s *Listing) SearchListingsByDescription(ctx context.Context, query string,
 
 	return s.scanListings(rows)
 }
+
+
+// GetListingCharacteristics получает характеристики объявления по его ID
+func (s *Listing) GetListingCharacteristics(ctx context.Context, listingID uuid.UUID) (map[string]interface{}, error) {
+	var characteristicsJSON []byte
+
+	// Запрос для получения характеристик объявления
+	err := s.pool.QueryRow(ctx, `
+		SELECT characteristics 
+		FROM listing_characteristics 
+		WHERE listing_id = $1
+	`, listingID).Scan(&characteristicsJSON)
+
+	if err != nil {
+		return nil, err
+	}
+
+	// Если характеристики не найдены, возвращаем пустую карту
+	if characteristicsJSON == nil {
+		return make(map[string]interface{}), nil
+	}
+
+	// Распаковываем JSON в карту
+	var characteristics map[string]interface{}
+	if err := json.Unmarshal(characteristicsJSON, &characteristics); err != nil {
+		return nil, err
+	}
+
+	return characteristics, nil
+}
+
