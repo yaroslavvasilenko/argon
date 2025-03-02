@@ -71,6 +71,12 @@ type CreateListingResponse struct {
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts      []BoostResp     `json:"boosts,omitempty"`
+}
+
+type BoostResp struct {
+	Type              models.BoostType `json:"type"`
+	CommissionPercent float64          `json:"commission_percent"`
 }
 
 type UpdateListingRequest struct {
@@ -82,6 +88,7 @@ type UpdateListingRequest struct {
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts      []BoostResp     `json:"boosts,omitempty"`
 }
 
 type FullListingResponse struct {
@@ -93,4 +100,5 @@ type FullListingResponse struct {
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts      []BoostResp     `json:"boosts,omitempty"`
 }

@@ -14,16 +14,18 @@ import (
 	"github.com/jackc/pgx/v5"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/yaroslavvasilenko/argon/internal/models"
+	bstorage "github.com/yaroslavvasilenko/argon/internal/modules/boost/storage"
 	"gorm.io/gorm"
 )
 
 type Listing struct {
-	gorm *gorm.DB
-	pool *pgxpool.Pool
+	gorm  *gorm.DB
+	pool  *pgxpool.Pool
+	boost *bstorage.Boost
 }
 
-func NewListing(db *gorm.DB, pool *pgxpool.Pool) *Listing {
-	return &Listing{gorm: db, pool: pool}
+func NewListing(db *gorm.DB, pool *pgxpool.Pool, boost *bstorage.Boost) *Listing {
+	return &Listing{gorm: db, pool: pool, boost: boost}
 }
 
 func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, categories []string, location models.Location, characteristics map[string]interface{}) error {
@@ -71,19 +73,19 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 	if location.ID != "" {
 		locationID.String = location.ID
 		locationID.Valid = true
-		
+
 		locationName.String = location.Name
 		locationName.Valid = true
-		
+
 		latitude.Float64 = location.Area.Coordinates.Lat
 		latitude.Valid = true
-		
+
 		longitude.Float64 = location.Area.Coordinates.Lng
 		longitude.Valid = true
-		
+
 		radius.Int32 = int32(location.Area.Radius)
 		radius.Valid = true
-		
+
 		_, err = tx.Exec(ctx, `
 			INSERT INTO locations (
 				id,
@@ -119,7 +121,7 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 
 		// Выполняем batch запрос
 		br := tx.SendBatch(ctx, batch)
-		
+
 		// Проверяем результаты каждой операции в batch
 		for i := 0; i < batch.Len(); i++ {
 			_, err := br.Exec()
@@ -134,7 +136,7 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 				return err
 			}
 		}
-		
+
 		// Закрываем batch перед коммитом транзакции
 		if err := br.Close(); err != nil {
 			return err
@@ -190,6 +192,7 @@ type FullListing struct {
 	Categories      models.Category
 	Location        models.Location
 	Characteristics map[string]interface{}
+	Boosts           []models.Boost
 }
 
 func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, error) {
@@ -306,6 +309,12 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 		resp.Characteristics = make(map[string]interface{})
 	}
 
+	boost, err := s.boost.GetBoosts(ctx, listingID)
+	if err != nil {
+		return resp, err
+	}
+	resp.Boosts = boost
+	
 	return resp, nil
 }
 
@@ -367,7 +376,7 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 		}
 
 		br := tx.SendBatch(ctx, batch)
-		
+
 		for i := 0; i < batch.Len(); i++ {
 			_, err := br.Exec()
 			if err != nil {
@@ -378,7 +387,7 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 				return err
 			}
 		}
-		
+
 		if err := br.Close(); err != nil {
 			return err
 		}
@@ -432,7 +441,7 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 				location.Area.Radius,
 			)
 		}
-		
+
 		if err != nil {
 			return err
 		}
@@ -671,7 +680,6 @@ func (s *Listing) SearchListingsByDescription(ctx context.Context, query string,
 	return s.scanListings(rows)
 }
 
-
 // GetListingCharacteristics получает характеристики объявления по его ID
 func (s *Listing) GetListingCharacteristics(ctx context.Context, listingID uuid.UUID) (map[string]interface{}, error) {
 	var characteristicsJSON []byte
@@ -700,4 +708,3 @@ func (s *Listing) GetListingCharacteristics(ctx context.Context, listingID uuid.
 
 	return characteristics, nil
 }
-

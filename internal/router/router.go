@@ -40,5 +40,9 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 	//  location
 	r.Post("/api/v1/location", controllers.Location.GetLocation)
 
+	//  boost
+	r.Post("/api/v1/boost/:listing_id", controllers.Boost.UpdateBoost)
+	r.Get("/api/v1/boost/:listing_id", controllers.Boost.GetBoost)
+
 	return r
 }

@@ -61,6 +61,15 @@ func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingReq
 		return listing.CreateListingResponse{}, err
 	}
 
+	boosts := []listing.BoostResp{}
+
+	for _, boost := range fullListing.Boosts {
+		boosts = append(boosts, listing.BoostResp{
+			Type:              boost.Type,
+			CommissionPercent: boost.Commission,
+		})
+	}
+
 	resp := listing.CreateListingResponse{
 		Title:       fullListing.Listing.Title,
 		Description: fullListing.Listing.Description,
@@ -69,6 +78,7 @@ func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingReq
 		Location:    fullListing.Location,
 		Categories:  fullListing.Categories.ID,
 		Characteristics: fullListing.Characteristics,
+		Boosts:          boosts,
 	}
 
 	return resp, nil
@@ -83,6 +93,15 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		return listing.FullListingResponse{}, err
 	}
 
+	boosts := []listing.BoostResp{}
+
+	for _, boost := range fullListing.Boosts {
+		boosts = append(boosts, listing.BoostResp{
+			Type:              boost.Type,
+			CommissionPercent: boost.Commission,
+		})
+	}
+
 	resp := listing.FullListingResponse{
 		ID:             fullListing.Listing.ID,
 		Title:          fullListing.Listing.Title,
@@ -92,6 +111,7 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		Location:       fullListing.Location,
 		Categories:     fullListing.Categories.ID,
 		Characteristics: fullListing.Characteristics,
+		Boosts:         boosts,
 	}
 
 	return resp, nil
