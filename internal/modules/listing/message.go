@@ -60,6 +60,7 @@ type CreateListingRequest struct {
 	Currency    models.Currency `json:"currency,omitempty"`
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty"`
+	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 }
 
 type CreateListingResponse struct {
@@ -69,6 +70,13 @@ type CreateListingResponse struct {
 	Currency    models.Currency `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty" validate:"required"`
+	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts      []BoostResp     `json:"boosts,omitempty"`
+}
+
+type BoostResp struct {
+	Type              models.BoostType `json:"type"`
+	CommissionPercent float64          `json:"commission_percent"`
 }
 
 type UpdateListingRequest struct {
@@ -79,6 +87,8 @@ type UpdateListingRequest struct {
 	Currency    models.Currency `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty" validate:"required"`
+	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts      []BoostResp     `json:"boosts,omitempty"`
 }
 
 type FullListingResponse struct {
@@ -89,4 +99,6 @@ type FullListingResponse struct {
 	Currency    models.Currency `json:"currency,omitempty"`
 	Location    models.Location `json:"location,omitempty"`
 	Categories  []string        `json:"categories,omitempty"`
+	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts      []BoostResp     `json:"boosts,omitempty"`
 }

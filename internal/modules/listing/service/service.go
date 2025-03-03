@@ -51,7 +51,7 @@ func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingReq
 		Currency:    p.Currency,
 		CreatedAt:   timeNow,
 		UpdatedAt:   timeNow,
-	}, p.Categories, p.Location)
+	}, p.Categories, p.Location, p.Characteristics)
 	if err != nil {
 		return listing.CreateListingResponse{}, err
 	}
@@ -61,6 +61,15 @@ func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingReq
 		return listing.CreateListingResponse{}, err
 	}
 
+	boosts := []listing.BoostResp{}
+
+	for _, boost := range fullListing.Boosts {
+		boosts = append(boosts, listing.BoostResp{
+			Type:              boost.Type,
+			CommissionPercent: boost.Commission,
+		})
+	}
+
 	resp := listing.CreateListingResponse{
 		Title:       fullListing.Listing.Title,
 		Description: fullListing.Listing.Description,
@@ -68,6 +77,8 @@ func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingReq
 		Currency:    fullListing.Listing.Currency,
 		Location:    fullListing.Location,
 		Categories:  fullListing.Categories.ID,
+		Characteristics: fullListing.Characteristics,
+		Boosts:          boosts,
 	}
 
 	return resp, nil
@@ -82,14 +93,25 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		return listing.FullListingResponse{}, err
 	}
 
+	boosts := []listing.BoostResp{}
+
+	for _, boost := range fullListing.Boosts {
+		boosts = append(boosts, listing.BoostResp{
+			Type:              boost.Type,
+			CommissionPercent: boost.Commission,
+		})
+	}
+
 	resp := listing.FullListingResponse{
-		ID:          fullListing.Listing.ID,
-		Title:       fullListing.Listing.Title,
-		Description: fullListing.Listing.Description,
-		Price:       fullListing.Listing.Price,
-		Currency:    fullListing.Listing.Currency,
-		Location:    fullListing.Location,
-		Categories:  fullListing.Categories.ID,
+		ID:             fullListing.Listing.ID,
+		Title:          fullListing.Listing.Title,
+		Description:    fullListing.Listing.Description,
+		Price:          fullListing.Listing.Price,
+		Currency:       fullListing.Listing.Currency,
+		Location:       fullListing.Location,
+		Categories:     fullListing.Categories.ID,
+		Characteristics: fullListing.Characteristics,
+		Boosts:         boosts,
 	}
 
 	return resp, nil
@@ -118,7 +140,7 @@ func (s *Listing) UpdateListing(ctx context.Context, p listing.UpdateListingRequ
 		Price:       p.Price,
 		Currency:    p.Currency,
 		UpdatedAt:   time.Now(),
-	}, p.Categories, p.Location)
+	}, p.Categories, p.Location, p.Characteristics)
 	if err != nil {
 		return listing.FullListingResponse{}, err
 	}
