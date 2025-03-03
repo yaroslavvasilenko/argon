@@ -986,6 +986,7 @@ components:
 
     SortOrder:
       type: string
+      description: Сортировка, если не указано, то по релевантности
       enum: [price_asc, price_desc, newest, relevance]
 
     Location:
