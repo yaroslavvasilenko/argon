@@ -707,26 +707,26 @@ components:
         filters:
           type: array
           items:
-            $ref: '#/components/schemas/FilterParams'
+            $ref: '#/components/schemas/FilterParam'
       required:
         - filters
 
-    FilterParams:
+    FilterParam:
       type: object
       properties:
         role:
           $ref: '#/components/schemas/FilterRole'
-        params:
+        param:
           oneOf:
-            - $ref: '#/components/schemas/PriceFilterParams'
-            - $ref: '#/components/schemas/ColorFilterParams'
-            - $ref: '#/components/schemas/DropdownFilterParams'
-            - $ref: '#/components/schemas/SelectorFilterParams'
-            - $ref: '#/components/schemas/CheckboxFilterParams'
-            - $ref: '#/components/schemas/AmountFilterParams'
+            - $ref: '#/components/schemas/PriceFilterParam'
+            - $ref: '#/components/schemas/ColorFilterParam'
+            - $ref: '#/components/schemas/DropdownFilterParam'
+            - $ref: '#/components/schemas/SelectorFilterParam'
+            - $ref: '#/components/schemas/CheckboxFilterParam'
+            - $ref: '#/components/schemas/AmountFilterParam'
       required:
         - role
-        - params
+        - param
 
     FilterRole:
       type: string
@@ -739,27 +739,27 @@ components:
         min:
           type: number
           nullable: true
-          description: Минимальное значение, которое должна принимать цена. Совпадает с min из PriceFilterParams если null.
+          description: Минимальное значение, которое должна принимать цена. Совпадает с min из PriceFilterParam если null.
           example: 10
         max:
           type: number
           nullable: true
-          description: Максимальное значение, которое должна принимать цена. Совпадает с max из PriceFilterParams если null.
+          description: Максимальное значение, которое должна принимать цена. Совпадает с max из PriceFilterParam если null.
           example: 123
       required:
         - min
         - max
 
-    PriceFilterParams:
+    PriceFilterParam:
       type: object
       properties:
         min:
           type: number
-          description: Минимальное значение, которое может принимать цена.
+          description: Минимальное значение, которое может принимать цена в данной категории.
           example: 0
         max:
           type: number
-          description: Максимальное значение, которое может принимать цена.
+          description: Максимальное значение, которое может принимать цена в данной категории.
           example: 200
       required:
         - min
@@ -789,8 +789,16 @@ components:
       items:
         $ref: '#/components/schemas/Color'
 
-    ColorFilterParams:
+    ColorFilterParam:
       type: object
+      properties:
+        options:
+          type: array
+          description: Массив цветов, встречающихся в объявлениях данной категории
+          items:
+            $ref: '#/components/schemas/Color'
+      required:
+        - options
       description: Пустой объект для цветового фильтра
 
     DropdownValue:
@@ -815,11 +823,12 @@ components:
       items:
         $ref: '#/components/schemas/DropdownValue'
 
-    DropdownFilterParams:
+    DropdownFilterParam:
       type: object
       properties:
         options:
           type: array
+          description: Массив значений, встречающихся в объявлениях данной категории
           items:
             $ref: '#/components/schemas/DropdownOption'
         label:
@@ -833,11 +842,12 @@ components:
     SelectorFilterValue:
       $ref: '#/components/schemas/DropdownValue'
 
-    SelectorFilterParams:
+    SelectorFilterParam:
       type: object
       properties:
         options:
           type: array
+          description: Массив значений, встречающихся в объявлениях данной категории
           items:
             $ref: '#/components/schemas/DropdownOption'
         label:
@@ -854,7 +864,7 @@ components:
     CheckboxFilterValue:
       $ref: '#/components/schemas/CheckboxValue'
 
-    CheckboxFilterParams:
+    CheckboxFilterParam:
       type: object
       properties:
         label:
@@ -1165,34 +1175,34 @@ components:
         min:
           type: number
           nullable: true
-          description: Минимальное значение. Совпадает с min из AmountFilterParams если null.
+          description: Минимальное значение. Совпадает с min из AmountFilterParam если null.
         max:
           type: number
           nullable: true
-          description: Максимальное значение. Совпадает с max из AmountFilterParams если null.
+          description: Максимальное значение. Совпадает с max из AmountFilterParam если null.
         dimension:
           $ref: '#/components/schemas/Dimension'
           description: Единица измерения для значений
       required:
         - dimension
 
-    AmountFilterParams:
+    AmountFilterParam:
       type: object
       properties:
         min:
           type: number
-          description: Минимальное значение, которое может принимать параметр
+          description: Минимальное значение, которое может принимать параметр в данной категории.
         max:
           type: number
-          description: Максимальное значение, которое может принимать параметр
+          description: Максимальное значение, которое может принимать параметр в данной категории.
         dimension_options:
           type: array
-          description: Доступные единицы измерения для этого параметра, лучше, если содержит ровно одно значение
+          description: Доступные единицы измерения для этого параметра в данной категории, лучше, если содержит ровно одно значение.
           items:
             $ref: '#/components/schemas/Dimension'
         label:
           type: string
-          description: Локализованное название фильтра
+          description: Локализованное название фильтра.
           example: "Высота"
       required:
         - min
