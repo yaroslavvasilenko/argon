@@ -18,8 +18,6 @@ tags:
     description: Операции с валютами
   - name: Categories
     description: Операции с категориями
-  - name: Filters
-    description: Операции с фильтрами
   - name: Location
     description: Операции с локациями
   - name: Search
@@ -168,25 +166,47 @@ paths:
       parameters:
         - name: Accept-Language
           in: header
+          description: Язык для локализации категорий (по умолчанию ИСПАНСКИЙ)
           schema:
             type: string
             enum: [en, ru, es]
             default: es
           required: false
-          description: Язык ответа (по умолчанию ИСПАНСКИЙ)
       responses:
         '200':
-          description: Успешный ответ с иерархией категорий
+          description: Успешный ответ с деревом категорий
           content:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetCategoriesResponse'
 
-  /api/v1/filters:
+  /api/v1/categories/{category_id}/characteristics:
+    get:
+      summary: Получить характеристики для категории
+      tags:
+        - Categories
+      parameters:
+        - name: category_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID категории для получения характеристик
+      responses:
+        '200':
+          description: Успешный ответ со списком характеристик
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetCharacteristicsByCategoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/categories/{category_id}/filters:
     get:
       summary: Получить фильтры для категории
       tags:
-        - Filters
+        - Categories
       parameters:
         - name: Accept-Language
           in: header
@@ -197,7 +217,7 @@ paths:
             default: es
           required: false
         - name: category_id
-          in: query
+          in: path
           required: true
           schema:
             type: string
@@ -209,6 +229,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetFiltersByCategoryResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
 
   /api/v1/search:
     post:
@@ -701,6 +723,16 @@ components:
       required:
         - categories
 
+    GetCharacteristicsByCategoryResponse:
+      type: object
+      properties:
+        characteristics:
+          type: array
+          items:
+            $ref: '#/components/schemas/CharacteristicRole'
+      required:
+        - characteristics
+    
     GetFiltersByCategoryResponse:
       type: object
       properties:
@@ -732,6 +764,11 @@ components:
       type: string
       enum: [price, color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
       description: Роль фильтра
+
+    CharacteristicRole:
+      type: string
+      enum: [color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
+      description: Роль характеристики
 
     PriceFilterValue:
       type: object
@@ -878,9 +915,7 @@ components:
       type: object
       properties:
         role:
-          type: string
-          enum: [color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
-          description: Роль характеристики
+          $ref: '#/components/schemas/CharacteristicRole'
         value:
           oneOf:
             - $ref: '#/components/schemas/Color'
@@ -1089,9 +1124,7 @@ components:
       type: object
       properties:
         role:
-          type: string
-          enum: [price, color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
-          description: Роль фильтра
+          $ref: '#/components/schemas/FilterRole'
         value:
           oneOf:
             - $ref: '#/components/schemas/PriceFilterValue'
