@@ -281,11 +281,11 @@ paths:
                   nullable: true
                   description: ID категории, в которой происходит поиск, если не указана, то по всем категориям
                   example: "electronics"
-                location_id:
+                location:
                   type: string
                   nullable: true
                   description: ID локации, в которой происходит поиск, если не указана, то по всем локациям
-                  example: "cordoba-123e456"
+                  $ref: '#/components/schemas/BuyerLocation'
                 filters:
                   description: НЕЛОКАЛИЗОВАННЫЕ значения фильтров, которые были использованы в поиске
                   type: array
