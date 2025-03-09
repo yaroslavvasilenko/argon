@@ -5,8 +5,6 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
-	"slices"
-	"strings"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -26,6 +24,137 @@ type Listing struct {
 
 func NewListing(db *gorm.DB, pool *pgxpool.Pool, boost *bstorage.Boost) *Listing {
 	return &Listing{gorm: db, pool: pool, boost: boost}
+}
+
+// ListingDetails содержит все данные для создания объявления
+type ListingDetails struct {
+	Listing         models.Listing
+	Categories      []string
+	Location        models.Location
+	Characteristics map[string]interface{}
+}
+
+// BatchCreateListingsWithDetails создает несколько объявлений с их категориями, локациями и характеристиками
+func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDetails []ListingDetails) error {
+	// Начинаем общую транзакцию для всех операций
+	tx, err := s.pool.Begin(ctx)
+	if err != nil {
+		return err
+	}
+	defer tx.Rollback(ctx)
+	
+	// Для каждого объявления создаем его и связанные с ним данные
+	for _, details := range listingsDetails {
+		// 1. Вставляем основные данные листинга
+		_, err = tx.Exec(ctx, `
+			INSERT INTO listings (
+				id, 
+				title, 
+				original_description, 
+				created_at, 
+				updated_at, 
+				deleted_at,
+				price,
+				views_count,
+				currency
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+		`,
+			details.Listing.ID,
+			details.Listing.Title,
+			details.Listing.Description,
+			details.Listing.CreatedAt,
+			details.Listing.UpdatedAt,
+			details.Listing.DeletedAt,
+			details.Listing.Price,
+			details.Listing.ViewsCount,
+			details.Listing.Currency,
+		)
+		if err != nil {
+			return err
+		}
+		
+		// 2. Вставляем информацию о локации, если она предоставлена
+		if details.Location.ID != uuid.Nil {
+			_, err = tx.Exec(ctx, `
+				INSERT INTO locations (
+					id,
+					listing_id,
+					name,
+					latitude,
+					longitude,
+					radius
+				) VALUES ($1, $2, $3, $4, $5, $6)
+			`,
+				details.Location.ID,
+				details.Listing.ID,
+				details.Location.Name,
+				details.Location.Area.Coordinates.Lat,
+				details.Location.Area.Coordinates.Lng,
+				int32(details.Location.Area.Radius),
+			)
+			if err != nil {
+				return err
+			}
+		}
+		
+		// 3. Вставляем категории
+		if len(details.Categories) > 0 {
+			// Подготавливаем batch для массовой вставки категорий
+			batch := &pgx.Batch{}
+			for _, category := range details.Categories {
+				batch.Queue(`
+					INSERT INTO listing_categories (listing_id, category_id)
+					VALUES ($1, $2)
+				`, details.Listing.ID, category)
+			}
+			
+			// Выполняем batch запрос
+			br := tx.SendBatch(ctx, batch)
+			
+			// Проверяем результаты каждой операции в batch
+			for i := 0; i < batch.Len(); i++ {
+				_, err := br.Exec()
+				if err != nil {
+					brCloseErr := br.Close()
+					if brCloseErr != nil {
+						return errors.New(err.Error() + "; также ошибка при закрытии batch: " + brCloseErr.Error())
+					}
+					return err
+				}
+			}
+			
+			// Закрываем batch
+			if err := br.Close(); err != nil {
+				return err
+			}
+		}
+		
+		// 4. Вставляем характеристики, если они предоставлены
+		if details.Characteristics != nil && len(details.Characteristics) > 0 {
+			// Преобразуем map в JSON
+			characteristicsJSON, err := json.Marshal(details.Characteristics)
+			if err != nil {
+				return err
+			}
+			
+			// Вставляем характеристики в таблицу
+			_, err = tx.Exec(ctx, `
+				INSERT INTO listing_characteristics (
+					listing_id,
+					characteristics
+				) VALUES ($1, $2)
+			`,
+				details.Listing.ID,
+				characteristicsJSON,
+			)
+			if err != nil {
+				return err
+			}
+		}
+	}
+	
+	// Если все операции успешны, фиксируем транзакцию
+	return tx.Commit(ctx)
 }
 
 func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, categories []string, location models.Location, characteristics map[string]interface{}) error {
@@ -70,8 +199,8 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 	var radius sql.NullInt32
 
 	// Проверяем, что ID локации не пустой
-	if location.ID != "" {
-		locationID.String = location.ID
+	if location.ID != uuid.Nil {
+		locationID.String = location.ID.String()
 		locationID.Valid = true
 
 		locationName.String = location.Name
@@ -192,7 +321,7 @@ type FullListing struct {
 	Categories      models.Category
 	Location        models.Location
 	Characteristics map[string]interface{}
-	Boosts           []models.Boost
+	Boosts          []models.Boost
 }
 
 func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, error) {
@@ -289,7 +418,7 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 	// Заполняем информацию о локации, если она есть
 	if locationID.Valid {
 		var location models.Location
-		location.ID = locationID.String
+		location.ID = uuid.MustParse(locationID.String)
 		location.ListingID = listingID
 		location.Name = locationName.String
 		location.Area = models.Area{
@@ -314,7 +443,7 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 		return resp, err
 	}
 	resp.Boosts = boost
-	
+
 	return resp, nil
 }
 
@@ -394,7 +523,7 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 	}
 
 	// Обновляем информацию о локации
-	if location.ID != "" {
+	if location.ID != uuid.Nil {
 		// Проверяем, существует ли уже локация для этого листинга
 		var locationExists bool
 		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM locations WHERE listing_id = $1)`, listing.ID).Scan(&locationExists)
@@ -496,188 +625,6 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 
 	// Фиксируем транзакцию
 	return tx.Commit(ctx)
-}
-
-func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort string) (*models.Listing, []models.Listing, error) {
-	var (
-		rows pgx.Rows
-		err  error
-	)
-
-	// Если параметр сортировки не указан, используем сортировку по умолчанию
-	if sort == "" {
-		sort = "created_at desc"
-	}
-
-	sortSplit := strings.Split(sort, "_")
-
-	if len(sortSplit) != 2 {
-		return nil, nil, fiber.NewError(fiber.StatusBadRequest, "invalid sort parameter format")
-	}
-
-	orderExpr := getSortExpression(sortSplit[0], sortSplit[1])
-
-	if cursorID == nil {
-		rows, err = s.pool.Query(ctx, `
-		SELECT `+listingFields+`
-        FROM listings l
-        INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
-        WHERE lsr.title_vector @@ to_tsquery('russian', $1)
-        AND l.deleted_at IS NULL
-        ORDER BY `+orderExpr+`
-		LIMIT $2
-		`, createSearchQuery(query), limit)
-	} else if limit > 0 {
-		rows, err = s.pool.Query(ctx, `
-		WITH ranked_listings AS (
-			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
-			FROM listings l
-			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
-			WHERE lsr.title_vector @@ to_tsquery('russian', $1)
-			AND l.deleted_at IS NULL
-		)
-		SELECT `+listingFields+`
-		FROM ranked_listings l
-        WHERE row_number >= (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number
-		LIMIT $2 + 1
-		`, createSearchQuery(query), limit, cursorID)
-	} else if limit < 0 {
-		rows, err = s.pool.Query(ctx, `
-		WITH ranked_listings AS (
-			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
-			FROM listings l
-			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
-			WHERE lsr.title_vector @@ to_tsquery('russian', $1)
-			AND l.deleted_at IS NULL
-		)
-		SELECT `+listingFields+` 
-		FROM ranked_listings l
-		WHERE row_number <= (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number DESC
-		LIMIT $2 + 1
-		`, createSearchQuery(query), -limit, cursorID)
-	}
-
-	if err != nil {
-		return nil, nil, err
-	}
-	defer rows.Close()
-
-	var listings []models.Listing
-	var listingsAnchors *models.Listing
-
-	for rows.Next() {
-		var listing models.Listing
-		if err := rows.Scan(
-			&listing.ID,
-			&listing.Title,
-			&listing.Description,
-			&listing.Price,
-			&listing.Currency,
-			&listing.ViewsCount,
-			&listing.CreatedAt,
-			&listing.UpdatedAt,
-			&listing.DeletedAt,
-		); err != nil {
-			return nil, nil, err
-		}
-
-		listings = append(listings, listing)
-	}
-	if err := rows.Err(); err != nil {
-		return nil, nil, err
-	}
-
-	if limit < 0 {
-		slices.Reverse(listings)
-	}
-
-	if cursorID != nil {
-		listingsAnchors = &listings[0]
-		listings = listings[1:]
-	}
-
-	return listingsAnchors, listings, nil
-}
-
-func (s *Listing) SearchListingsByDescription(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sortOrder string) ([]models.Listing, error) {
-	var (
-		rows pgx.Rows
-		err  error
-	)
-
-	sortSplit := strings.Split(sortOrder, "_")
-
-	orderExpr := getSortExpression(sortSplit[0], sortSplit[1])
-
-	if cursorID == nil {
-		rows, err = s.pool.Query(ctx, `
-		SELECT `+listingFields+`
-        FROM listings l
-        INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
-        WHERE lsr.description_vector @@ to_tsquery('russian', $1)
-        AND l.deleted_at IS NULL
-        AND NOT EXISTS (
-            SELECT 1 FROM listings_search_ru lsr2
-            WHERE lsr2.listing_id = l.id
-            AND lsr2.title_vector @@ to_tsquery('russian', $1)
-        )
-        ORDER BY `+orderExpr+`
-		LIMIT $2
-		`, createSearchQuery(query), limit)
-	} else if limit > 0 {
-		rows, err = s.pool.Query(ctx, `
-		WITH ranked_listings AS (
-			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
-			FROM listings l
-			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
-			WHERE lsr.description_vector @@ to_tsquery('russian', $1)
-			AND l.deleted_at IS NULL
-            AND NOT EXISTS (
-                SELECT 1 FROM listings_search_ru lsr2
-                WHERE lsr2.listing_id = l.id
-                AND lsr2.title_vector @@ to_tsquery('russian', $1)
-            )
-		)
-		SELECT `+listingFields+`
-		FROM ranked_listings l
-        WHERE row_number > (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number
-		LIMIT $2
-		`, createSearchQuery(query), limit, cursorID)
-	} else if limit < 0 {
-		rows, err = s.pool.Query(ctx, `
-		WITH ranked_listings AS (
-			SELECT l.*,
-			       ROW_NUMBER() OVER (ORDER BY `+orderExpr+`) AS row_number
-			FROM listings l
-			INNER JOIN listings_search_ru lsr ON l.id = lsr.listing_id
-			WHERE lsr.description_vector @@ to_tsquery('russian', $1)
-			AND l.deleted_at IS NULL
-            AND NOT EXISTS (
-                SELECT 1 FROM listings_search_ru lsr2
-                WHERE lsr2.listing_id = l.id
-                AND lsr2.title_vector @@ to_tsquery('russian', $1)
-            )
-		)
-		SELECT `+listingFields+`
-		FROM ranked_listings l
-		WHERE row_number < (SELECT row_number FROM ranked_listings WHERE id = $3)
-		ORDER BY row_number DESC
-		LIMIT $2
-		`, createSearchQuery(query), -limit, cursorID)
-	}
-
-	if err != nil {
-		return nil, err
-	}
-	defer rows.Close()
-
-	return s.scanListings(rows)
 }
 
 // GetListingCharacteristics получает характеристики объявления по его ID

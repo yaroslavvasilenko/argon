@@ -11,21 +11,21 @@ import (
 )
 
 type Storages struct {
-	listing *lstorage.Listing
-	currency *cstorage.Currency
-	currencyBinance cstorage.IBinance
-	location *locstorage.Location
-	boost *bstorage.Boost
+	Listing *lstorage.Listing
+	Currency *cstorage.Currency
+	CurrencyBinance cstorage.IBinance
+	Location *locstorage.Location
+	Boost *bstorage.Boost
 }
 
 func NewStorages(cfg config.Config, db *gorm.DB, pool *pgxpool.Pool) *Storages {
 	boost := bstorage.NewBoost(db, pool)
 
 	return &Storages{
-		listing: lstorage.NewListing(db, pool, boost),
-		currency: cstorage.NewCurrency(db, pool),
-		currencyBinance: cstorage.NewBinance(cfg),
-		location: locstorage.NewLocation(cfg.Nominatim.BaseUrl),
-		boost: boost,
+		Listing: lstorage.NewListing(db, pool, boost),
+		Currency: cstorage.NewCurrency(db, pool),
+		CurrencyBinance: cstorage.NewBinance(cfg),
+		Location: locstorage.NewLocation(cfg.Nominatim.BaseUrl),
+		Boost: boost,
 	}
 }

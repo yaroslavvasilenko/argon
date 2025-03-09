@@ -7,23 +7,15 @@ import (
 
 // SearchListingsRequest represents a request to search listings.
 type SearchListingsRequest struct {
-	// Query is the search query.
 	Query string `json:"query" query:"query" validate:"required"`
-	// Limit is the maximum number of results to return.
 	Limit int `json:"limit,omitempty" query:"limit" validate:"omitempty,min=-100,max=100"` // default: 20
-	// Cursor is the cursor for pagination.
 	Cursor string `json:"cursor,omitempty" query:"cursor"`
-	// SortOrder is the order in which to sort the results.
 	SortOrder string `json:"sort_order,omitempty" query:"sort_order" validate:"omitempty,oneof=price_asc price_desc relevance_asc relevance_desc popularity_asc popularity_desc"`
-	// SearchID is the ID of the search.
 	SearchID string `json:"qid,omitempty" query:"search_id,omitempty"`
-	// Filters are the filters to apply to the search.
-	Filters Filters `json:"filters,omitempty"`
-	// Category is the category to search in.
-	Category string `json:"category,omitempty"`
-	// currency: SupportedCurrency;
-	// locale: string;
-	// location?: Location;
+	Filters models.Characteristics `json:"filters,omitempty"`
+	CategoryID string `json:"category_id,omitempty"`
+	Currency models.Currency `json:"currency,omitempty"`
+	LocationID string `json:"location_id,omitempty"`
 }
 
 // SearchListingsResponse represents a response to a search listings request.

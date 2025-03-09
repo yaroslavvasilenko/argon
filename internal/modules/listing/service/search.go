@@ -40,7 +40,7 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 
 	if cursor.Block == "" || cursor.Block == listing.TitleBlock {
 		var listings []models.Listing
-		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder)
+		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, req.Filters)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return listing.SearchListingsResponse{}, fiber.NewError(fiber.StatusNotFound, err.Error())
@@ -57,18 +57,18 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 			cursor.LastIndex = nil
 		}
 
-		remainingLimit := req.Limit - len(resp.Results)
+		// remainingLimit := req.Limit - len(resp.Results)
 		//  TODO: сделать исключение по запросу перенести запрос Title
-		listings, err := s.s.SearchListingsByDescription(ctx, req.Query, remainingLimit, cursor.LastIndex, req.SortOrder)
-		if err != nil {
-			if errors.Is(err, gorm.ErrRecordNotFound) {
-				return listing.SearchListingsResponse{}, fiber.NewError(fiber.StatusNotFound, err.Error())
-			}
-			return listing.SearchListingsResponse{}, err
-		}
+		// listings, err := s.s.SearchListingsByDescription(ctx, req.Query, remainingLimit, cursor.LastIndex, req.SortOrder)
+		// if err != nil {
+		// 	if errors.Is(err, gorm.ErrRecordNotFound) {
+		// 		return listing.SearchListingsResponse{}, fiber.NewError(fiber.StatusNotFound, err.Error())
+		// 	}
+		// 	return listing.SearchListingsResponse{}, err
+		// }
 
-		resp.Results = append(resp.Results, listings...)
-		searchDescription = true
+		// resp.Results = append(resp.Results, listings...)
+		// searchDescription = true
 	}
 
 	if len(resp.Results) > 0 && len(resp.Results) == int(math.Abs(float64(req.Limit))) {
@@ -103,8 +103,8 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 		resp.CursorBefore = s.cache.StoreCursor(newCursor)
 	}
 
-	searchId := listing.SearchId{
-		Category:  req.Category,
+	searchId := listing.SearchID{
+		CategoryID:  req.CategoryID,
 		Filters:   req.Filters,
 		SortOrder: req.SortOrder,
 	}
@@ -115,10 +115,10 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 }
 
 
-func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.SearchId, error) {
+func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.SearchID, error) {
 	search, err := s.cache.GetSearchInfo(qID)
 	if err != nil {
-		return listing.SearchId{}, err
+		return listing.SearchID{}, err
 	}
 
 	return search, nil

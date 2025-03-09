@@ -49,7 +49,7 @@ func createTestApp(t *testing.T) *TestApp {
 
 	lg := logger.NewLogger(cfg)
 
-	gorm, pool, err := db.NewSqlDB(context.Background(), cfg.DB.Url, lg.Logger, true)
+	gorm, pool, err := db.NewSqlDB(context.Background(), cfg.DB.Url, lg.Logger, false)
 	require.NoError(t, err)
 
 	// Migrate
@@ -123,7 +123,7 @@ func TestSearchListings(t *testing.T) {
 
 	t.Run("Successful search 1 listing", func(t *testing.T) {
 		// Выполняем поиск объявления
-		req := getSearchListingsRequest("iPhone", 10, "", "relevance_desc", "")
+		req := getSearchListingsRequest("iPhone", 10, "", "relevance", "")
 
 		resp := user.searchListings(t, req)
 
@@ -256,8 +256,79 @@ func TestSearchListings(t *testing.T) {
 		assert.Empty(t, resp.Results)
 		assert.Empty(t, resp.CursorAfter)
 
+		req = getSearchListingsRequest("iPhone", -3, "", "price_asc", "")
+
+		resp = user.searchListings(t, req)
+
+		require.Len(t, resp.Results, 3)
+		assert.Equal(t, iphone7.Title, resp.Results[0].Title)
+		assert.Equal(t, iphone8.Title, resp.Results[1].Title)
+		assert.Equal(t, iphone9.Title, resp.Results[2].Title)
+
 	})
 
+	t.Run("Successful search by relevance", func(t *testing.T) {
+		// Выполняем поиск объявления с сортировкой по релевантности
+		req := getSearchListingsRequest("iPhone", 3, "", "relevance", "")
+
+		resp := user.searchListings(t, req)
+
+		// Проверяем, что получили 3 результата
+		require.Len(t, resp.Results, 3)
+		
+		// Продолжаем пагинацию дальше
+		firstPageLastTitle := resp.Results[2].Title
+		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "relevance", resp.SearchID)
+
+		resp = user.searchListings(t, req)
+		require.Len(t, resp.Results, 3)
+		secondPageFirstTitle := resp.Results[0].Title
+		
+		// Проверяем, что нет дубликатов между страницами
+		assert.NotEqual(t, firstPageLastTitle, secondPageFirstTitle, "Дубликаты в результатах поиска по релевантности")
+		
+		// Пагинация в обратном направлении
+		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "relevance", resp.SearchID)
+		resp = user.searchListings(t, req)
+		require.Len(t, resp.Results, 3)
+		
+		// Проверяем, что получили предыдущие результаты
+		assert.Equal(t, secondPageFirstTitle, resp.Results[0].Title)
+	})
+	
+	t.Run("Fuzzy search with typo", func(t *testing.T) {
+		// Создаем объявление для проверки нечеткого поиска
+		tvSamsung := models.Listing{
+			Title:       "Samsung Neo QLED TV",
+			Description: "Телевизор Samsung Neo QLED, 65 дюймов",
+			Price:       120000,
+			Currency:    models.Currency("RUB"),
+		}
+		res := user.createListing(t, tvSamsung)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		
+		// Поиск с опечаткой - пропущена буква 'h'
+		req := getSearchListingsRequest("iPone", 5, "", "relevance", "")
+		resp := user.searchListings(t, req)
+		
+		// Проверяем, что нашли iPhone несмотря на опечатку
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с опечаткой")
+		
+		// Проверяем, что все найденные объявления содержат "iPhone"
+		for _, listing := range resp.Results {
+			assert.Contains(t, listing.Title, "iPhone", "Найдено нерелевантное объявление при поиске с опечаткой")
+		}
+		
+		// Поиск с другой опечаткой - замена буквы
+		req = getSearchListingsRequest("Sumsung", 5, "", "relevance", "")
+		resp = user.searchListings(t, req)
+		
+		// Проверяем, что нашли Samsung несмотря на опечатку
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с опечаткой Sumsung")
+		
+		// Проверяем, что первый результат - Samsung
+		assert.Contains(t, resp.Results[0].Title, "Samsung", "На первом месте должен быть Samsung")
+	})
 }
 
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
@@ -309,4 +380,16 @@ func (app *TestApp) cleanDb(t *testing.T) {
 	if err != nil {
 		t.Fatalf("Failed to clean database: %v", err)
 	}
+}
+
+func TestRunBenchmark(t *testing.T) {
+	// Запускаем тест параллельно
+	t.Parallel()
+	
+	// Определяем количество записей для генерации
+	listingCount := 1000000 // Уменьшаем с 1 миллиона до 100 тысяч
+	
+	// Запускаем бенчмарк
+	err := RunBenchmark(listingCount)
+	require.NoError(t, err)
 }
