@@ -774,7 +774,6 @@ components:
             - $ref: '#/components/schemas/PriceFilterParam'
             - $ref: '#/components/schemas/ColorFilterParam'
             - $ref: '#/components/schemas/DropdownFilterParam'
-            - $ref: '#/components/schemas/SelectorFilterParam'
             - $ref: '#/components/schemas/CheckboxFilterParam'
             - $ref: '#/components/schemas/AmountFilterParam'
       required:
@@ -808,14 +807,7 @@ components:
 
     ColorParam:
       type: object
-      properties:
-        options:
-          type: array
-          description: Массив всех возможных цветов.
-          items:
-            $ref: '#/components/schemas/Color'
-      required:
-        - options
+      description: Пустой объект, так как ограничения нужны только для фильтров, но не для характеристик.
 
     StringParam:
       type: object
@@ -944,32 +936,8 @@ components:
           description: Массив значений, встречающихся в объявлениях данной категории
           items:
             $ref: '#/components/schemas/DropdownOption'
-        label:
-          type: string
-          description: Локализованное название фильтра
-          example: "Брэнд"
       required:
         - options
-        - label
-
-    SelectorFilterValue:
-      $ref: '#/components/schemas/DropdownValue'
-
-    SelectorFilterParam:
-      type: object
-      properties:
-        options:
-          type: array
-          description: Массив значений, встречающихся в объявлениях данной категории
-          items:
-            $ref: '#/components/schemas/DropdownOption'
-        label:
-          type: string
-          description: Локализованное название фильтра
-          example: "Состояние"
-      required:
-        - options
-        - label
 
     CheckboxValue:
       type: boolean
@@ -979,13 +947,7 @@ components:
 
     CheckboxFilterParam:
       type: object
-      properties:
-        label:
-          type: string
-          description: Локализованное название фильтра
-          example: "Только с фото"
-      required:
-        - label
+      description: Пустой объект, так как для чекбокса не требуются ограничительные параметры.
 
     SearchResponse:
       type: object
@@ -1191,7 +1153,6 @@ components:
             - $ref: '#/components/schemas/PriceFilterValue'
             - $ref: '#/components/schemas/ColorFilterValue'
             - $ref: '#/components/schemas/DropdownFilterValue'
-            - $ref: '#/components/schemas/SelectorFilterValue'
             - $ref: '#/components/schemas/CheckboxFilterValue'
             - $ref: '#/components/schemas/AmountFilterValue'
       required:
@@ -1305,15 +1266,10 @@ components:
           description: Доступные единицы измерения для этого параметра в данной категории, лучше, если содержит ровно одно значение.
           items:
             $ref: '#/components/schemas/Dimension'
-        label:
-          type: string
-          description: Локализованное название фильтра.
-          example: "Высота"
       required:
         - min
         - max
         - dimension_options
-        - label
 
   responses:
     NotFound:
