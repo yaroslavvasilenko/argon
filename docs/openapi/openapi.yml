@@ -180,18 +180,37 @@ paths:
               schema:
                 $ref: '#/components/schemas/GetCategoriesResponse'
 
-  /api/v1/categories/{category_id}/characteristics:
-    get:
-      summary: Получить характеристики для категории
+  /api/v1/categories/characteristics:
+    post:
+      summary: Получить характеристики для категорий
       tags:
         - Categories
+      description: Возвращает параметры характеристик для указанных категорий. Порядок категорий в запросе определяет порядок характеристик в ответе. Сначала идут характеристики для первой категории, потом для второй (из тех, что еще не встретились в первой) и т.д.
       parameters:
-        - name: category_id
-          in: path
-          required: true
+        - name: Accept-Language
+          in: header
+          description: Язык для локализации характеристик (по умолчанию ИСПАНСКИЙ)
           schema:
             type: string
-          description: ID категории для получения характеристик
+            enum: [en, ru, es]
+            default: es
+          required: false
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                category_ids:
+                  type: array
+                  description: Упорядоченный список ID категорий. Порядок определяет приоритет параметров характеристик в ответе.
+                  items:
+                    type: string
+                  example: ["electronics", "phones", "smartphones"]
+                  maxItems: 5
+              required:
+                - category_ids
       responses:
         '200':
           description: Успешный ответ со списком характеристик
@@ -202,7 +221,7 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
-  /api/v1/categories/{category_id}/filters:
+  /api/v1/categories/filters:
     get:
       summary: Получить фильтры для категории
       tags:
@@ -217,11 +236,12 @@ paths:
             default: es
           required: false
         - name: category_id
-          in: path
+          in: query
           required: true
           schema:
             type: string
           description: ID категории для получения фильтров
+          example: "electronics"
       responses:
         '200':
           description: Успешный ответ со списком фильтров
@@ -728,8 +748,9 @@ components:
       properties:
         characteristics:
           type: array
+          description: Упорядоченный массив параметров характеристик данных категорий без повторений. Порядок формируется приортетно для категорий идущих первыми в списке.
           items:
-            $ref: '#/components/schemas/CharacteristicRole'
+            $ref: '#/components/schemas/CharacteristicParam'
       required:
         - characteristics
     
@@ -760,6 +781,21 @@ components:
         - role
         - param
 
+    CharacteristicParam:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/CharacteristicRole'
+        param:
+          oneOf:
+            - $ref: '#/components/schemas/ColorParam'
+            - $ref: '#/components/schemas/StringParam'
+            - $ref: '#/components/schemas/CheckboxParam'
+            - $ref: '#/components/schemas/AmountParam'
+      required:
+        - role
+        - param
+
     FilterRole:
       type: string
       enum: [price, color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
@@ -769,6 +805,47 @@ components:
       type: string
       enum: [color, condition, season, brand, stocked, height, width, depth, weight, area, volume]
       description: Роль характеристики
+
+    ColorParam:
+      type: object
+      properties:
+        options:
+          type: array
+          description: Массив всех возможных цветов.
+          items:
+            $ref: '#/components/schemas/Color'
+      required:
+        - options
+
+    StringParam:
+      type: object
+      properties:
+        options:
+          type: array
+          description: Массив всех возможных значений строки.
+          items:
+            $ref: '#/components/schemas/DropdownOption'
+      required:
+        - options
+
+    CheckboxParam:
+      type: object
+      description: Пустой объект, так как для чекбокса не требуются ограничительные параметры.
+
+    CharacteristicType:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/CharacteristicRole'
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/Color'
+            - $ref: '#/components/schemas/DropdownValue'
+            - $ref: '#/components/schemas/CheckboxValue'
+            - $ref: '#/components/schemas/Amount'
+      required:
+        - role
+        - value
 
     PriceFilterValue:
       type: object
@@ -836,7 +913,6 @@ components:
             $ref: '#/components/schemas/Color'
       required:
         - options
-      description: Пустой объект для цветового фильтра
 
     DropdownValue:
       type: string
@@ -910,21 +986,6 @@ components:
           example: "Только с фото"
       required:
         - label
-
-    CharacteristicType:
-      type: object
-      properties:
-        role:
-          $ref: '#/components/schemas/CharacteristicRole'
-        value:
-          oneOf:
-            - $ref: '#/components/schemas/Color'
-            - $ref: '#/components/schemas/DropdownValue'
-            - $ref: '#/components/schemas/CheckboxValue'
-            - $ref: '#/components/schemas/Amount'
-      required:
-        - role
-        - value
 
     SearchResponse:
       type: object
@@ -1201,6 +1262,17 @@ components:
       required:
         - value
         - dimension
+
+    AmountParam:
+      type: object
+      properties:
+        dimension_options:
+          type: array
+          description: Все возможные единицы измерения для этого параметра, лучше, если содержит ровно одно значение.
+          items:
+            $ref: '#/components/schemas/Dimension'
+      required:
+        - dimension_options
 
     AmountFilterValue:
       type: object
