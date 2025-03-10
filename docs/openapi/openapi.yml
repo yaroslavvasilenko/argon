@@ -832,7 +832,7 @@ components:
         value:
           oneOf:
             - $ref: '#/components/schemas/Color'
-            - $ref: '#/components/schemas/DropdownValue'
+            - $ref: '#/components/schemas/DropdownOption'
             - $ref: '#/components/schemas/CheckboxValue'
             - $ref: '#/components/schemas/Amount'
       required:
