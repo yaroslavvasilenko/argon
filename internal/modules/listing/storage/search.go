@@ -10,13 +10,14 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/internal/models"
+	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"gorm.io/gorm"
 )
 
-func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort, categoryID string, characteristics models.Characteristics) (*models.Listing, []models.Listing, error) {
+func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort, categoryID string, filters listing.Filters) (*models.Listing, []models.ListingResult, error) {
 	// Если limit == 0, возвращаем пустой результат
 	if limit == 0 {
-		return nil, []models.Listing{}, nil
+		return nil, []models.ListingResult{}, nil
 	}
 
 	if sort == "" {
@@ -39,7 +40,7 @@ func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit
 
 	// Определяем тип поиска на основе запроса
 	searchType := determineSearchType(query)
-	baseQuery := buildBaseQuery(searchType, categoryID, characteristics)
+	baseQuery := buildBaseQuery(searchType, categoryID, filters)
 
 	orderExpr := getSortExpression(sort, searchType)
 	searchQuery := createSearchQuery(query, searchType)
@@ -57,7 +58,17 @@ func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit
 		return nil, nil, err
 	}
 
-	return cursor, listings, nil
+	// Получаем полные данные для каждого объявления
+	listingResults := make([]models.ListingResult, 0, len(listings))
+	for _, listing := range listings {
+		result, err := s.getListingWithRelatedData(ctx, listing)
+		if err != nil {
+			return nil, nil, err
+		}
+		listingResults = append(listingResults, result)
+	}
+
+	return cursor, listingResults, nil
 }
 
 // Тип поиска, определяющий какой алгоритм поиска использовать
@@ -73,7 +84,7 @@ const (
 )
 
 // buildBaseQuery создает базовый SQL запрос в зависимости от типа поиска
-func buildBaseQuery(searchType SearchType, categoryID string, characteristics models.Characteristics) string {
+func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Filters) string {
 	var categoryFilter string
 	if categoryID != "" {
 		categoryFilter = `
@@ -84,9 +95,9 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 	}
 
 	// Добавляем фильтр по характеристикам, если они указаны
-	var characteristicsFilter string
-	if len(characteristics) > 0 {
-		characteristicsFilter = `
+	var filtersFilter string
+	if len(filters) > 0 {
+		filtersFilter = `
 			AND EXISTS (
 				SELECT 1 FROM listing_characteristics lch
 				WHERE lch.listing_id = l.id
@@ -95,65 +106,66 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 		filterConditions := []string{}
 
 		// Обрабатываем фильтр цены
-		if priceFilter, ok := characteristics.GetPriceFilter(); ok {
+		if priceFilter, ok := filters.GetPriceFilter(); ok {
+			// Используем поле price из основной таблицы listings
 			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics -> 'price' ->> 'min')::int >= %d", priceFilter.Min))
+				"l.price >= %d", priceFilter.Min))
 			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics -> 'price' ->> 'max')::int <= %d", priceFilter.Max))
+				"l.price <= %d", priceFilter.Max))
 		}
 
 		// Обрабатываем фильтр цвета
-		if colorFilter, ok := characteristics.GetColorFilter(); ok && len(colorFilter) > 0 {
+		if colorFilter, ok := filters.GetColorFilter(); ok && len(colorFilter) > 0 {
 			colorConditions := []string{}
 			for _, color := range colorFilter {
+				// Проверяем, содержит ли массив цветов заданный цвет
 				colorConditions = append(colorConditions, fmt.Sprintf(
-					"lch.characteristics -> 'color' ? '%s'", color))
+					"lch.characteristics -> '%s' ? '%s'", models.CHAR_COLOR, color))
 			}
 			filterConditions = append(filterConditions, "("+strings.Join(colorConditions, " OR ")+")")
 		}
 
 		// Обрабатываем фильтр выпадающего списка
-		if dropdownFilter, ok := characteristics.GetDropdownFilter(); ok && len(dropdownFilter) > 0 {
+		if dropdownFilter, ok := filters.GetDropdownFilter(); ok && len(dropdownFilter) > 0 {
 			dropdownConditions := []string{}
 			for _, option := range dropdownFilter {
+				// Проверяем, содержит ли массив разрешений экрана заданное разрешение
 				dropdownConditions = append(dropdownConditions, fmt.Sprintf(
-					"lch.characteristics -> 'dropdown' ? '%s'", option))
+					"lch.characteristics -> '%s' ? '%s'", models.CHAR_SCREEN_RESOLUTION, option))
 			}
 
 			filterConditions = append(filterConditions, "("+strings.Join(dropdownConditions, " OR ")+")")
 		}
 
 		// Обрабатываем фильтр селектора
-		if selectorFilter, ok := characteristics.GetSelectorFilter(); ok && string(selectorFilter) != "" {
+		if selectorFilter, ok := filters.GetSelectorFilter(); ok && string(selectorFilter) != "" {
 			filterConditions = append(filterConditions, fmt.Sprintf(
-				"lch.characteristics -> 'selector' ->> 0 = '%s'", string(selectorFilter)))
+				"lch.characteristics ->> '%s' = '%s'", models.CHAR_QUALITY, string(selectorFilter)))
 		}
 
 		// Обрабатываем фильтр чекбокса
-		if checkboxFilter, ok := characteristics.GetCheckboxFilter(); ok {
+		if checkboxFilter, ok := filters.GetCheckboxFilter(); ok {
 			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics -> 'checkbox')::boolean = %t", bool(checkboxFilter)))
+				"(lch.characteristics ->> '%s')::boolean = %t", models.CHAR_IS_NEW, bool(checkboxFilter)))
 		}
 
 		// Обрабатываем фильтр размеров
-		if dimensionFilter, ok := characteristics.GetDimensionFilter(); ok {
+		if dimensionFilter, ok := filters.GetDimensionFilter(); ok {
 			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics -> 'dimension' ->> 'min')::int >= %d", dimensionFilter.Min))
+				"(lch.characteristics ->> '%s')::float >= %f", models.CHAR_SCREEN_SIZE, float64(dimensionFilter.Min)))
 			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics -> 'dimension' ->> 'max')::int <= %d", dimensionFilter.Max))
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"lch.characteristics -> 'dimension' ->> 'dimension' = '%s'", dimensionFilter.Dimension))
+				"(lch.characteristics ->> '%s')::float <= %f", models.CHAR_SCREEN_SIZE, float64(dimensionFilter.Max)))
 		}
 
 		// Если есть условия фильтрации, добавляем их в запрос
 		if len(filterConditions) > 0 {
-			characteristicsFilter += strings.Join(filterConditions, " AND ") + ")"
+			filtersFilter += strings.Join(filterConditions, " AND ") + ")"
 		} else {
 			// Если нет условий, просто проверяем наличие записи в таблице характеристик
-			characteristicsFilter += "true)"
+			filtersFilter += "true)"
 		}
 
-		characteristicsFilter += ")"
+		filtersFilter += ")"
 	}
 
 	switch searchType {
@@ -170,7 +182,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 				similarity(l.title, $1) > 0.3 OR
 				/* word_similarity сравнивает слова, а не символы */
 				word_similarity($1, l.title) > 0.4
-			)` + categoryFilter + characteristicsFilter + `
+			)` + categoryFilter + filtersFilter + `
 		`
 	case FullTextSearch:
 		// Стандартный поиск с использованием полнотекстового индекса
@@ -179,7 +191,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 			FROM ` + itemTable + ` l
 			JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE l.deleted_at IS NULL
-			AND to_tsquery('russian', $1) @@ lsr.title_vector` + categoryFilter + characteristicsFilter + `
+			AND to_tsquery('russian', $1) @@ lsr.title_vector` + categoryFilter + filtersFilter + `
 		`
 	case CombinedSearch:
 		// Комбинированный поиск, использующий оба метода с ранжированием результатов
@@ -203,7 +215,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 				word_similarity($1, l.title) > 0.4 OR
 				/* Полнотекстовый поиск */
 				to_tsquery('russian', $2) @@ lsr.title_vector
-			)` + categoryFilter + characteristicsFilter + `
+			)` + categoryFilter + filtersFilter + `
 		`
 	default:
 		// По умолчанию используем нечеткий поиск
@@ -215,7 +227,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 				l.title % $1 OR
 				similarity(l.title, $1) > 0.3 OR
 				word_similarity($1, l.title) > 0.4
-			)` + categoryFilter + characteristicsFilter + `
+			)` + categoryFilter + filtersFilter + `
 		`
 	}
 }
@@ -234,6 +246,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, characteristics mo
 func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *models.Listing, searchType SearchType) (string, []interface{}) {
 	var args []interface{}
 
+	var tsQueryVersion string
 	switch searchType {
 	case FuzzySearch, FullTextSearch:
 		// Для нечеткого или полнотекстового поиска используем один параметр
@@ -242,7 +255,19 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 		// Для комбинированного поиска используем два параметра:
 		// - оригинальный запрос для нечеткого поиска
 		// - обработанный запрос для полнотекстового поиска
-		tsQueryVersion := prepareTsQuery(searchQuery)
+		
+		// Очищаем запрос от специальных символов для to_tsquery
+		cleanQuery := searchQuery
+		specialChars := []string{"&", "|", "!", "(", ")", ":", "*", "'", "-", "<", ">"}
+		for _, char := range specialChars {
+			cleanQuery = strings.ReplaceAll(cleanQuery, char, " ")
+		}
+		
+		// Удаляем лишние пробелы
+		cleanQuery = strings.TrimSpace(cleanQuery)
+		cleanQuery = strings.Join(strings.Fields(cleanQuery), " ")
+		
+		tsQueryVersion = prepareTsQuery(cleanQuery)
 		args = []interface{}{searchQuery, tsQueryVersion}
 	}
 
@@ -250,9 +275,16 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 		// Если курсор не задан, выборка начинается с начала набора результатов или с конца, в зависимости от знака лимита.
 		if limit > 0 {
 			// Лимит положительный: выбираем первые limit записей, сортируя результат по заданному orderExpr
+			
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска
+			limitParam := "$2"
+			if searchType == CombinedSearch {
+				limitParam = "$3"
+			}
+			
 			return baseQuery + `
 				ORDER BY ` + orderExpr + `
-				LIMIT $2
+				LIMIT ` + limitParam + `
 			`, append(args, limit)
 		} else {
 			// Лимит отрицательный: выбираем последние -limit записей.
@@ -261,11 +293,18 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 			// 2. Ограничиваем выборку до -limit записей.
 			// 3. Внешний запрос переворачивает результат для восстановления исходного порядка.
 			reverseExpr := getReverseOrderExpression(orderExpr)
+			
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска
+			limitParam := "$2"
+			if searchType == CombinedSearch {
+				limitParam = "$3"
+			}
+			
 			sql := `
 			WITH reversed AS (
 				` + baseQuery + `
 				ORDER BY ` + reverseExpr + `
-				LIMIT $2
+				LIMIT ` + limitParam + `
 			)
 			SELECT ` + listingFields + ` FROM reversed l
 			ORDER BY ` + orderExpr + `
@@ -278,10 +317,17 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 			// Положительный лимит: выбираем записи, следующие за курсором (без включения самой записи-курсор).
 			// Функция getCursorCondition формирует условие, исключающее курсор из результата.
 			cond := getCursorCondition(orderExpr, cursor, false)
+			
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска
+			limitParam := "$2"
+			if searchType == CombinedSearch {
+				limitParam = "$3"
+			}
+			
 			return baseQuery + `
 				AND ` + cond + `
 				ORDER BY ` + orderExpr + `
-				LIMIT $2
+				LIMIT ` + limitParam + `
 			`, append(args, limit)
 		} else {
 			// Лимит отрицательный: выбираем записи, предшествующие курсору, включая его.
@@ -291,12 +337,19 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 			// 3. Для корректного порядка результатов затем переворачиваем выборку обратно.
 			reverseExpr := getReverseOrderExpression(orderExpr)
 			cond := getCursorCondition(reverseExpr, cursor, true)
+			
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска
+			limitParam := "$2"
+			if searchType == CombinedSearch {
+				limitParam = "$3"
+			}
+			
 			sql := `
 			WITH reversed AS (
 				` + baseQuery + `
 				AND ` + cond + `
 				ORDER BY ` + reverseExpr + `
-				LIMIT $2
+				LIMIT ` + limitParam + `
 			)
 			SELECT ` + listingFields + ` FROM reversed l
 			ORDER BY ` + orderExpr + `
@@ -471,6 +524,17 @@ func createSearchQuery(query string, searchType SearchType) string {
 
 // prepareTsQuery подготавливает запрос для полнотекстового поиска
 func prepareTsQuery(query string) string {
+	// Очищаем запрос от специальных символов, которые могут нарушить синтаксис to_tsquery
+	// Заменяем специальные символы на пробелы
+	specialChars := []string{"&", "|", "!", "(", ")", ":", "*", "'", "-", "<", ">"}
+	for _, char := range specialChars {
+		query = strings.ReplaceAll(query, char, " ")
+	}
+
+	// Удаляем лишние пробелы
+	query = strings.TrimSpace(query)
+	query = strings.Join(strings.Fields(query), " ")
+
 	words := strings.Fields(query)
 	if len(words) == 0 {
 		return ""

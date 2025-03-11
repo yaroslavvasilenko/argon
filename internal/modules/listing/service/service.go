@@ -39,7 +39,7 @@ func (s *Listing) Ping() string {
 	return "pong"
 }
 
-func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingRequest) (listing.CreateListingResponse, error) {
+func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequest) (listing.CreateListingResponse, error) {
 	ID := uuid.New()
 	timeNow := time.Now()
 
@@ -71,6 +71,7 @@ func (s *Listing) CreateListing(ctx context.Context, p *listing.CreateListingReq
 	}
 
 	resp := listing.CreateListingResponse{
+		ID:          fullListing.Listing.ID,
 		Title:       fullListing.Listing.Title,
 		Description: fullListing.Listing.Description,
 		Price:       fullListing.Listing.Price,

@@ -2,11 +2,9 @@ package controller
 
 import (
 	"context"
-	"errors"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
@@ -28,19 +26,9 @@ func (h *Listing) Ping(c *fiber.Ctx) error {
 }
 
 func (h *Listing) CreateListing(c *fiber.Ctx) error {
-	r := &listing.CreateListingRequest{}
-
-	err := c.BodyParser(r)
+	r, err := listing.GetCreateListingRequest(c)
 	if err != nil {
 		return err
-	}
-
-	// Валидируем категории
-	validCategoryIds := config.GetConfig().Categories.CategoryIds
-	for _, categoryId := range r.Categories {
-		if !validCategoryIds[categoryId] {
-			return errors.New("invalid category ID: " + categoryId)
-		}
 	}
 
 	listing, err := h.s.CreateListing(c.UserContext(), r)

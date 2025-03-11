@@ -5,6 +5,7 @@ import (
 	"database/sql"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/gofiber/fiber/v2"
@@ -42,7 +43,7 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 		return err
 	}
 	defer tx.Rollback(ctx)
-	
+
 	// Для каждого объявления создаем его и связанные с ним данные
 	for _, details := range listingsDetails {
 		// 1. Вставляем основные данные листинга
@@ -72,7 +73,7 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 		if err != nil {
 			return err
 		}
-		
+
 		// 2. Вставляем информацию о локации, если она предоставлена
 		if details.Location.ID != uuid.Nil {
 			_, err = tx.Exec(ctx, `
@@ -96,7 +97,7 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 				return err
 			}
 		}
-		
+
 		// 3. Вставляем категории
 		if len(details.Categories) > 0 {
 			// Подготавливаем batch для массовой вставки категорий
@@ -107,10 +108,10 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 					VALUES ($1, $2)
 				`, details.Listing.ID, category)
 			}
-			
+
 			// Выполняем batch запрос
 			br := tx.SendBatch(ctx, batch)
-			
+
 			// Проверяем результаты каждой операции в batch
 			for i := 0; i < batch.Len(); i++ {
 				_, err := br.Exec()
@@ -122,13 +123,13 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 					return err
 				}
 			}
-			
+
 			// Закрываем batch
 			if err := br.Close(); err != nil {
 				return err
 			}
 		}
-		
+
 		// 4. Вставляем характеристики, если они предоставлены
 		if details.Characteristics != nil && len(details.Characteristics) > 0 {
 			// Преобразуем map в JSON
@@ -136,7 +137,7 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 			if err != nil {
 				return err
 			}
-			
+
 			// Вставляем характеристики в таблицу
 			_, err = tx.Exec(ctx, `
 				INSERT INTO listing_characteristics (
@@ -152,7 +153,7 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 			}
 		}
 	}
-	
+
 	// Если все операции успешны, фиксируем транзакцию
 	return tx.Commit(ctx)
 }
@@ -274,11 +275,17 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 
 	// Вставляем характеристики, если они предоставлены
 	if characteristics != nil && len(characteristics) > 0 {
+		// Логируем характеристики для отладки
+		fmt.Printf("Характеристики для сохранения: %+v\n", characteristics)
+		
 		// Преобразуем map в JSON
 		characteristicsJSON, err := json.Marshal(characteristics)
 		if err != nil {
 			return err
 		}
+		
+		// Логируем JSON для отладки
+		fmt.Printf("JSON характеристик: %s\n", string(characteristicsJSON))
 
 		// Вставляем характеристики в таблицу
 		_, err = tx.Exec(ctx, `

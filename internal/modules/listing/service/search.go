@@ -38,8 +38,11 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 	var searchTitle, searchDescription bool
 	var listingAnchor *models.Listing
 
+	// Используем абсолютное значение для емкости слайса, чтобы избежать ошибки при отрицательном значении req.Limit
+	capacity := int(math.Abs(float64(req.Limit)))
+	listingsRes := make([]models.ListingResult, 0, capacity)
 	if cursor.Block == "" || cursor.Block == listing.TitleBlock {
-		var listings []models.Listing
+		var listings []models.ListingResult
 		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, req.Filters)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
@@ -48,11 +51,11 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 			return listing.SearchListingsResponse{}, err
 		}
 
-		resp.Results = append(resp.Results, listings...)
+		listingsRes = append(listingsRes, listings...)
 		searchTitle = true
 	}
 
-	if cursor.Block == listing.DescriptionBlock || len(resp.Results) < req.Limit {
+	if cursor.Block == listing.DescriptionBlock || len(listingsRes) < req.Limit {
 		if cursor.Block != listing.DescriptionBlock {
 			cursor.LastIndex = nil
 		}
@@ -71,11 +74,11 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 		// searchDescription = true
 	}
 
-	if len(resp.Results) > 0 && len(resp.Results) == int(math.Abs(float64(req.Limit))) {
-		lastListing := resp.Results[len(resp.Results)-1]
+	if len(listingsRes) > 0 && len(listingsRes) == int(math.Abs(float64(req.Limit))) {
+		lastListing := listingsRes[len(listingsRes)-1]
 
 		newCursor := listing.SearchCursor{
-			LastIndex: &lastListing.ID,
+			LastIndex: &lastListing.Listing.ID,
 		}
 
 		if searchDescription {
@@ -111,7 +114,10 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 
 	resp.SearchID = s.cache.StoreSearchInfo(searchId)
 
-	return resp, nil
+	
+
+	return listing.CreateSearchListingsResponse(listingsRes, 
+		resp.CursorAfter, resp.CursorBefore, resp.SearchID), nil
 }
 
 
