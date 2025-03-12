@@ -5,7 +5,7 @@ import (
 )
 
 type Location struct {
-	ID        uuid.UUID `json:"-"`
+	ID        string    `json:"id"`
 	ListingID uuid.UUID `json:"-"`
 	Name      string    `json:"name"`
 	Area      Area      `json:"area"`

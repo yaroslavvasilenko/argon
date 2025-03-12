@@ -73,7 +73,7 @@ func CreateSearchListingsResponse(
 		}
 
 		// Обрабатываем локацию
-		if listingResult.Location.ID != uuid.Nil {
+		if listingResult.Location.ID != "" {
 			location = listingResult.Location
 		}
 

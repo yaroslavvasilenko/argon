@@ -407,7 +407,7 @@ func (app *BenchmarkApp) generateLocations(count int) ([]models.Location, error)
 		args[offset+3] = now
 
 		locations[i] = models.Location{
-			ID:   id,
+			ID:   id.String(),
 			Name: name,
 			Area: models.Area{
 				Coordinates: struct {

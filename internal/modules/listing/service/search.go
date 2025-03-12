@@ -43,7 +43,7 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 	listingsRes := make([]models.ListingResult, 0, capacity)
 	if cursor.Block == "" || cursor.Block == listing.TitleBlock {
 		var listings []models.ListingResult
-		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, req.Filters)
+		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, req.Filters, req.Location)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return listing.SearchListingsResponse{}, fiber.NewError(fiber.StatusNotFound, err.Error())

@@ -19,7 +19,10 @@ func BodyParser(c *fiber.Ctx, out interface{}) error {
 
 func GetLang(ctx context.Context) string {
 	// Получаем значение заголовка Accept-Language с дефолтным значением es
-	acceptLang := ctx.Value(models.KeyLanguage).(string)
+	acceptLang := ctx.Value(models.KeyLanguage)
+	if acceptLang == nil {
+		return models.LanguageDefault
+	}
 
-	return acceptLang
+	return acceptLang.(string)
 }
