@@ -11,7 +11,6 @@ import (
 
 // SearchListingsResponse represents a response to a search listings request.
 
-
 type ResponseGetCategories struct {
 	Categories []CategoryNode `json:"categories"`
 }
@@ -28,13 +27,13 @@ type Category struct {
 }
 
 type CreateListingRequest struct {
-	Title           string                 `json:"title"`
-	Description     string                 `json:"description,omitempty"`
-	Price           float64                `json:"price,omitempty"`
-	Currency        models.Currency        `json:"currency,omitempty"`
-	Location        models.Location        `json:"location,omitempty"`
-	Categories      []string               `json:"categories,omitempty"`
-	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Title           string          `json:"title"`
+	Description     string          `json:"description,omitempty"`
+	Price           float64         `json:"price,omitempty"`
+	Currency        models.Currency `json:"currency,omitempty"`
+	Location        models.Location `json:"location,omitempty"`
+	Categories      []string        `json:"categories,omitempty"`
+	Characteristics Characteristic  `json:"characteristics,omitempty"`
 }
 
 func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {

@@ -14,7 +14,7 @@ import (
 	"gorm.io/gorm"
 )
 
-func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort, categoryID string, filters listing.Filters) (*models.Listing, []models.ListingResult, error) {
+func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort, categoryID string, filters listing.Filters, location models.Location) (*models.Listing, []models.ListingResult, error) {
 	// Если limit == 0, возвращаем пустой результат
 	if limit == 0 {
 		return nil, []models.ListingResult{}, nil
@@ -40,7 +40,7 @@ func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit
 
 	// Определяем тип поиска на основе запроса
 	searchType := determineSearchType(query)
-	baseQuery := buildBaseQuery(searchType, categoryID, filters)
+	baseQuery := buildBaseQuery(searchType, categoryID, filters, location)
 
 	orderExpr := getSortExpression(sort, searchType)
 	searchQuery := createSearchQuery(query, searchType)
@@ -84,7 +84,7 @@ const (
 )
 
 // buildBaseQuery создает базовый SQL запрос в зависимости от типа поиска
-func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Filters) string {
+func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Filters, location models.Location) string {
 	var categoryFilter string
 	if categoryID != "" {
 		categoryFilter = `
@@ -92,6 +92,24 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 				SELECT 1 FROM listing_categories lc 
 				WHERE lc.listing_id = l.id AND lc.category_id = '` + categoryID + `'
 			)`
+	}
+	
+	// Добавляем фильтр по локации, если указаны координаты
+	var locationFilter string
+	if location.Area.Coordinates.Lat != 0 && location.Area.Coordinates.Lng != 0 && location.Area.Radius > 0 {
+		// Используем функцию ST_DWithin для поиска в радиусе
+		// Преобразуем координаты в географические точки и вычисляем расстояние в метрах
+		locationFilter = fmt.Sprintf(`
+			AND EXISTS (
+				SELECT 1 FROM locations loc
+				WHERE loc.listing_id = l.id
+				AND ST_DWithin(
+					ST_SetSRID(ST_MakePoint(loc.longitude, loc.latitude), 4326)::geography,
+					ST_SetSRID(ST_MakePoint(%f, %f), 4326)::geography,
+					%d
+				)
+			)`, 
+			location.Area.Coordinates.Lng, location.Area.Coordinates.Lat, location.Area.Radius)
 	}
 
 	// Добавляем фильтр по характеристикам, если они указаны
@@ -182,7 +200,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 				similarity(l.title, $1) > 0.3 OR
 				/* word_similarity сравнивает слова, а не символы */
 				word_similarity($1, l.title) > 0.4
-			)` + categoryFilter + filtersFilter + `
+			)` + categoryFilter + locationFilter + filtersFilter + `
 		`
 	case FullTextSearch:
 		// Стандартный поиск с использованием полнотекстового индекса
@@ -191,7 +209,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 			FROM ` + itemTable + ` l
 			JOIN listings_search_ru lsr ON l.id = lsr.listing_id
 			WHERE l.deleted_at IS NULL
-			AND to_tsquery('russian', $1) @@ lsr.title_vector` + categoryFilter + filtersFilter + `
+			AND to_tsquery('russian', $1) @@ lsr.title_vector` + categoryFilter + locationFilter + filtersFilter + `
 		`
 	case CombinedSearch:
 		// Комбинированный поиск, использующий оба метода с ранжированием результатов
@@ -215,7 +233,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 				word_similarity($1, l.title) > 0.4 OR
 				/* Полнотекстовый поиск */
 				to_tsquery('russian', $2) @@ lsr.title_vector
-			)` + categoryFilter + filtersFilter + `
+			)` + categoryFilter + locationFilter + filtersFilter + `
 		`
 	default:
 		// По умолчанию используем нечеткий поиск
@@ -227,7 +245,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 				l.title % $1 OR
 				similarity(l.title, $1) > 0.3 OR
 				word_similarity($1, l.title) > 0.4
-			)` + categoryFilter + filtersFilter + `
+			)` + categoryFilter + locationFilter + filtersFilter + `
 		`
 	}
 }
@@ -256,18 +274,8 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 		// - оригинальный запрос для нечеткого поиска
 		// - обработанный запрос для полнотекстового поиска
 		
-		// Очищаем запрос от специальных символов для to_tsquery
-		cleanQuery := searchQuery
-		specialChars := []string{"&", "|", "!", "(", ")", ":", "*", "'", "-", "<", ">"}
-		for _, char := range specialChars {
-			cleanQuery = strings.ReplaceAll(cleanQuery, char, " ")
-		}
-		
-		// Удаляем лишние пробелы
-		cleanQuery = strings.TrimSpace(cleanQuery)
-		cleanQuery = strings.Join(strings.Fields(cleanQuery), " ")
-		
-		tsQueryVersion = prepareTsQuery(cleanQuery)
+		// Используем prepareTsQuery для очистки запроса от специальных символов
+		tsQueryVersion = prepareTsQuery(searchQuery)
 		args = []interface{}{searchQuery, tsQueryVersion}
 	}
 

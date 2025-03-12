@@ -5,8 +5,8 @@ import (
 	"net/http"
 	"testing"
 
-	"github.com/stretchr/testify/require"
 	"github.com/stretchr/testify/assert"
+	"github.com/stretchr/testify/require"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 )
@@ -347,5 +347,114 @@ func TestSearchListings(t *testing.T) {
 
 		// Проверяем, что ничего не найдено при поиске с неподходящим размером экрана
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим размером экрана")
+	})
+}
+
+func TestSearchListingsByLocation(t *testing.T) {
+	app := createTestApp(t)
+	app.cleanDb(t)
+	user := app.createUser(t)
+
+	// Создаем объявление с определенной локацией (Москва, Красная площадь)
+	listingWithLocation := listing.CreateListingRequest{
+		Title:       "Квартира в центре Москвы",
+		Description: "Уютная квартира рядом с Красной площадью",
+		Price:       150000,
+		Currency:    models.Currency("RUB"),
+		Location: models.Location{
+			ID:   "moscow_center",
+			Name: "Красная площадь",
+			Area: models.Area{
+				Coordinates: struct {
+					Lat float64 `json:"lat" validate:"required"`
+					Lng float64 `json:"lng" validate:"required"`
+				}{
+					Lat: 55.753930, // Координаты Красной площади
+					Lng: 37.620795,
+				},
+				Radius: 1000, // Радиус 1 км
+			},
+		},
+	}
+
+	resp := user.createListing(t, listingWithLocation)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	t.Run("Successful search by location", func(t *testing.T) {
+		// Создаем запрос на поиск с теми же координатами
+		req := getSearchListingsRequest("Квартира", 10, "", "relevance", "")
+		
+		// Добавляем локацию в запрос поиска
+		req.Location = models.Location{
+			Area: models.Area{
+				Coordinates: struct {
+					Lat float64 `json:"lat" validate:"required"`
+					Lng float64 `json:"lng" validate:"required"`
+				}{
+					Lat: 55.753930, // Те же координаты
+					Lng: 37.620795,
+				},
+				Radius: 1500, // Увеличиваем радиус поиска до 1.5 км
+			},
+		}
+
+		// Выполняем поиск
+		resp := user.searchListings(t, req)
+
+		// Проверяем, что объявление найдено
+		require.NotEmpty(t, resp.Results, "Объявление не найдено при поиске по локации")
+		require.Len(t, resp.Results, 1, "Найдено неверное количество объявлений")
+		assert.Equal(t, listingWithLocation.Title, resp.Results[0].Title)
+		assert.Equal(t, listingWithLocation.Description, resp.Results[0].Description)
+	})
+
+	t.Run("No results when searching with different location", func(t *testing.T) {
+		// Создаем запрос на поиск с другими координатами (Санкт-Петербург)
+		req := getSearchListingsRequest("Квартира", 10, "", "relevance", "")
+		
+		// Добавляем локацию в запрос поиска с другими координатами
+		req.Location = models.Location{
+			Area: models.Area{
+				Coordinates: struct {
+					Lat float64 `json:"lat" validate:"required"`
+					Lng float64 `json:"lng" validate:"required"`
+				}{
+					Lat: 59.939095, // Координаты Санкт-Петербурга (Дворцовая площадь)
+					Lng: 30.315868,
+				},
+				Radius: 1500, // Тот же радиус поиска
+			},
+		}
+
+		// Выполняем поиск
+		resp := user.searchListings(t, req)
+
+		// Проверяем, что объявление НЕ найдено
+		require.Empty(t, resp.Results, "Объявление найдено при поиске по другой локации")
+	})
+
+	t.Run("No results when searching with small radius", func(t *testing.T) {
+		// Создаем запрос на поиск с теми же координатами, но маленьким радиусом
+		req := getSearchListingsRequest("Квартира", 10, "", "relevance", "")
+		
+		// Добавляем локацию в запрос поиска с немного смещенными координатами и маленьким радиусом
+		req.Location = models.Location{
+			Area: models.Area{
+				Coordinates: struct {
+					Lat float64 `json:"lat" validate:"required"`
+					Lng float64 `json:"lng" validate:"required"`
+				}{
+					Lat: 55.753930 + 0.001, // Смещаем координаты примерно на 100 метров
+					Lng: 37.620795 + 0.001,
+				},
+				Radius: 5, // Очень маленький радиус (5 метров)
+			},
+		}
+
+		// Выполняем поиск
+		resp := user.searchListings(t, req)
+
+		// Проверяем, что объявление НЕ найдено из-за маленького радиуса
+		require.Empty(t, resp.Results, "Объявление найдено при поиске с маленьким радиусом")
 	})
 }

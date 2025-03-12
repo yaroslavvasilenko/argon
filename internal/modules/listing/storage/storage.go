@@ -75,7 +75,7 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 		}
 
 		// 2. Вставляем информацию о локации, если она предоставлена
-		if details.Location.ID != uuid.Nil {
+		if details.Location.ID != "" {
 			_, err = tx.Exec(ctx, `
 				INSERT INTO locations (
 					id,
@@ -200,8 +200,8 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 	var radius sql.NullInt32
 
 	// Проверяем, что ID локации не пустой
-	if location.ID != uuid.Nil {
-		locationID.String = location.ID.String()
+	if location.ID != "" {
+		locationID.String = location.ID
 		locationID.Valid = true
 
 		locationName.String = location.Name
@@ -425,7 +425,7 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 	// Заполняем информацию о локации, если она есть
 	if locationID.Valid {
 		var location models.Location
-		location.ID = uuid.MustParse(locationID.String)
+		location.ID = locationID.String
 		location.ListingID = listingID
 		location.Name = locationName.String
 		location.Area = models.Area{
@@ -530,7 +530,7 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 	}
 
 	// Обновляем информацию о локации
-	if location.ID != uuid.Nil {
+	if location.ID != "" {
 		// Проверяем, существует ли уже локация для этого листинга
 		var locationExists bool
 		err = tx.QueryRow(ctx, `SELECT EXISTS(SELECT 1 FROM locations WHERE listing_id = $1)`, listing.ID).Scan(&locationExists)
