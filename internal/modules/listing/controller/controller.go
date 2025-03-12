@@ -2,12 +2,9 @@ package controller
 
 import (
 	"context"
-	"errors"
 
-	"github.com/go-playground/validator/v10"
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
@@ -29,19 +26,9 @@ func (h *Listing) Ping(c *fiber.Ctx) error {
 }
 
 func (h *Listing) CreateListing(c *fiber.Ctx) error {
-	r := &listing.CreateListingRequest{}
-
-	err := c.BodyParser(r)
+	r, err := listing.GetCreateListingRequest(c)
 	if err != nil {
 		return err
-	}
-
-	// Валидируем категории
-	validCategoryIds := config.GetConfig().Categories.CategoryIds
-	for _, categoryId := range r.Categories {
-		if !validCategoryIds[categoryId] {
-			return errors.New("invalid category ID: " + categoryId)
-		}
 	}
 
 	listing, err := h.s.CreateListing(c.UserContext(), r)
@@ -80,7 +67,7 @@ func (h *Listing) UpdateListing(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Неверный формат ID листинга")
 	}
-	
+
 	// Проверяем, что UUID не пустой
 	if listingID == uuid.Nil {
 		return fiber.NewError(fiber.StatusBadRequest, "ID листинга не может быть пустым")
@@ -92,7 +79,7 @@ func (h *Listing) UpdateListing(c *fiber.Ctx) error {
 	if err != nil {
 		return fiber.NewError(fiber.StatusBadRequest, "Ошибка при разборе тела запроса: "+err.Error())
 	}
-	
+
 	// Устанавливаем ID из параметра URL в запрос
 	r.ID = listingID
 
@@ -106,13 +93,9 @@ func (h *Listing) UpdateListing(c *fiber.Ctx) error {
 
 func (h *Listing) SearchListings(c *fiber.Ctx) error {
 	req := listing.SearchListingsRequest{}
-	if err := c.BodyParser(&req); err != nil {
+	err := c.BodyParser(&req)
+	if err != nil {
 		return err
-	}
-
-	validate := validator.New()
-	if err := validate.Struct(req); err != nil {
-		return fiber.NewError(fiber.StatusBadRequest, err.Error())
 	}
 
 	if req.Limit == 0 {
@@ -143,12 +126,11 @@ func (h *Listing) GetCategories(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(resp) 
+	return c.JSON(resp)
 }
 
-
 func (h *Listing) SearchListingsParams(c *fiber.Ctx) error {
-	qID :=c.Query("qid")
+	qID := c.Query("qid")
 	if qID == "" {
 		return fiber.NewError(fiber.StatusBadRequest, "qid parameter is required")
 	}

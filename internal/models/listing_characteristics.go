@@ -1,51 +1,60 @@
 package models
 
-import (
-	"encoding/json"
+// Константы для типов характеристик
+const (
+	// Характеристики для цены
+	CHAR_PRICE = "price"
 
-	"github.com/google/uuid"
+	// Характеристики для цвета
+	CHAR_COLOR = "color"
+
+	// Характеристики для выпадающего списка
+	CHAR_SCREEN_RESOLUTION = "screen_resolution" // Разрешение экрана
+	CHAR_DISPLAY_TYPE      = "display_type"      // Тип дисплея
+
+	// Характеристики для селектора
+	CHAR_QUALITY = "quality" // Качество
+	CHAR_CLASS   = "class"   // Класс
+
+	// Характеристики для чекбокса
+	CHAR_IS_NEW        = "is_new"        // Новый товар
+	CHAR_HAS_WARRANTY  = "has_warranty"  // Есть гарантия
+	CHAR_FAST_DELIVERY = "fast_delivery" // Быстрая доставка
+
+	// Характеристики для размеров
+	CHAR_SCREEN_SIZE = "screen_size" // Размер экрана
+	CHAR_WEIGHT      = "weight"      // Вес
+	CHAR_DIMENSIONS  = "dimensions"  // Габариты
 )
 
-// ListingCharacteristics представляет характеристики объявления в базе данных
-type ListingCharacteristics struct {
-	ListingID      uuid.UUID       `json:"listing_id"`
-	Characteristics json.RawMessage `json:"characteristics"`
-}
+// Константы единиц измерений для различных физических величин
+const (
+	// Длина
+	CM = "cm" // сантиметр
+	M  = "m"  // метр
+	KM = "km" // километр
 
-// Метод для получения значения характеристики по ключу
-func (lc *ListingCharacteristics) GetCharacteristic(key string) (interface{}, bool) {
-	var characteristics map[string]interface{}
-	if err := json.Unmarshal(lc.Characteristics, &characteristics); err != nil {
-		return nil, false
-	}
-	
-	value, exists := characteristics[key]
-	return value, exists
-}
+	// Площадь
+	CM2 = "cm2" // квадратный сантиметр
+	M2  = "m2"  // квадратный метр
+	KM2 = "km2" // квадратный километр
 
-// Метод для установки значения характеристики
-func (lc *ListingCharacteristics) SetCharacteristic(key string, value interface{}) error {
-	var characteristics map[string]interface{}
-	
-	// Если характеристики уже существуют, распаковываем их
-	if lc.Characteristics != nil && len(lc.Characteristics) > 0 {
-		if err := json.Unmarshal(lc.Characteristics, &characteristics); err != nil {
-			return err
-		}
-	} else {
-		// Иначе создаем новую пустую карту
-		characteristics = make(map[string]interface{})
-	}
-	
-	// Устанавливаем или обновляем значение
-	characteristics[key] = value
-	
-	// Упаковываем обратно в JSON
-	data, err := json.Marshal(characteristics)
-	if err != nil {
-		return err
-	}
-	
-	lc.Characteristics = data
-	return nil
-}
+	// Объем
+	CM3 = "cm3" // кубический сантиметр
+	M3  = "m3"  // кубический метр
+	KM3 = "km3" // кубический километр
+	ML  = "ml"  // миллилитр
+	L   = "l"   // литр
+
+	// Масса
+	G  = "g"  // грамм
+	KG = "kg" // килограмм
+	T  = "t"  // тонна
+
+	// Электричество
+	MA = "ma" // миллиампер
+	A  = "a"  // ампер
+	W  = "w"  // ватт
+	KW = "kw" // киловатт
+	OM = "om" // ом
+)

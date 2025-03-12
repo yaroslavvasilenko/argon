@@ -19,9 +19,9 @@ type Services struct {
 
 func NewServices(storages *Storages, pool *pgxpool.Pool, lg *logger.Glog) *Services {
 	return &Services{
-		listing: lservice.NewListing(storages.listing, pool, lg),
-		currency: cservice.NewCurrency(storages.currency, storages.currencyBinance, lg),
-		location: locservice.NewLocation(storages.location, lg),
-		boost: bservice.NewBoost(storages.boost, lg),
+		listing: lservice.NewListing(storages.Listing, pool, lg),
+		currency: cservice.NewCurrency(storages.Currency, storages.CurrencyBinance, lg),
+		location: locservice.NewLocation(storages.Location, lg),
+		boost: bservice.NewBoost(storages.Boost, lg),
 	}
 }

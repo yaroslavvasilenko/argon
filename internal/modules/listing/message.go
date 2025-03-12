@@ -1,42 +1,16 @@
 package listing
 
 import (
+	"errors"
+
+	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
+	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
-// SearchListingsRequest represents a request to search listings.
-type SearchListingsRequest struct {
-	// Query is the search query.
-	Query string `json:"query" query:"query" validate:"required"`
-	// Limit is the maximum number of results to return.
-	Limit int `json:"limit,omitempty" query:"limit" validate:"omitempty,min=-100,max=100"` // default: 20
-	// Cursor is the cursor for pagination.
-	Cursor string `json:"cursor,omitempty" query:"cursor"`
-	// SortOrder is the order in which to sort the results.
-	SortOrder string `json:"sort_order,omitempty" query:"sort_order" validate:"omitempty,oneof=price_asc price_desc relevance_asc relevance_desc popularity_asc popularity_desc"`
-	// SearchID is the ID of the search.
-	SearchID string `json:"qid,omitempty" query:"search_id,omitempty"`
-	// Filters are the filters to apply to the search.
-	Filters Filters `json:"filters,omitempty"`
-	// Category is the category to search in.
-	Category string `json:"category,omitempty"`
-	// currency: SupportedCurrency;
-	// locale: string;
-	// location?: Location;
-}
-
 // SearchListingsResponse represents a response to a search listings request.
-type SearchListingsResponse struct {
-	// Results are the search results.
-	Results []models.Listing `json:"results"`
-	// CursorAfter is the cursor for the next page of results.
-	CursorAfter string `json:"cursor_after,omitempty"`
-	// CursorBefore is the cursor for the previous page of results.
-	CursorBefore string `json:"cursor_before,omitempty"`
-	// SearchID is the ID of the search.
-	SearchID string `json:"search_id,omitempty" query:"search_id,omitempty"`
-}
+
 
 type ResponseGetCategories struct {
 	Categories []CategoryNode `json:"categories"`
@@ -54,24 +28,42 @@ type Category struct {
 }
 
 type CreateListingRequest struct {
-	Title       string          `json:"title"`
-	Description string          `json:"description,omitempty"`
-	Price       float64         `json:"price,omitempty"`
-	Currency    models.Currency `json:"currency,omitempty"`
-	Location    models.Location `json:"location,omitempty"`
-	Categories  []string        `json:"categories,omitempty"`
+	Title           string                 `json:"title"`
+	Description     string                 `json:"description,omitempty"`
+	Price           float64                `json:"price,omitempty"`
+	Currency        models.Currency        `json:"currency,omitempty"`
+	Location        models.Location        `json:"location,omitempty"`
+	Categories      []string               `json:"categories,omitempty"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 }
 
+func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
+	req := CreateListingRequest{}
+	err := c.BodyParser(&req)
+	if err != nil {
+		return CreateListingRequest{}, err
+	}
+
+	validCategoryIds := config.GetConfig().Categories.CategoryIds
+	for _, categoryId := range req.Categories {
+		if !validCategoryIds[categoryId] {
+			return CreateListingRequest{}, errors.New("invalid category ID: " + categoryId)
+		}
+	}
+
+	return req, nil
+}
+
 type CreateListingResponse struct {
-	Title       string          `json:"title" validate:"required"`
-	Description string          `json:"description,omitempty"`
-	Price       float64         `json:"price,omitempty" validate:"gte=0"`
-	Currency    models.Currency `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
-	Location    models.Location `json:"location,omitempty"`
-	Categories  []string        `json:"categories,omitempty" validate:"required"`
+	ID              uuid.UUID              `json:"id" validate:"required"`
+	Title           string                 `json:"title" validate:"required"`
+	Description     string                 `json:"description,omitempty"`
+	Price           float64                `json:"price,omitempty" validate:"gte=0"`
+	Currency        models.Currency        `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
+	Location        models.Location        `json:"location,omitempty"`
+	Categories      []string               `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
-	Boosts      []BoostResp     `json:"boosts,omitempty"`
+	Boosts          []BoostResp            `json:"boosts,omitempty"`
 }
 
 type BoostResp struct {
@@ -80,25 +72,25 @@ type BoostResp struct {
 }
 
 type UpdateListingRequest struct {
-	ID          uuid.UUID       `json:"id" validate:"required"`
-	Title       string          `json:"title" validate:"required"`
-	Description string          `json:"description,omitempty"`
-	Price       float64         `json:"price,omitempty" validate:"gte=0"`
-	Currency    models.Currency `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
-	Location    models.Location `json:"location,omitempty"`
-	Categories  []string        `json:"categories,omitempty" validate:"required"`
+	ID              uuid.UUID              `json:"id" validate:"required"`
+	Title           string                 `json:"title" validate:"required"`
+	Description     string                 `json:"description,omitempty"`
+	Price           float64                `json:"price,omitempty" validate:"gte=0"`
+	Currency        models.Currency        `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
+	Location        models.Location        `json:"location,omitempty"`
+	Categories      []string               `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
-	Boosts      []BoostResp     `json:"boosts,omitempty"`
+	Boosts          []BoostResp            `json:"boosts,omitempty"`
 }
 
 type FullListingResponse struct {
-	ID          uuid.UUID       `json:"id"`
-	Title       string          `json:"title"`
-	Description string          `json:"description,omitempty"`
-	Price       float64         `json:"price,omitempty"`
-	Currency    models.Currency `json:"currency,omitempty"`
-	Location    models.Location `json:"location,omitempty"`
-	Categories  []string        `json:"categories,omitempty"`
+	ID              uuid.UUID              `json:"id"`
+	Title           string                 `json:"title"`
+	Description     string                 `json:"description,omitempty"`
+	Price           float64                `json:"price,omitempty"`
+	Currency        models.Currency        `json:"currency,omitempty"`
+	Location        models.Location        `json:"location,omitempty"`
+	Categories      []string               `json:"categories,omitempty"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
-	Boosts      []BoostResp     `json:"boosts,omitempty"`
+	Boosts          []BoostResp            `json:"boosts,omitempty"`
 }

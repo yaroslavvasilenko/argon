@@ -5,10 +5,10 @@ import (
 )
 
 type Location struct {
-	ID        string    `json:"id" validate:"required"`
-	ListingID uuid.UUID `json:"listing_id" validate:"required"`
-	Name      string    `json:"name" validate:"required"`
-	Area      Area      `json:"area" validate:"required"`
+	ID        uuid.UUID `json:"-"`
+	ListingID uuid.UUID `json:"-"`
+	Name      string    `json:"name"`
+	Area      Area      `json:"area"`
 }
 
 type Area struct {

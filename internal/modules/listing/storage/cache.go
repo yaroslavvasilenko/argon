@@ -20,7 +20,6 @@ type Cache struct {
 
 func NewCache(pool *pgxpool.Pool) *Cache {
 
-
 	cache := &Cache{
 		pool:   pool,
 		secret: []byte("your-secret-key-here"), // в реальном приложении брать из конфига
@@ -58,7 +57,7 @@ func (s *Cache) StoreCursor(cursorInfo listing.SearchCursor) string {
 	return hash
 }
 
-func (s *Cache) StoreSearchInfo(searchInfo listing.SearchId) string {
+func (s *Cache) StoreSearchInfo(searchInfo listing.SearchID) string {
 	searchBytes, err := json.Marshal(searchInfo)
 	if err != nil {
 		return ""
@@ -114,7 +113,7 @@ func (s *Cache) GetCursor(cursorId string) (listing.SearchCursor, error) {
 	return cursor, nil
 }
 
-func (s *Cache) GetSearchInfo(searchId string) (listing.SearchId, error) {
+func (s *Cache) GetSearchInfo(searchId string) (listing.SearchID, error) {
 	var searchBytes []byte
 	var expiresAt time.Time
 
@@ -124,7 +123,7 @@ func (s *Cache) GetSearchInfo(searchId string) (listing.SearchId, error) {
 	).Scan(&searchBytes, &expiresAt)
 
 	if err != nil {
-		return listing.SearchId{}, errors.New("invalid search id")
+		return listing.SearchID{}, errors.New("invalid search id")
 	}
 
 	if time.Now().After(expiresAt) {
@@ -133,12 +132,12 @@ func (s *Cache) GetSearchInfo(searchId string) (listing.SearchId, error) {
 			"DELETE FROM search_info WHERE id = $1",
 			searchId,
 		)
-		return listing.SearchId{}, errors.New("search info expired")
+		return listing.SearchID{}, errors.New("search info expired")
 	}
 
-	var searchInfo listing.SearchId
+	var searchInfo listing.SearchID
 	if err := json.Unmarshal(searchBytes, &searchInfo); err != nil {
-		return listing.SearchId{}, errors.New("invalid search info data")
+		return listing.SearchID{}, errors.New("invalid search info data")
 	}
 
 	return searchInfo, nil

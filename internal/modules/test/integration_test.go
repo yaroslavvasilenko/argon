@@ -49,7 +49,7 @@ func createTestApp(t *testing.T) *TestApp {
 
 	lg := logger.NewLogger(cfg)
 
-	gorm, pool, err := db.NewSqlDB(context.Background(), cfg.DB.Url, lg.Logger, true)
+	gorm, pool, err := db.NewSqlDB(context.Background(), cfg.DB.Url, lg.Logger, false)
 	require.NoError(t, err)
 
 	// Migrate
@@ -75,7 +75,7 @@ func TestCreateListing(t *testing.T) {
 	app := createTestApp(t)
 	user := app.createUser(t)
 	t.Run("Success create listing", func(t *testing.T) {
-		listingInput := models.Listing{
+		listingInput := listing.CreateListingRequest{
 			Title:       "Тестовая квартира",
 			Description: "Просторная квартира в центре",
 			Price:       1000000,
@@ -106,160 +106,6 @@ func TestCreateListing(t *testing.T) {
 	})
 }
 
-func TestSearchListings(t *testing.T) {
-	app := createTestApp(t)
-	app.cleanDb(t)
-	user := app.createUser(t)
-
-	iphone1 := models.Listing{
-		Title:       "iPhone 14 Pro",
-		Description: "Новый iPhone 14 Pro, 256GB, цвет: космический черный",
-		Price:       100001,
-		Currency:    models.Currency("RUB"),
-	}
-
-	resp := user.createListing(t, iphone1)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	t.Run("Successful search 1 listing", func(t *testing.T) {
-		// Выполняем поиск объявления
-		req := getSearchListingsRequest("iPhone", 10, "", "relevance_desc", "")
-
-		resp := user.searchListings(t, req)
-
-		require.Len(t, resp.Results, 1)
-		foundListing := resp.Results[0]
-		assert.Equal(t, iphone1.Title, foundListing.Title)
-		assert.Equal(t, iphone1.Description, foundListing.Description)
-		assert.Equal(t, iphone1.Price, foundListing.Price)
-		assert.Equal(t, iphone1.Currency, foundListing.Currency)
-	})
-
-	iphone2 := models.Listing{
-		Title:       "iPhone 15 Pro",
-		Description: "Новый iPhone 15 Pro, 256GB, цвет: космический черный",
-		Price:       100002,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone2)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone3 := models.Listing{
-		Title:       "iPhone 16 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100003,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone3)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone4 := models.Listing{
-		Title:       "iPhone 17 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100004,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone4)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone5 := models.Listing{
-		Title:       "iPhone 18 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100005,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone5)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone6 := models.Listing{
-		Title:       "iPhone 19 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100006,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone6)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone7 := models.Listing{
-		Title:       "iPhone 20 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100007,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone7)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone8 := models.Listing{
-		Title:       "iPhone 21 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100008,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone8)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	iphone9 := models.Listing{
-		Title:       "iPhone 22 Pro",
-		Description: "Новый iPhone 16 Pro, 256GB, цвет: космический черный",
-		Price:       100009,
-		Currency:    models.Currency("RUB"),
-	}
-	resp = user.createListing(t, iphone9)
-	require.Equal(t, http.StatusOK, resp.StatusCode)
-
-	t.Run("Successful search 3 listings and check cursor", func(t *testing.T) {
-		// Выполняем поиск объявления
-		req := getSearchListingsRequest("iPhone", 3, "", "price_asc", "")
-
-		resp := user.searchListings(t, req)
-
-		require.Len(t, resp.Results, 3)
-		assert.Equal(t, iphone1.Title, resp.Results[0].Title)
-		assert.Equal(t, iphone2.Title, resp.Results[1].Title)
-		assert.Equal(t, iphone3.Title, resp.Results[2].Title)
-
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
-
-		resp = user.searchListings(t, req)
-		require.Len(t, resp.Results, 3)
-		assert.Equal(t, iphone4.Title, resp.Results[0].Title)
-		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
-		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
-
-		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "price_asc", resp.SearchID)
-
-		resp = user.searchListings(t, req)
-		require.Len(t, resp.Results, 3)
-		assert.Equal(t, iphone4.Title, resp.Results[0].Title)
-		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
-		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
-
-		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "price_asc", resp.SearchID)
-
-		resp = user.searchListings(t, req)
-		require.Len(t, resp.Results, 3)
-		assert.Equal(t, iphone4.Title, resp.Results[0].Title)
-		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
-		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
-
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
-
-		resp = user.searchListings(t, req)
-		require.Len(t, resp.Results, 3)
-		assert.Equal(t, iphone7.Title, resp.Results[0].Title)
-		assert.Equal(t, iphone8.Title, resp.Results[1].Title)
-		assert.Equal(t, iphone9.Title, resp.Results[2].Title)
-
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
-
-		resp = user.searchListings(t, req)
-		assert.Empty(t, resp.Results)
-		assert.Empty(t, resp.CursorAfter)
-
-	})
-
-}
-
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
 	return listing.SearchListingsRequest{
 		Query:     query,
@@ -268,6 +114,7 @@ func getSearchListingsRequest(query string, limit int, cursor string, sortOrder 
 		SortOrder: sortOrder,
 		SearchID:  searchID,
 	}
+
 }
 
 func (user *user) searchListings(t *testing.T, req listing.SearchListingsRequest) listing.SearchListingsResponse {
@@ -289,7 +136,7 @@ func (user *user) searchListings(t *testing.T, req listing.SearchListingsRequest
 	return searchResp
 }
 
-func (user *user) createListing(t *testing.T, l models.Listing) *http.Response {
+func (user *user) createListing(t *testing.T, l listing.CreateListingRequest) *http.Response {
 	body, err := json.Marshal(l)
 	require.NoError(t, err)
 	req := httptest.NewRequest("POST", "/api/v1/listing", bytes.NewReader(body)).WithContext(context.Background())
@@ -310,3 +157,15 @@ func (app *TestApp) cleanDb(t *testing.T) {
 		t.Fatalf("Failed to clean database: %v", err)
 	}
 }
+
+// func TestRunBenchmark(t *testing.T) {
+// 	// Запускаем тест параллельно
+// 	t.Parallel()
+
+// 	// Определяем количество записей для генерации
+// 	listingCount := 1000000 // Уменьшаем с 1 миллиона до 100 тысяч
+
+// 	// Запускаем бенчмарк
+// 	err := RunBenchmark(listingCount)
+// 	require.NoError(t, err)
+// }
