@@ -13,7 +13,7 @@ type SearchListingsRequest struct {
 	Limit      int             `json:"limit,omitempty" query:"limit" validate:"omitempty,min=-100,max=100"`
 	CategoryID string          `json:"category_id,omitempty"`
 	Location   models.Location `json:"location,omitempty"`
-	Filters    Filters         `json:"filters,omitempty"`
+	Filters    models.Filters   `json:"filters,omitempty"`
 	SortOrder  string          `json:"sort_order,omitempty" query:"sort_order" validate:"omitempty,oneof=price_asc price_desc relevance_asc relevance_desc popularity_asc popularity_desc"`
 }
 
@@ -132,7 +132,7 @@ type SearchCursor struct {
 
 type SearchID struct {
 	CategoryID string
-	Filters    Filters
+	Filters    models.Filters
 	SortOrder  string
 	LocationID string
 }

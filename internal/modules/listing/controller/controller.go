@@ -142,3 +142,54 @@ func (h *Listing) SearchListingsParams(c *fiber.Ctx) error {
 
 	return c.JSON(listings)
 }
+
+func (h *Listing) GetCharacteristicsForCategory(c *fiber.Ctx) error {
+	// Новая структура запроса с полем category_ids
+	req := struct {
+		CategoryIds []string `json:"category_ids"`
+	}{}
+
+	err := c.BodyParser(&req)
+	if err != nil {
+		return err
+	}
+
+	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
+	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
+
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
+
+	// Вызываем сервис с новым форматом данных
+	characteristics, err := h.s.GetCharacteristicsForCategory(ctx, req.CategoryIds)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(characteristics)
+}
+
+// GetFiltersForCategory возвращает фильтры для указанной категории
+func (h *Listing) GetFiltersForCategory(c *fiber.Ctx) error {
+	// Получаем category_id из параметров запроса
+	categoryId := c.Query("category_id")
+	if categoryId == "" {
+		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
+			"error": "Параметр category_id обязателен",
+		})
+	}
+
+	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
+	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
+
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
+
+	// Вызываем сервис для получения фильтров
+	filters, err := h.s.GetFiltersForCategory(ctx, categoryId)
+	if err != nil {
+		return err
+	}
+
+	return c.JSON(filters)
+}

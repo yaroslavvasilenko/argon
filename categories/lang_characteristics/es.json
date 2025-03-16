@@ -1,0 +1,14 @@
+{
+  "price": "Precio",
+  "color": "Color",
+  "condition": "Estado",
+  "season": "Temporada",
+  "brand": "Marca",
+  "stocked": "En existencia",
+  "height": "Altura",
+  "width": "Anchura",
+  "depth": "Profundidad",
+  "weight": "Peso",
+  "area": "Área",
+  "volume": "Volumen"
+}

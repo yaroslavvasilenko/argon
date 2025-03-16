@@ -10,11 +10,10 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/internal/models"
-	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"gorm.io/gorm"
 )
 
-func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort, categoryID string, filters listing.Filters, location models.Location) (*models.Listing, []models.ListingResult, error) {
+func (s *Listing) SearchListingsByTitle(ctx context.Context, query string, limit int, cursorID *uuid.UUID, sort, categoryID string, filters models.Filters, location models.Location) (*models.Listing, []models.ListingResult, error) {
 	// Если limit == 0, возвращаем пустой результат
 	if limit == 0 {
 		return nil, []models.ListingResult{}, nil
@@ -84,7 +83,7 @@ const (
 )
 
 // buildBaseQuery создает базовый SQL запрос в зависимости от типа поиска
-func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Filters, location models.Location) string {
+func buildBaseQuery(searchType SearchType, categoryID string, filters models.Filters, location models.Location) string {
 	var categoryFilter string
 	if categoryID != "" {
 		categoryFilter = `
@@ -113,6 +112,7 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 	}
 
 	// Добавляем фильтр по характеристикам, если они указаны
+	
 	var filtersFilter string
 	if len(filters) > 0 {
 		filtersFilter = `
@@ -123,56 +123,52 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters listing.Fi
 
 		filterConditions := []string{}
 
-		// Обрабатываем фильтр цены
-		if priceFilter, ok := filters.GetPriceFilter(); ok {
-			// Используем поле price из основной таблицы listings
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"l.price >= %d", priceFilter.Min))
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"l.price <= %d", priceFilter.Max))
-		}
+		for key, _ := range filters {
+			if priceFilter, ok := filters.GetPriceFilter(key); ok {
+				filterConditions = append(filterConditions, fmt.Sprintf("l.price >= %d",  priceFilter.Min))
+				filterConditions = append(filterConditions, fmt.Sprintf("l.price <= %d", priceFilter.Max))
+			}
+		
 
 		// Обрабатываем фильтр цвета
-		if colorFilter, ok := filters.GetColorFilter(); ok && len(colorFilter) > 0 {
-			colorConditions := []string{}
-			for _, color := range colorFilter {
-				// Проверяем, содержит ли массив цветов заданный цвет
-				colorConditions = append(colorConditions, fmt.Sprintf(
-					"lch.characteristics -> '%s' ? '%s'", models.CHAR_COLOR, color))
+			if colorFilter, ok := filters.GetColorFilter(key); ok && len(colorFilter) > 0 {
+				colorConditions := []string{}
+				for _, color := range colorFilter {
+					// Проверяем, содержит ли массив цветов заданный цвет
+					colorConditions = append(colorConditions, fmt.Sprintf(
+						"lch.characteristics -> '%s' ? '%s'", key, color))
+				}
+				filterConditions = append(filterConditions, "("+strings.Join(colorConditions, " OR ")+")")
 			}
-			filterConditions = append(filterConditions, "("+strings.Join(colorConditions, " OR ")+")")
-		}
+		
 
 		// Обрабатываем фильтр выпадающего списка
-		if dropdownFilter, ok := filters.GetDropdownFilter(); ok && len(dropdownFilter) > 0 {
-			dropdownConditions := []string{}
-			for _, option := range dropdownFilter {
-				// Проверяем, содержит ли массив разрешений экрана заданное разрешение
-				dropdownConditions = append(dropdownConditions, fmt.Sprintf(
-					"lch.characteristics -> '%s' ? '%s'", models.CHAR_SCREEN_RESOLUTION, option))
+			if dropdownFilter, ok := filters.GetDropdownFilter(key); ok && len(dropdownFilter) > 0 {
+				dropdownConditions := []string{}
+				for _, option := range dropdownFilter {
+					// Проверяем, содержит ли массив разрешений экрана заданное разрешение
+					dropdownConditions = append(dropdownConditions, fmt.Sprintf(
+						"lch.characteristics -> '%s' ? '%s'", key, option))
+				}
+
+				filterConditions = append(filterConditions, "("+strings.Join(dropdownConditions, " OR ")+")")
 			}
-
-			filterConditions = append(filterConditions, "("+strings.Join(dropdownConditions, " OR ")+")")
-		}
-
-		// Обрабатываем фильтр селектора
-		if selectorFilter, ok := filters.GetSelectorFilter(); ok && string(selectorFilter) != "" {
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"lch.characteristics ->> '%s' = '%s'", models.CHAR_QUALITY, string(selectorFilter)))
-		}
+		
 
 		// Обрабатываем фильтр чекбокса
-		if checkboxFilter, ok := filters.GetCheckboxFilter(); ok {
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics ->> '%s')::boolean = %t", models.CHAR_IS_NEW, bool(checkboxFilter)))
-		}
+			if checkboxFilter, ok := filters.GetCheckboxFilter(key); ok {
+				filterConditions = append(filterConditions, fmt.Sprintf(
+					"(lch.characteristics ->> '%s')::boolean = %t", key, bool(checkboxFilter)))
+			}
+		
 
 		// Обрабатываем фильтр размеров
-		if dimensionFilter, ok := filters.GetDimensionFilter(); ok {
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics ->> '%s')::float >= %f", models.CHAR_SCREEN_SIZE, float64(dimensionFilter.Min)))
-			filterConditions = append(filterConditions, fmt.Sprintf(
-				"(lch.characteristics ->> '%s')::float <= %f", models.CHAR_SCREEN_SIZE, float64(dimensionFilter.Max)))
+			if dimensionFilter, ok := filters.GetDimensionFilter(key); ok {
+				filterConditions = append(filterConditions, fmt.Sprintf(
+					"(lch.characteristics ->> '%s')::float >= %f", key, float64(dimensionFilter.Min)))
+				filterConditions = append(filterConditions, fmt.Sprintf(
+					"(lch.characteristics ->> '%s')::float <= %f", key, float64(dimensionFilter.Max)))
+			}
 		}
 
 		// Если есть условия фильтрации, добавляем их в запрос

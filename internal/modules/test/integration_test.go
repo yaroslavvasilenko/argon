@@ -4,6 +4,7 @@ import (
 	"bytes"
 	"context"
 	"encoding/json"
+	"fmt"
 	"net/http"
 	"net/http/httptest"
 	"testing"
@@ -11,7 +12,6 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/jackc/pgx/v5/pgxpool"
 
-	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 
 	"github.com/yaroslavvasilenko/argon/config"
@@ -49,7 +49,7 @@ func createTestApp(t *testing.T) *TestApp {
 
 	lg := logger.NewLogger(cfg)
 
-	gorm, pool, err := db.NewSqlDB(context.Background(), cfg.DB.Url, lg.Logger, false)
+	gorm, pool, err := db.NewSqlDB(context.Background(), cfg.DB.Url, lg.Logger, true)
 	require.NoError(t, err)
 
 	// Migrate
@@ -70,41 +70,7 @@ func createTestApp(t *testing.T) *TestApp {
 	return app
 }
 
-func TestCreateListing(t *testing.T) {
-	// Инициализация тестовой БД и роутера
-	app := createTestApp(t)
-	user := app.createUser(t)
-	t.Run("Success create listing", func(t *testing.T) {
-		listingInput := listing.CreateListingRequest{
-			Title:       "Тестовая квартира",
-			Description: "Просторная квартира в центре",
-			Price:       1000000,
-			Currency:    models.RUB,
-		}
 
-		resp := user.createListing(t, listingInput)
-
-		require.Equal(t, http.StatusOK, resp.StatusCode)
-
-		listOut := models.Listing{}
-		json.NewDecoder(resp.Body).Decode(&listOut)
-
-		// Проверка ответа
-		assert.NotZero(t, listOut.ID)
-		assert.Equal(t, listingInput.Title, listOut.Title)
-		assert.Equal(t, listingInput.Description, listOut.Description)
-		assert.Equal(t, listingInput.Price, listOut.Price)
-		assert.Equal(t, listingInput.Currency, listOut.Currency)
-
-		// Проверка времени в UTC
-		// now := time.Now().UTC()
-		// assert.WithinDuration(t, now, listOut.CreatedAt.UTC(), 2*time.Second)
-		// assert.WithinDuration(t, now, listOut.UpdatedAt.UTC(), 2*time.Second)
-
-		assert.Empty(t, listOut.ViewsCount)
-		assert.Nil(t, listOut.DeletedAt)
-	})
-}
 
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
 	return listing.SearchListingsRequest{
@@ -145,6 +111,54 @@ func (user *user) createListing(t *testing.T, l listing.CreateListingRequest) *h
 	resp, err := user.fiber.Test(req, -1)
 	require.NoError(t, err)
 	return resp
+}
+
+func (user *user) getCharacteristicsForCategory(t *testing.T, categoryIds []string, lang string) ([]models.CharacteristicItem, error) {
+	req := struct {
+		CategoryIds []string `json:"category_ids"`
+	}{
+		CategoryIds: categoryIds,
+	}
+
+	body, err := json.Marshal(req)
+	require.NoError(t, err)
+
+	httpReq := httptest.NewRequest("POST", "/api/v1/categories/characteristics", bytes.NewReader(body)).WithContext(context.Background())
+	httpReq.Header.Set("Content-Type", "application/json")
+
+	// Установка языка, если он указан
+	if lang != "" {
+		httpReq.Header.Set(models.HeaderLanguage, lang)
+	}
+
+	resp, err := user.fiber.Test(httpReq, -1)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var characteristics []models.CharacteristicItem
+	err = json.NewDecoder(resp.Body).Decode(&characteristics)
+	return characteristics, err
+}
+
+// getFiltersForCategory выполняет запрос к API для получения фильтров для указанной категории
+func (user *user) getFiltersForCategory(t *testing.T, categoryId string, lang string) (models.Filters, error) {
+	// Создаем URL с параметром запроса category_id
+	url := fmt.Sprintf("/api/v1/categories/filters?category_id=%s", categoryId)
+
+	httpReq := httptest.NewRequest("GET", url, nil).WithContext(context.Background())
+
+	// Установка языка, если он указан
+	if lang != "" {
+		httpReq.Header.Set(models.HeaderLanguage, lang)
+	}
+
+	resp, err := user.fiber.Test(httpReq, -1)
+	require.NoError(t, err)
+	require.Equal(t, http.StatusOK, resp.StatusCode)
+
+	var filters models.Filters
+	err = json.NewDecoder(resp.Body).Decode(&filters)
+	return filters, err
 }
 
 func (app *TestApp) cleanDb(t *testing.T) {

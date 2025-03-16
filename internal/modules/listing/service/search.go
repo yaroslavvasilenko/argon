@@ -39,8 +39,7 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 	var listingAnchor *models.Listing
 
 	// Используем абсолютное значение для емкости слайса, чтобы избежать ошибки при отрицательном значении req.Limit
-	capacity := int(math.Abs(float64(req.Limit)))
-	listingsRes := make([]models.ListingResult, 0, capacity)
+	listingsRes := make([]models.ListingResult, 0, int(math.Abs(float64(req.Limit))))
 	if cursor.Block == "" || cursor.Block == listing.TitleBlock {
 		var listings []models.ListingResult
 		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, req.Filters, req.Location)
