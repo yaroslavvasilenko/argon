@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"fmt"
 	"maps"
 	"net/http"
 	"testing"
@@ -244,11 +245,10 @@ func TestSearchListings(t *testing.T) {
 			Currency:    models.Currency("RUB"),
 			// Характеристики объявления
 			Characteristics: map[string]interface{}{
-				models.CHAR_COLOR:             []string{"black", "silver"},
-				models.CHAR_SCREEN_RESOLUTION: []string{"4K", "HDR"},
-				models.CHAR_QUALITY:           "Premium",
-				models.CHAR_IS_NEW:            true,
-				models.CHAR_SCREEN_SIZE:       15.6, // Размер экрана в дюймах
+				models.CHAR_COLOR:   []string{"black", "silver"},
+				models.CHAR_BRAND:           "Samsung",
+				models.CHAR_STOCKED:            true,
+				models.CHAR_WEIGHT:       15,
 			},
 		}
 		res := user.createListing(t, notebook)
@@ -258,22 +258,21 @@ func TestSearchListings(t *testing.T) {
 		req := getSearchListingsRequest("ноутбук", 5, "", "relevance", "")
 		// Добавляем фильтры в запрос поиска
 		// Фильтры для поиска
-		filters := listing.Filters{
-			listing.PRICE_FILTER: listing.PriceFilter{
+		filters := models.Filters{
+			models.PRICE_TYPE: models.PriceFilter{
 				Min: 90000,
 				Max: 150000,
 			},
-			listing.COLOR_FILTER:    listing.ColorFilter{"black", "silver"},
-			listing.DROPDOWN_FILTER: listing.DropdownFilter{"4K", "HDR"},
-			listing.SELECTOR_FILTER: listing.SelectorFilter("Premium"),
-			listing.CHECKBOX_FILTER: listing.CheckboxFilter(true),
-			// Фильтр по размеру экрана - диапазон от 15 до 16 дюймов
-			listing.DIMENSION_FILTER: listing.DimensionFilter{
-				Min:       15,
+			models.COLOR_TYPE:    models.ColorFilter{"black", "silver"},
+			models.CHAR_BRAND: models.DropdownFilter{"Samsung"},
+			models.CHAR_STOCKED: models.CheckboxFilter(true),
+			models.CHAR_WEIGHT: models.DimensionFilter{
+				Min:       14,
 				Max:       16,
-				Dimension: "", // Дюймы по умолчанию
+				Dimension: "",
 			},
 		}
+		req.Filters = filters
 
 		resp := user.searchListings(t, req)
 
@@ -282,9 +281,9 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, "ноутбук с характеристиками", resp.Results[0].Title, "Найдено неверное объявление")
 
 		// Тест фильтра по цене
-		filtersEdit := make(listing.Filters)
+		filtersEdit := make(models.Filters)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[listing.PRICE_FILTER] = listing.PriceFilter{
+		filtersEdit[models.PRICE_TYPE] = models.PriceFilter{
 			Min: 130000,
 			Max: 150000,
 		}
@@ -295,39 +294,31 @@ func TestSearchListings(t *testing.T) {
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящей ценой")
 
 		// Тест фильтра по цвету
-		filtersEdit = make(listing.Filters)
+		filtersEdit = make(models.Filters)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[listing.COLOR_FILTER] = listing.ColorFilter{"red", "green"}
+		filtersEdit[models.COLOR_TYPE] = models.ColorFilter{"red", "green"}
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
 
 		// Проверяем, что ничего не найдено при поиске с неподходящим цветом
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим цветом")
 
-		// Тест фильтра по разрешению экрана
-		filtersEdit = make(listing.Filters)
+		// Тест фильтра по бренду
+		filtersEdit = make(models.Filters)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[listing.DROPDOWN_FILTER] = listing.DropdownFilter{"1080p", "720p"}
+		filtersEdit[models.CHAR_BRAND] = models.DropdownFilter{"Apple", "Lenovo"}
+		// Отладочный вывод фильтров
+		fmt.Printf("\n\nDEBUG TEST FILTERS: %v\n\n", filtersEdit)
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
 
-		// Проверяем, что ничего не найдено при поиске с неподходящим разрешением экрана
-		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим разрешением экрана")
+		// Проверяем, что ничего не найдено при поиске с неподходящим брендом
+		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим брендом")
 
-		// Тест фильтра по качеству
-		filtersEdit = make(listing.Filters)
+		// Тест фильтра по наличию на складе
+		filtersEdit = make(models.Filters)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[listing.SELECTOR_FILTER] = listing.SelectorFilter("Standard")
-		req.Filters = filtersEdit
-		resp = user.searchListings(t, req)
-
-		// Проверяем, что ничего не найдено при поиске с неподходящим качеством
-		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим качеством")
-
-		// Тест фильтра по состоянию (новый/б/у)
-		filtersEdit = make(listing.Filters)
-		maps.Copy(filtersEdit, filters)
-		filtersEdit[listing.CHECKBOX_FILTER] = listing.CheckboxFilter(false)
+		filtersEdit[models.CHAR_STOCKED] = models.CheckboxFilter(false)
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
 
@@ -335,9 +326,9 @@ func TestSearchListings(t *testing.T) {
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим состоянием")
 
 		// Тест фильтра по размеру экрана
-		filtersEdit = make(listing.Filters)
+		filtersEdit = make(models.Filters)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[listing.DIMENSION_FILTER] = listing.DimensionFilter{
+		filtersEdit[models.CHAR_HEIGHT] = models.DimensionFilter{
 			Min:       17,
 			Max:       19,
 			Dimension: "", // Дюймы по умолчанию

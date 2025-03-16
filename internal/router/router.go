@@ -33,6 +33,8 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 
 	//  categories
 	r.Get("/api/v1/categories", controllers.Listing.GetCategories)
+	r.Post("/api/v1/categories/characteristics", controllers.Listing.GetCharacteristicsForCategory)
+	r.Get("/api/v1/categories/filters", controllers.Listing.GetFiltersForCategory)
 
 	//  currency
 	r.Get("/api/v1/currency", controllers.Currency.GetCurrency)

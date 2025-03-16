@@ -5,6 +5,7 @@ import (
 
 	"encoding/json"
 	"errors"
+	"fmt"
 	"time"
 
 	"github.com/google/uuid"
@@ -200,4 +201,102 @@ func applyTranslations(nodes *[]listing.CategoryNode, translations map[string]st
 			applyTranslations(&node.Subcategories, translations)
 		}
 	}
+}
+
+
+func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds []string) ([]models.CharacteristicItem, error) {
+	// Получаем характеристики и переводы
+	_, characteristicKeys, characteristicsTranslations, err := s.getCategoryCharacteristics(ctx, categoryIds)
+	if err != nil {
+		return nil, err
+	}
+
+	// Создаем массив характеристик в порядке их ключей
+	result := make([]models.CharacteristicItem, 0, len(characteristicKeys))
+	
+	// Добавляем характеристики в порядке их следования в иерархии категорий
+	for _, key := range characteristicKeys {
+		if translation, ok := characteristicsTranslations[key]; ok {
+			result = append(result, models.CharacteristicItem{
+				Role:  key,
+				Value: translation,
+			})
+		}
+	}
+
+	return result, nil
+}
+
+// GetFiltersForCategory возвращает фильтры для указанной категории
+func (s *Listing) GetFiltersForCategory(ctx context.Context, categoryId string) (models.Filters, error) {
+	// Используем общую функцию для получения характеристик категории
+	// Передаем только одну категорию
+	_, characteristicKeys, _, err := s.getCategoryCharacteristics(ctx, []string{categoryId})
+	if err != nil {
+		return nil, err
+	}
+
+	// Получаем значения характеристик из БД
+	charValues, err := s.s.GetCharacteristicValues(ctx, characteristicKeys)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при получении значений характеристик: %w", err)
+	}
+
+	// Просто возвращаем полученные значения характеристик
+	return charValues, nil
+}
+
+// getCategoryCharacteristics получает характеристики для указанных категорий
+func (s *Listing) getCategoryCharacteristics(ctx context.Context, categoryIds []string) (map[string][]string, []string, map[string]string, error) {
+	// Получаем язык из контекста
+	lang := ctx.Value(models.KeyLanguage).(string)
+
+	// Загружаем характеристики категорий из конфига
+	var categoryCharacteristics map[string][]string
+	if err := json.Unmarshal([]byte(config.GetConfig().Categories.Characteristics), &categoryCharacteristics); err != nil {
+		return nil, nil, nil, errors.New("ошибка при разборе характеристик категорий: " + err.Error())
+	}
+
+	// Загружаем переводы характеристик в зависимости от языка
+	var characteristicsTranslations map[string]string
+	var translationsJson string
+
+	// Выбираем нужный язык перевода
+	switch lang {
+	case string(models.LanguageRu):
+		translationsJson = config.GetConfig().Categories.LangCharacteristics.Ru
+	case string(models.LanguageEn):
+		translationsJson = config.GetConfig().Categories.LangCharacteristics.En
+	case string(models.LanguageEs):
+		translationsJson = config.GetConfig().Categories.LangCharacteristics.Es
+	default:
+		translationsJson = config.GetConfig().Categories.LangCharacteristics.En
+	}
+
+	// Парсим переводы
+	if err := json.Unmarshal([]byte(translationsJson), &characteristicsTranslations); err != nil {
+		return nil, nil, nil, errors.New("ошибка при разборе переводов характеристик: " + err.Error())
+	}
+
+	// Создаем мапу для отслеживания уже добавленных характеристик
+	characteristicsSet := make(map[string]bool)
+	var characteristicKeys []string
+
+	// Проходим по категориям в порядке их иерархии
+	// Поскольку categoryIds уже содержит путь от корня до категории,
+	// мы просто проходим по нему в том же порядке
+	for _, categoryId := range categoryIds {
+		// Получаем характеристики для текущей категории
+		if chars, ok := categoryCharacteristics[categoryId]; ok {
+			// Добавляем характеристики для текущей категории, сохраняя порядок
+			for _, char := range chars {
+				if !characteristicsSet[char] {
+					characteristicsSet[char] = true
+					characteristicKeys = append(characteristicKeys, char)
+				}
+			}
+		}
+	}
+
+	return categoryCharacteristics, characteristicKeys, characteristicsTranslations, nil
 }

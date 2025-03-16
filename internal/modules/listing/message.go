@@ -33,7 +33,7 @@ type CreateListingRequest struct {
 	Currency        models.Currency `json:"currency,omitempty"`
 	Location        models.Location `json:"location,omitempty"`
 	Categories      []string        `json:"categories,omitempty"`
-	Characteristics Characteristic  `json:"characteristics,omitempty"`
+	Characteristics models.Characteristic  `json:"characteristics,omitempty"`
 }
 
 func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {

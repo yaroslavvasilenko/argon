@@ -1,0 +1,14 @@
+{
+  "price": "Price",
+  "color": "Color",
+  "condition": "Condition",
+  "season": "Season",
+  "brand": "Brand",
+  "stocked": "In Stock",
+  "height": "Height",
+  "width": "Width",
+  "depth": "Depth",
+  "weight": "Weight",
+  "area": "Area",
+  "volume": "Volume"
+}

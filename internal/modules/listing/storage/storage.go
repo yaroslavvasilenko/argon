@@ -662,3 +662,130 @@ func (s *Listing) GetListingCharacteristics(ctx context.Context, listingID uuid.
 
 	return characteristics, nil
 }
+
+func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKeys []string) (models.Filters, error) {
+	// Создаем результирующую карту для хранения значений характеристик
+	result := make(models.Filters)
+
+	// Для каждого ключа характеристики выполняем отдельный запрос
+	for _, key := range characteristicKeys {
+		switch key {
+		case "price":
+			// Для цены получаем минимальное и максимальное значение
+			var minPrice, maxPrice *float64
+			query := `SELECT MIN(price), MAX(price) FROM listings WHERE deleted_at IS NULL`
+			err := s.pool.QueryRow(ctx, query).Scan(&minPrice, &maxPrice)
+			if err != nil {
+				return nil, fmt.Errorf("ошибка при получении диапазона цен: %w", err)
+			}
+			
+			// Устанавливаем значения по умолчанию, если в базе нет данных
+			min, max := 0, 0
+			if minPrice != nil {
+				min = int(*minPrice)
+			}
+			if maxPrice != nil {
+				max = int(*maxPrice)
+			}
+			
+			result[key] = models.PriceFilter{
+				Min: min,
+				Max: max,
+			}
+
+		case "brand", "condition", "color", "season":
+			// Для строковых характеристик получаем уникальные значения
+			query := `
+				SELECT DISTINCT jsonb_array_elements_text(characteristics->$1) AS value
+				FROM listing_characteristics
+				WHERE characteristics ? $1
+				ORDER BY value
+			`
+			rows, err := s.pool.Query(ctx, query, key)
+			if err != nil {
+				return nil, fmt.Errorf("ошибка при получении уникальных значений для %s: %w", key, err)
+			}
+			defer rows.Close()
+
+			values := make([]string, 0)
+			for rows.Next() {
+				var value string
+				if err := rows.Scan(&value); err != nil {
+					return nil, fmt.Errorf("ошибка при сканировании значения для %s: %w", key, err)
+				}
+				values = append(values, value)
+			}
+			
+			if key == "color" {
+				result[key] = models.ColorFilter(values)
+			} else {
+				result[key] = models.DropdownFilter(values)
+			}
+
+		case "stocked":
+			// Для булевых характеристик просто возвращаем true/false
+			result[key] = models.CheckboxFilter(false)
+
+		case "height", "width", "depth", "weight", "area", "volume":
+			// Для числовых характеристик получаем минимальное и максимальное значение
+			query := `
+				SELECT 
+					MIN(CAST(characteristics->$1 AS NUMERIC)), 
+					MAX(CAST(characteristics->$1 AS NUMERIC))
+				FROM listing_characteristics
+				WHERE characteristics ? $1
+			`
+			var minValue, maxValue *float64
+			err := s.pool.QueryRow(ctx, query, key).Scan(&minValue, &maxValue)
+			if err != nil {
+				// Если нет данных, устанавливаем значения по умолчанию
+				if err == pgx.ErrNoRows {
+					result[key] = models.DimensionFilter{
+						Min:       0,
+						Max:       0,
+						Dimension: "",
+					}
+					continue
+				}
+				return nil, fmt.Errorf("ошибка при получении диапазона для %s: %w", key, err)
+			}
+			
+			// Устанавливаем значения по умолчанию, если в базе нет данных
+			min, max := 0, 0
+			if minValue != nil {
+				min = int(*minValue)
+			}
+			if maxValue != nil {
+				max = int(*maxValue)
+			}
+			
+			result[key] = models.DimensionFilter{
+				Min:       min,
+				Max:       max,
+				Dimension: getDimensionUnit(key),
+			}
+
+		default:
+			// Для неизвестных характеристик пропускаем
+			continue
+		}
+	}
+
+	return result, nil
+}
+
+// getDimensionUnit возвращает единицу измерения для указанной характеристики
+func getDimensionUnit(key string) string {
+	switch key {
+	case "height", "width", "depth":
+		return "см"
+	case "weight":
+		return "кг"
+	case "area":
+		return "м²"
+	case "volume":
+		return "л"
+	default:
+		return ""
+	}
+}

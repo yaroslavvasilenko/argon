@@ -1,0 +1,10 @@
+{
+  "electronics": ["price", "brand", "condition", "stocked", "weight"],
+  "smartphones": ["color", "height", "width", "depth", "volume"],
+  "iphone": [],
+  "google pixel": [],
+  "clothing": ["price", "color", "condition", "brand", "stocked"],
+  "men's clothing": ["season"],
+  "women's clothing": ["season"],
+  "furniture": ["price", "color", "condition", "brand", "stocked", "height", "width", "depth", "weight", "area", "volume"]
+}

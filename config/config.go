@@ -32,6 +32,14 @@ type Config struct {
 			En string
 			Es string
 		}
+		// CategoryCharacteristics содержит JSON с характеристиками категорий
+		Characteristics string
+		// LangCharacteristics содержит переводы характеристик категорий
+		LangCharacteristics struct {
+			Ru string
+			En string
+			Es string
+		}
 		// CategoryIds содержит все доступные ID категорий для быстрой валидации
 		CategoryIds map[string]bool
 	}
@@ -118,10 +126,11 @@ func LoadConfig() {
 		collectCategoryIds(categories)
 	}
 
+	// Загрузка переводов категорий
 	categoriesPath = filepath.Join(projectRoot, "./categories/lang/ru.json")
 	categoriesFile, err = os.ReadFile(categoriesPath)
 	if err != nil {
-		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+		log.Fatalf("Ошибка чтения файла categories/lang/ru.json: %v", err)
 	}
 
 	cfg.Categories.Lang.Ru = string(categoriesFile)
@@ -129,7 +138,7 @@ func LoadConfig() {
 	categoriesPath = filepath.Join(projectRoot, "./categories/lang/en.json")
 	categoriesFile, err = os.ReadFile(categoriesPath)
 	if err != nil {
-		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+		log.Fatalf("Ошибка чтения файла categories/lang/en.json: %v", err)
 	}
 
 	cfg.Categories.Lang.En = string(categoriesFile)
@@ -137,10 +146,44 @@ func LoadConfig() {
 	categoriesPath = filepath.Join(projectRoot, "./categories/lang/es.json")
 	categoriesFile, err = os.ReadFile(categoriesPath)
 	if err != nil {
-		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+		log.Fatalf("Ошибка чтения файла categories/lang/es.json: %v", err)
 	}
 
 	cfg.Categories.Lang.Es = string(categoriesFile)
+
+	// Загрузка характеристик категорий
+	characteristicsPath := filepath.Join(projectRoot, "./categories/category_characteristics.json")
+	characteristicsFile, err := os.ReadFile(characteristicsPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла category_characteristics.json: %v", err)
+	}
+
+	cfg.Categories.Characteristics = string(characteristicsFile)
+
+	// Загрузка переводов характеристик категорий
+	characteristicsPath = filepath.Join(projectRoot, "./categories/lang_characteristics/ru.json")
+	characteristicsFile, err = os.ReadFile(characteristicsPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла lang_characteristics/ru.json: %v", err)
+	}
+
+	cfg.Categories.LangCharacteristics.Ru = string(characteristicsFile)
+
+	characteristicsPath = filepath.Join(projectRoot, "./categories/lang_characteristics/en.json")
+	characteristicsFile, err = os.ReadFile(characteristicsPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла lang_characteristics/en.json: %v", err)
+	}
+
+	cfg.Categories.LangCharacteristics.En = string(characteristicsFile)
+
+	characteristicsPath = filepath.Join(projectRoot, "./categories/lang_characteristics/es.json")
+	characteristicsFile, err = os.ReadFile(characteristicsPath)
+	if err != nil {
+		log.Fatalf("Ошибка чтения файла lang_characteristics/es.json: %v", err)
+	}
+
+	cfg.Categories.LangCharacteristics.Es = string(characteristicsFile)
 }
 
 // getProjectRoot returns the absolute path to the project root directory

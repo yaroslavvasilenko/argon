@@ -1,4 +1,4 @@
-package listing
+package models
 
 import (
 	"encoding/json"
@@ -9,53 +9,19 @@ import (
 
 // Константы для типов фильтров
 const (
-	PRICE_FILTER     = "price"
-	COLOR_FILTER     = "color"
-	DROPDOWN_FILTER  = "dropdown"
-	SELECTOR_FILTER  = "selector"
-	CHECKBOX_FILTER  = "checkbox"
-	DIMENSION_FILTER = "dimension"
-)
-
-// Константы единиц измерений
-const (
-	// Единицы длины
-	UNIT_CM = "cm" // сантиметр
-	UNIT_M  = "m"  // метр
-	UNIT_KM = "km" // километр
-
-	// Единицы площади
-	UNIT_CM2 = "cm2" // квадратный сантиметр
-	UNIT_M2  = "m2"  // квадратный метр
-	UNIT_KM2 = "km2" // квадратный километр
-
-	// Единицы объема
-	UNIT_CM3 = "cm3" // кубический сантиметр
-	UNIT_M3  = "m3"  // кубический метр
-	UNIT_KM3 = "km3" // кубический километр
-	UNIT_ML  = "ml"  // миллилитр
-	UNIT_L   = "l"   // литр
-
-	// Единицы массы
-	UNIT_G  = "g"  // грамм
-	UNIT_KG = "kg" // килограмм
-	UNIT_T  = "t"  // тонна
-
-	// Единицы электричества
-	UNIT_MA = "ma" // миллиампер
-	UNIT_A  = "a"  // ампер
-	UNIT_W  = "w"  // ватт
-	UNIT_KW = "kw" // киловатт
-	UNIT_OM = "om" // ом
+	PRICE_TYPE     = "price"
+	COLOR_TYPE     = "color"
+	DROPDOWN_TYPE  = "dropdown"
+	CHECKBOX_TYPE  = "checkbox"
+	DIMENSION_TYPE = "dimension"
 )
 
 var RoleFilters = []string{
-	PRICE_FILTER,
-	COLOR_FILTER,
-	DROPDOWN_FILTER,
-	SELECTOR_FILTER,
-	CHECKBOX_FILTER,
-	DIMENSION_FILTER,
+	PRICE_TYPE,
+	COLOR_TYPE,
+	DROPDOWN_TYPE,
+	CHECKBOX_TYPE,
+	DIMENSION_TYPE,
 }
 
 // ListingFilters представляет характеристики объявления в базе данных
@@ -74,22 +40,27 @@ type ColorFilter []string
 
 type DropdownFilter []string
 
-type SelectorFilter string
-
 type CheckboxFilter bool
 
 type DimensionFilter struct {
-	Min       int    `json:"min,omitempty"`
-	Max       int    `json:"max,omitempty"`
-	Dimension string `json:"dimension,omitempty"`
+	Min       int    `json:"min"`
+	Max       int    `json:"max"`
+	Dimension string `json:"dimension"`
 }
 
 // Filters теперь map с ключами-строками и значениями-интерфейсами
 type Filters map[string]interface{}
 
-func (c *Filters) GetPriceFilter() (PriceFilter, bool) {
+// FilterItem представляет элемент фильтра для API
+type FilterItem struct {
+	Role  string      `json:"role"`
+	Type  string      `json:"type"`
+	Param interface{} `json:"param"`
+}
+
+func (c Filters) GetPriceFilter(key string) (PriceFilter, bool) {
 	var priceFilter PriceFilter
-	value, ok := (*c)[PRICE_FILTER]
+	value, ok := c[key]
 	if !ok {
 		return priceFilter, false
 	}
@@ -102,9 +73,9 @@ func (c *Filters) GetPriceFilter() (PriceFilter, bool) {
 	return priceFilter, true
 }
 
-func (c *Filters) GetColorFilter() (ColorFilter, bool) {
+func (c Filters) GetColorFilter(key string) (ColorFilter, bool) {
 	var colorFilter ColorFilter
-	value, ok := (*c)[COLOR_FILTER]
+	value, ok := c[key]
 	if !ok {
 		return colorFilter, false
 	}
@@ -117,9 +88,9 @@ func (c *Filters) GetColorFilter() (ColorFilter, bool) {
 	return colorFilter, true
 }
 
-func (c *Filters) GetDropdownFilter() (DropdownFilter, bool) {
+func (c Filters) GetDropdownFilter(key string) (DropdownFilter, bool) {
 	var dropdownFilter DropdownFilter
-	value, ok := (*c)[DROPDOWN_FILTER]
+	value, ok := c[key]
 	if !ok {
 		return dropdownFilter, false
 	}
@@ -132,24 +103,9 @@ func (c *Filters) GetDropdownFilter() (DropdownFilter, bool) {
 	return dropdownFilter, true
 }
 
-func (c *Filters) GetSelectorFilter() (SelectorFilter, bool) {
-	var selectorFilter SelectorFilter
-	value, ok := (*c)[SELECTOR_FILTER]
-	if !ok {
-		return selectorFilter, false
-	}
-
-	selectorFilter, ok = value.(SelectorFilter)
-	if !ok {
-		return selectorFilter, false
-	}
-
-	return selectorFilter, true
-}
-
-func (c *Filters) GetCheckboxFilter() (CheckboxFilter, bool) {
+func (c Filters) GetCheckboxFilter(key string) (CheckboxFilter, bool) {
 	var checkboxFilter CheckboxFilter
-	value, ok := (*c)[CHECKBOX_FILTER]
+	value, ok := c[key]
 	if !ok {
 		return checkboxFilter, false
 	}
@@ -162,9 +118,9 @@ func (c *Filters) GetCheckboxFilter() (CheckboxFilter, bool) {
 	return checkboxFilter, true
 }
 
-func (c *Filters) GetDimensionFilter() (DimensionFilter, bool) {
+func (c Filters) GetDimensionFilter(key string) (DimensionFilter, bool) {
 	var dimensionFilter DimensionFilter
-	value, ok := (*c)[DIMENSION_FILTER]
+	value, ok := c[key]
 	if !ok {
 		return dimensionFilter, false
 	}
@@ -197,49 +153,36 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 	// Обрабатываем фильтры
 	for _, filter := range filters {
 		switch filter.Role {
-		case PRICE_FILTER:
+		case CHAR_PRICE:
 			var priceFilter PriceFilter
 			if err := json.Unmarshal(filter.Value, &priceFilter); err != nil {
 				return fmt.Errorf("failed to parse price filter: %v", err)
 			}
-			(*c)[PRICE_FILTER] = priceFilter
-		case COLOR_FILTER:
+			(*c)[filter.Role] = priceFilter
+		case CHAR_COLOR:
 			var colorFilter ColorFilter
 			if err := json.Unmarshal(filter.Value, &colorFilter); err != nil {
 				return fmt.Errorf("failed to parse color filter: %v", err)
 			}
-			(*c)[COLOR_FILTER] = colorFilter
-		case DROPDOWN_FILTER:
+			(*c)[filter.Role] = colorFilter
+		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
 			var dropdownFilter DropdownFilter
 			if err := json.Unmarshal(filter.Value, &dropdownFilter); err != nil {
 				return fmt.Errorf("failed to parse dropdown filter: %v", err)
 			}
-			(*c)[DROPDOWN_FILTER] = dropdownFilter
-		case SELECTOR_FILTER:
-			var selectorFilter SelectorFilter
-			if err := json.Unmarshal(filter.Value, &selectorFilter); err != nil {
-				return fmt.Errorf("failed to parse selector filter: %v", err)
-			}
-			(*c)[SELECTOR_FILTER] = selectorFilter
-		case CHECKBOX_FILTER:
+			(*c)[filter.Role] = dropdownFilter
+		case CHAR_STOCKED:
 			var checkboxFilter CheckboxFilter
 			if err := json.Unmarshal(filter.Value, &checkboxFilter); err != nil {
 				return fmt.Errorf("failed to parse checkbox filter: %v", err)
 			}
-			(*c)[CHECKBOX_FILTER] = checkboxFilter
-		case DIMENSION_FILTER:
+			(*c)[filter.Role] = checkboxFilter
+		case CHAR_HEIGHT, CHAR_WIDTH, CHAR_DEPTH, CHAR_WEIGHT, CHAR_AREA, CHAR_VOLUME:
 			var dimensionFilter DimensionFilter
 			if err := json.Unmarshal(filter.Value, &dimensionFilter); err != nil {
 				return fmt.Errorf("failed to parse dimension filter: %v", err)
 			}
-			(*c)[DIMENSION_FILTER] = dimensionFilter
-		default:
-			// Для неизвестных типов фильтров просто сохраняем значение как есть
-			var value interface{}
-			if err := json.Unmarshal(filter.Value, &value); err != nil {
-				return fmt.Errorf("failed to parse unknown filter %s: %v", filter.Role, err)
-			}
-			(*c)[filter.Role] = value
+			(*c)[filter.Role] = dimensionFilter
 		}
 	}
 
