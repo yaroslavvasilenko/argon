@@ -102,7 +102,7 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 		req.Limit = 20
 	}
 
-	if req.Query == "" {
+	if req.Query == nil {
 		return fiber.NewError(fiber.StatusBadRequest, "query parameter is required")
 	}
 

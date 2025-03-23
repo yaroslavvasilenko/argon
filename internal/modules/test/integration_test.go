@@ -74,7 +74,7 @@ func createTestApp(t *testing.T) *TestApp {
 
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
 	return listing.SearchListingsRequest{
-		Query:     query,
+		Query:     &query,
 		Limit:     limit,
 		Cursor:    cursor,
 		SortOrder: sortOrder,

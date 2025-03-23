@@ -6,7 +6,7 @@ import (
 )
 
 type SearchListingsRequest struct {
-	Query      string          `json:"query" query:"query" validate:"required"`
+	Query      *string          `json:"query" query:"query"`
 	Currency   models.Currency `json:"currency,omitempty"`
 	Cursor     string          `json:"cursor,omitempty" query:"cursor"`
 	SearchID   string          `json:"qid,omitempty" query:"search_id,omitempty"`
