@@ -150,11 +150,11 @@ func (s *Listing) UpdateListing(ctx context.Context, p listing.UpdateListingRequ
 	return s.GetListing(ctx, p.ID.String())
 }
 
-func (s *Listing) GetCategories(ctx context.Context) ([]listing.CategoryNode, error) {
+func (s *Listing) GetCategories(ctx context.Context) (listing.ResponseGetCategories, error) {
 	// Получаем базовую структуру категорий
 	var categories []listing.CategoryNode
 	if err := json.Unmarshal([]byte(config.GetConfig().Categories.Json), &categories); err != nil {
-		return nil, errors.New("ошибка при разборе базовых категорий: " + err.Error())
+		return listing.ResponseGetCategories{}, errors.New("ошибка при разборе базовых категорий: " + err.Error())
 	}
 
 	// Получаем язык из контекста
@@ -181,13 +181,13 @@ func (s *Listing) GetCategories(ctx context.Context) ([]listing.CategoryNode, er
 
 	// Распаковываем локализации
 	if err := json.Unmarshal([]byte(langData), &translations); err != nil {
-		return nil, errors.New("ошибка при разборе локализаций: " + err.Error())
+		return listing.ResponseGetCategories{}, errors.New("ошибка при разборе локализаций: " + err.Error())
 	}
 
 	// Рекурсивно применяем локализации
 	applyTranslations(&categories, translations)
 
-	return categories, nil
+	return listing.ResponseGetCategories{Categories: categories}, nil
 }
 
 // applyTranslations рекурсивно применяет переводы к категориям
