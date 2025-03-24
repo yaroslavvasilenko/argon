@@ -2,6 +2,7 @@ package router
 
 import (
 	"github.com/gofiber/fiber/v2"
+	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/yaroslavvasilenko/argon/internal/modules"
 )
 
@@ -18,6 +19,15 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 		//JSONEncoder:             JSONEncoder,
 		//BodyLimit:               128 * 1024 * 1024,
 	})
+
+	// Добавляем CORS middleware для разрешения запросов с любых адресов
+	r.Use(cors.New(cors.Config{
+		AllowOrigins:     "*",
+		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
+		AllowCredentials: false,
+		ExposeHeaders:    "Content-Length, Content-Type",
+	}))
 
 	r.Get("/ping", controllers.Listing.Ping)
 
