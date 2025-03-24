@@ -93,3 +93,7 @@ type FullListingResponse struct {
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
 }
+
+type GetFiltersForCategoryResponse struct {
+	Filters models.Filters `json:"filters"`
+}
