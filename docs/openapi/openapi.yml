@@ -10,6 +10,8 @@ servers:
 tags:
   - name: System
     description: Системные операции
+  - name: Images
+    description: Операции с изображениями
   - name: Listing
     description: Операции с объявлениями
   - name: Boost
@@ -22,6 +24,8 @@ tags:
     description: Операции с локациями
   - name: Search
     description: Поиск объявлений
+  - name: Seller
+    description: Операции с продавцами
 
 paths:
   /api/v1/ping:
@@ -474,6 +478,54 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/images/upload:
+    post:
+      summary: Загрузить изображение
+      tags:
+        - Images
+      requestBody:
+        required: true
+        content:
+          multipart/form-data:
+            schema:
+              type: object
+              properties:
+                file:
+                  type: string
+                  format: binary
+                  description: Файл изображения
+              required:
+                - file
+      responses:
+        '200':
+          description: Изображение успешно загружено
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/UploadImageResponse'
+
+  /api/v1/seller/{seller_id}/contacts:
+    get:
+      summary: Получить контакты продавца
+      tags:
+        - Seller
+      parameters:
+        - name: seller_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID продавца
+      responses:
+        '200':
+          description: Успешный ответ со списком контактов
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetSellerContactsResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
 components:
   schemas:
     PingResponse:
@@ -641,6 +693,11 @@ components:
           maximum: 5
           nullable: true
           example: 4.5
+        votes:
+          type: integer
+          description: Количество голосов продавца
+          nullable: true
+          example: 42
         available:
           type: boolean
           description: Не запретил ли продавец связываться с ним до продажи (True если не запретил)
@@ -757,12 +814,12 @@ components:
     GetFiltersByCategoryResponse:
       type: object
       properties:
-        filters:
+        filter_params:
           type: array
           items:
             $ref: '#/components/schemas/FilterParam'
       required:
-        - filters
+        - filter_params
 
     FilterParam:
       type: object
@@ -1270,6 +1327,69 @@ components:
         - min
         - max
         - dimension_options
+
+    UploadImageResponse:
+      type: object
+      properties:
+        url:
+          type: string
+          description: URL загруженного изображения
+          example: "https://example.com/images/abc123.jpg"
+      required:
+        - url
+
+    SellerContactType:
+      type: string
+      enum:
+        - phone
+        - email
+        - tg
+        - wa
+        - ig
+        - fb
+        - msg
+        - other
+      description: |
+        Тип контакта продавца:
+        * `phone` - Телефон
+        * `email` - Email
+        * `tg` - Telegram
+        * `wa` - WhatsApp
+        * `ig` - Instagram
+        * `fb` - Facebook
+        * `msg` - Сообщения на сайте
+        * `other` - Другое
+
+    SellerContact:
+      type: object
+      description: Контактные данные продавца
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор контакта
+        type:
+          $ref: '#/components/schemas/SellerContactType'
+        text:
+          type: string
+          description: Текст контакта (номер телефона, имя пользователя и т.д.)
+        link:
+          type: string
+          description: Ссылка на контакт, если клик на него должен куда-то вести.
+      required:
+        - id
+        - type
+        - text
+
+    GetSellerContactsResponse:
+      type: object
+      properties:
+        contacts:
+          type: array
+          description: Список контактов продавца
+          items:
+            $ref: '#/components/schemas/SellerContact'
+      required:
+        - contacts
 
   responses:
     NotFound:
