@@ -229,8 +229,6 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 
 // GetFiltersForCategory возвращает фильтры для указанной категории
 func (s *Listing) GetFiltersForCategory(ctx context.Context, categoryId string) (listing.GetFiltersForCategoryResponse, error) {
-	// Используем общую функцию для получения характеристик категории
-	// Передаем только одну категорию
 	_, characteristicKeys, _, err := s.getCategoryCharacteristics(ctx, []string{categoryId})
 	if err != nil {
 		return listing.GetFiltersForCategoryResponse{}, err

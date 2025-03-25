@@ -95,5 +95,5 @@ type FullListingResponse struct {
 }
 
 type GetFiltersForCategoryResponse struct {
-	Filters models.Filters `json:"filters"`
+	Filters models.Filters `json:"filter_params"`
 }

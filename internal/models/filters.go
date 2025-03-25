@@ -127,9 +127,9 @@ func (c Filters) GetDimensionFilter(key string) (DimensionFilter, bool) {
 
 	dimensionFilter, ok = value.(DimensionFilter)
 	if !ok {
-		return dimensionFilter, false
-	}
-
+			return dimensionFilter, false
+		}
+		
 	return dimensionFilter, true
 }
 
@@ -142,7 +142,7 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 	// Разбираем JSON как массив фильтров
 	var filters []struct {
 		Role  string          `json:"role"`
-		Value json.RawMessage `json:"value"`
+		Param json.RawMessage `json:"param"`
 	}
 
 	// Разбираем JSON как массив фильтров
@@ -155,31 +155,31 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 		switch filter.Role {
 		case CHAR_PRICE:
 			var priceFilter PriceFilter
-			if err := json.Unmarshal(filter.Value, &priceFilter); err != nil {
+			if err := json.Unmarshal(filter.Param, &priceFilter); err != nil {
 				return fmt.Errorf("failed to parse price filter: %v", err)
 			}
 			(*c)[filter.Role] = priceFilter
 		case CHAR_COLOR:
 			var colorFilter ColorFilter
-			if err := json.Unmarshal(filter.Value, &colorFilter); err != nil {
+			if err := json.Unmarshal(filter.Param, &colorFilter); err != nil {
 				return fmt.Errorf("failed to parse color filter: %v", err)
 			}
 			(*c)[filter.Role] = colorFilter
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
 			var dropdownFilter DropdownFilter
-			if err := json.Unmarshal(filter.Value, &dropdownFilter); err != nil {
+			if err := json.Unmarshal(filter.Param, &dropdownFilter); err != nil {
 				return fmt.Errorf("failed to parse dropdown filter: %v", err)
 			}
 			(*c)[filter.Role] = dropdownFilter
 		case CHAR_STOCKED:
 			var checkboxFilter CheckboxFilter
-			if err := json.Unmarshal(filter.Value, &checkboxFilter); err != nil {
+			if err := json.Unmarshal(filter.Param, &checkboxFilter); err != nil {
 				return fmt.Errorf("failed to parse checkbox filter: %v", err)
 			}
 			(*c)[filter.Role] = checkboxFilter
 		case CHAR_HEIGHT, CHAR_WIDTH, CHAR_DEPTH, CHAR_WEIGHT, CHAR_AREA, CHAR_VOLUME:
 			var dimensionFilter DimensionFilter
-			if err := json.Unmarshal(filter.Value, &dimensionFilter); err != nil {
+			if err := json.Unmarshal(filter.Param, &dimensionFilter); err != nil {
 				return fmt.Errorf("failed to parse dimension filter: %v", err)
 			}
 			(*c)[filter.Role] = dimensionFilter
@@ -193,7 +193,7 @@ func (c Filters) MarshalJSON() ([]byte, error) {
 	// Создаем тип для фильтра
 	type Filter struct {
 		Role  string      `json:"role"`
-		Value interface{} `json:"value"`
+		Param interface{} `json:"param"`
 	}
 
 	// Создаем массив фильтров
@@ -203,7 +203,7 @@ func (c Filters) MarshalJSON() ([]byte, error) {
 	for role, value := range c {
 		filters = append(filters, Filter{
 			Role:  role,
-			Value: value,
+			Param: value,
 		})
 	}
 

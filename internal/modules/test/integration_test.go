@@ -74,7 +74,7 @@ func createTestApp(t *testing.T) *TestApp {
 
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
 	return listing.SearchListingsRequest{
-		Query:     &query,
+		Query:     query,
 		Limit:     limit,
 		Cursor:    cursor,
 		SortOrder: sortOrder,
@@ -141,7 +141,7 @@ func (user *user) getCharacteristicsForCategory(t *testing.T, categoryIds []stri
 }
 
 // getFiltersForCategory выполняет запрос к API для получения фильтров для указанной категории
-func (user *user) getFiltersForCategory(t *testing.T, categoryId string, lang string) (models.Filters, error) {
+func (user *user) getFiltersForCategory(t *testing.T, categoryId string, lang string) (listing.GetFiltersForCategoryResponse, error) {
 	// Создаем URL с параметром запроса category_id
 	url := fmt.Sprintf("/api/v1/categories/filters?category_id=%s", categoryId)
 
@@ -156,9 +156,9 @@ func (user *user) getFiltersForCategory(t *testing.T, categoryId string, lang st
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var filters models.Filters
-	err = json.NewDecoder(resp.Body).Decode(&filters)
-	return filters, err
+	var response listing.GetFiltersForCategoryResponse
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	return response, err
 }
 
 func (app *TestApp) cleanDb(t *testing.T) {

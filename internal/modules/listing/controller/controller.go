@@ -175,7 +175,7 @@ func (h *Listing) GetFiltersForCategory(c *fiber.Ctx) error {
 	categoryId := c.Query("category_id")
 	if categoryId == "" {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Параметр category_id обязателен",
+			"error": "category_id is required",
 		})
 	}
 

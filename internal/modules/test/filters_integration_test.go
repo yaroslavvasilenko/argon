@@ -12,10 +12,12 @@ func TestGetFiltersForCategory(t *testing.T) {
 	app := createTestApp(t)
 	user := app.createUser(t)
 
+
 	t.Run("Получение фильтров для категории электроники", func(t *testing.T) {
 		// Вызываем API для получения фильтров
-		filters, err := user.getFiltersForCategory(t, "electronics", "ru")
+		response, err := user.getFiltersForCategory(t, "electronics", "ru")
 		require.NoError(t, err)
+		filters := response.Filters
 
 		// Проверяем, что фильтры не пустые
 		require.NotEmpty(t, filters, "Фильтры не должны быть пустыми")
@@ -61,10 +63,10 @@ func TestGetFiltersForCategory(t *testing.T) {
 
 	t.Run("Получение фильтров для несуществующей категории", func(t *testing.T) {
 		// Вызываем API для получения фильтров для несуществующей категории
-		filters, err := user.getFiltersForCategory(t, "nonexistent_category", "ru")
+		response, err := user.getFiltersForCategory(t, "nonexistent_category", "ru")
 		require.NoError(t, err)
 
 		// Проверяем, что фильтры пустые
-		assert.Empty(t, filters, "Фильтры должны быть пустыми для несуществующей категории")
+		assert.Empty(t, response.Filters, "Фильтры должны быть пустыми для несуществующей категории")
 	})
 }
