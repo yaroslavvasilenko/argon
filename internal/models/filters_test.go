@@ -13,12 +13,12 @@ func TestFiltersUnmarshalJSON(t *testing.T) {
 	t.Run("Разбор JSON с различными типами фильтров", func(t *testing.T) {
 		// JSON с разными типами фильтров
 		jsonData := `[
-			{"role": "price", "param": {"min": 100, "max": 1000}},
-			{"role": "color", "param": "white"},
-			{"role": "brand", "param": "samsung"},
-			{"role": "condition", "param": ["new", "used"]},
-			{"role": "stocked", "param": true},
-			{"role": "height", "param": {"min": 10, "max": 50, "dimension": "cm"}}
+			{"role": "price", "value": {"min": 100, "max": 1000}},
+			{"role": "color", "value": "white"},
+			{"role": "brand", "value": "samsung"},
+			{"role": "condition", "value": ["new", "used"]},
+			{"role": "stocked", "value": true},
+			{"role": "height", "value": {"min": 10, "max": 50, "dimension": "cm"}}
 		]`
 
 		var filters Filters
@@ -144,47 +144,19 @@ func TestFiltersUnmarshalJSON(t *testing.T) {
 			{"role": "height", "value": {"min": 10, "max": 50, "dimension": "cm"}}
 		]`
 
-		// Преобразуем JSON в формат, который ожидает наш UnmarshalJSON
-		var characteristics []struct {
-			Role  string          `json:"role"`
-			Value json.RawMessage `json:"value"`
-		}
-		err := json.Unmarshal([]byte(jsonData), &characteristics)
+		// Десериализуем JSON напрямую в фильтры
+		var testFilters Filters
+		err := json.Unmarshal([]byte(jsonData), &testFilters)
 		require.NoError(t, err, "Ошибка при разборе JSON характеристик")
 
-		// Создаем JSON в формате, который ожидает наш UnmarshalJSON
-		filtersData := make([]struct {
-			Role  string          `json:"role"`
-			Param json.RawMessage `json:"param"`
-		}, len(characteristics))
-
-		for i, c := range characteristics {
-			filtersData[i] = struct {
-				Role  string          `json:"role"`
-				Param json.RawMessage `json:"param"`
-			}{
-				Role:  c.Role,
-				Param: c.Value,
-			}
-		}
-
-		// Сериализуем в JSON
-		filtersJSON, err := json.Marshal(filtersData)
-		require.NoError(t, err, "Ошибка при сериализации фильтров")
-
-		// Десериализуем JSON в фильтры
-		var filters Filters
-		err = json.Unmarshal(filtersJSON, &filters)
-		require.NoError(t, err, "Ошибка при десериализации фильтров")
-
 		// Проверяем фильтр цвета
-		colorFilter, ok := filters.GetColorFilter(CHAR_COLOR)
+		colorFilter, ok := testFilters.GetColorFilter(CHAR_COLOR)
 		require.True(t, ok, "Фильтр цвета не найден")
 		require.Len(t, colorFilter, 1, "Фильтр цвета должен содержать 1 элемент")
 		assert.Equal(t, "white", colorFilter[0], "Цвет должен быть 'white'")
 
 		// Проверяем фильтр бренда
-		brandFilter, ok := filters.GetDropdownFilter(CHAR_BRAND)
+		brandFilter, ok := testFilters.GetDropdownFilter(CHAR_BRAND)
 		require.True(t, ok, "Фильтр бренда не найден")
 		require.Len(t, brandFilter, 1, "Фильтр бренда должен содержать 1 элемент")
 		assert.Equal(t, "samsung", brandFilter[0], "Бренд должен быть 'samsung'")

@@ -274,7 +274,7 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 	// Разбираем JSON как массив фильтров
 	var filters []struct {
 		Role  string          `json:"role"`
-		Param json.RawMessage `json:"param"`
+		Value json.RawMessage `json:"value"`
 	}
 
 	// Разбираем JSON как массив фильтров
@@ -288,14 +288,14 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 		case CHAR_PRICE:
 			// Пробуем разобрать как объект PriceFilter
 			var priceFilter PriceFilter
-			if err := json.Unmarshal(filter.Param, &priceFilter); err == nil {
+			if err := json.Unmarshal(filter.Value, &priceFilter); err == nil {
 				(*c)[filter.Role] = priceFilter
 				continue
 			}
 			
 			// Если не получилось, пробуем разобрать как число
 			var price float64
-			if err := json.Unmarshal(filter.Param, &price); err != nil {
+			if err := json.Unmarshal(filter.Value, &price); err != nil {
 				return fmt.Errorf("failed to parse price filter: %v", err)
 			}
 			
@@ -304,14 +304,14 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 		case CHAR_COLOR:
 			// Пробуем разобрать как массив строк
 			var strArray []string
-			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
+			if err := json.Unmarshal(filter.Value, &strArray); err == nil {
 				(*c)[filter.Role] = ColorFilter(strArray)
 				continue
 			}
 			
 			// Если не получилось, пробуем разобрать как строку
 			var str string
-			if err := json.Unmarshal(filter.Param, &str); err != nil {
+			if err := json.Unmarshal(filter.Value, &str); err != nil {
 				return fmt.Errorf("failed to parse color filter: %v", err)
 			}
 			
@@ -320,14 +320,14 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
 			// Пробуем разобрать как массив строк
 			var strArray []string
-			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
+			if err := json.Unmarshal(filter.Value, &strArray); err == nil {
 				(*c)[filter.Role] = DropdownFilter(strArray)
 				continue
 			}
 			
 			// Если не получилось, пробуем разобрать как строку
 			var str string
-			if err := json.Unmarshal(filter.Param, &str); err != nil {
+			if err := json.Unmarshal(filter.Value, &str); err != nil {
 				return fmt.Errorf("failed to parse dropdown filter: %v", err)
 			}
 			
@@ -335,13 +335,13 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 			(*c)[filter.Role] = DropdownFilter([]string{str})
 		case CHAR_STOCKED:
 			var checkboxFilter CheckboxFilter
-			if err := json.Unmarshal(filter.Param, &checkboxFilter); err != nil {
+			if err := json.Unmarshal(filter.Value, &checkboxFilter); err != nil {
 				return fmt.Errorf("failed to parse checkbox filter: %v", err)
 			}
 			(*c)[filter.Role] = checkboxFilter
 		case CHAR_HEIGHT, CHAR_WIDTH, CHAR_DEPTH, CHAR_WEIGHT, CHAR_AREA, CHAR_VOLUME:
 			var dimensionFilter DimensionFilter
-			if err := json.Unmarshal(filter.Param, &dimensionFilter); err != nil {
+			if err := json.Unmarshal(filter.Value, &dimensionFilter); err != nil {
 				return fmt.Errorf("failed to parse dimension filter: %v", err)
 			}
 			(*c)[filter.Role] = dimensionFilter
@@ -355,7 +355,7 @@ func (c Filters) MarshalJSON() ([]byte, error) {
 	// Создаем тип для фильтра
 	type Filter struct {
 		Role  string      `json:"role"`
-		Param interface{} `json:"param"`
+		Value interface{} `json:"value"`
 	}
 
 	// Создаем массив фильтров
@@ -365,7 +365,7 @@ func (c Filters) MarshalJSON() ([]byte, error) {
 	for role, value := range c {
 		filters = append(filters, Filter{
 			Role:  role,
-			Param: value,
+			Value: value,
 		})
 	}
 
