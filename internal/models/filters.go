@@ -286,23 +286,53 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 	for _, filter := range filters {
 		switch filter.Role {
 		case CHAR_PRICE:
+			// Пробуем разобрать как объект PriceFilter
 			var priceFilter PriceFilter
-			if err := json.Unmarshal(filter.Param, &priceFilter); err != nil {
+			if err := json.Unmarshal(filter.Param, &priceFilter); err == nil {
+				(*c)[filter.Role] = priceFilter
+				continue
+			}
+			
+			// Если не получилось, пробуем разобрать как число
+			var price float64
+			if err := json.Unmarshal(filter.Param, &price); err != nil {
 				return fmt.Errorf("failed to parse price filter: %v", err)
 			}
-			(*c)[filter.Role] = priceFilter
+			
+			// Создаем фильтр цены с одинаковыми min и max
+			(*c)[filter.Role] = PriceFilter{Min: int(price), Max: int(price)}
 		case CHAR_COLOR:
-			var colorFilter ColorFilter
-			if err := json.Unmarshal(filter.Param, &colorFilter); err != nil {
+			// Пробуем разобрать как массив строк
+			var strArray []string
+			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
+				(*c)[filter.Role] = ColorFilter(strArray)
+				continue
+			}
+			
+			// Если не получилось, пробуем разобрать как строку
+			var str string
+			if err := json.Unmarshal(filter.Param, &str); err != nil {
 				return fmt.Errorf("failed to parse color filter: %v", err)
 			}
-			(*c)[filter.Role] = colorFilter
+			
+			// Преобразуем строку в массив из одного элемента
+			(*c)[filter.Role] = ColorFilter([]string{str})
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
-			var dropdownFilter DropdownFilter
-			if err := json.Unmarshal(filter.Param, &dropdownFilter); err != nil {
+			// Пробуем разобрать как массив строк
+			var strArray []string
+			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
+				(*c)[filter.Role] = DropdownFilter(strArray)
+				continue
+			}
+			
+			// Если не получилось, пробуем разобрать как строку
+			var str string
+			if err := json.Unmarshal(filter.Param, &str); err != nil {
 				return fmt.Errorf("failed to parse dropdown filter: %v", err)
 			}
-			(*c)[filter.Role] = dropdownFilter
+			
+			// Преобразуем строку в массив из одного элемента
+			(*c)[filter.Role] = DropdownFilter([]string{str})
 		case CHAR_STOCKED:
 			var checkboxFilter CheckboxFilter
 			if err := json.Unmarshal(filter.Param, &checkboxFilter); err != nil {
