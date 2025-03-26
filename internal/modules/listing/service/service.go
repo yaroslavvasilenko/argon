@@ -240,8 +240,56 @@ func (s *Listing) GetFiltersForCategory(ctx context.Context, categoryId string) 
 		return listing.GetFiltersForCategoryResponse{}, fmt.Errorf("error getting characteristic values: %w", err)
 	}
 
-	// Просто возвращаем полученные значения характеристик
-	return listing.GetFiltersForCategoryResponse{Filters: charValues}, nil
+	// Фильтруем пустые значения
+	validFilters := s.filterEmptyValues(charValues)
+
+	// Возвращаем только валидные фильтры
+	return listing.GetFiltersForCategoryResponse{Filters: validFilters}, nil
+}
+
+// filterEmptyValues фильтрует пустые значения из фильтров
+func (s *Listing) filterEmptyValues(filters models.Filters) models.Filters {
+	result := make(models.Filters)
+
+	for key, filter := range filters {
+		switch f := filter.(type) {
+		case models.PriceFilter:
+			// Добавляем фильтр цены только если есть реальный диапазон цен
+			if f.Min <= f.Max && (f.Min > 0 || f.Max > 0) {
+				result[key] = f
+			}
+
+		case models.ColorFilter:
+			// Добавляем фильтр цвета только если есть значения
+			if len(f) > 0 {
+				result[key] = f
+			}
+
+		case models.DropdownFilter:
+			// Добавляем фильтр выпадающего списка только если есть значения
+			if len(f) > 0 {
+				result[key] = f
+			}
+
+		case models.CheckboxFilter:
+			// Для чекбоксов проверяем, что значение не nil
+			if f != nil {
+				result[key] = f
+			}
+
+		case models.DimensionFilter:
+			// Добавляем фильтр размеров только если есть реальные значения и корректная единица измерения
+			if (f.Min > 0 || f.Max > 0) && f.Min <= f.Max && f.Dimension != "" {
+				result[key] = f
+			}
+
+		default:
+			// Для неизвестных типов фильтров просто копируем
+			result[key] = filter
+		}
+	}
+
+	return result
 }
 
 // getCategoryCharacteristics получает характеристики для указанных категорий

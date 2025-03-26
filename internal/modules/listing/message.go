@@ -27,13 +27,13 @@ type Category struct {
 }
 
 type CreateListingRequest struct {
-	Title           string          `json:"title"`
-	Description     string          `json:"description,omitempty"`
-	Price           float64         `json:"price,omitempty"`
-	Currency        models.Currency `json:"currency,omitempty"`
-	Location        models.Location `json:"location,omitempty"`
-	Categories      []string        `json:"categories,omitempty"`
-	Characteristics models.Characteristic  `json:"characteristics,omitempty"`
+	Title           string                `json:"title"`
+	Description     string                `json:"description,omitempty"`
+	Price           float64               `json:"price,omitempty"`
+	Currency        models.Currency       `json:"currency,omitempty"`
+	Location        models.Location       `json:"location,omitempty"`
+	Categories      []string              `json:"categories,omitempty"`
+	Characteristics models.Characteristic `json:"characteristics,omitempty"`
 }
 
 func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {

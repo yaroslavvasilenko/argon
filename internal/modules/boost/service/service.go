@@ -37,7 +37,7 @@ func (s *Boost) GetBoost(ctx context.Context, id uuid.UUID) (boost.GetBoostRespo
 	}
 
 	for boostType, commission := range models.GetBoostTypesWithCommissions() {
-		resp.BoostResp = append(resp.BoostResp, boost.BoostResp{
+		resp.AvailableBoosts = append(resp.AvailableBoosts, boost.BoostResp{
 			Type:              boostType,
 			CommissionPercent: commission,
 		})

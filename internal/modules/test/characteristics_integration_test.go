@@ -5,13 +5,13 @@ import (
 
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
-	// models используется косвенно через user.getCharacteristicsForCategory
-	_ "github.com/yaroslavvasilenko/argon/internal/models"
 )
 
 func TestGetCharacteristicsForCategory(t *testing.T) {
 	app := createTestApp(t)
 	user := app.createUser(t)
+
+	app.cleanDb(t)
 
 	t.Run("Получение характеристик для категорий электроники", func(t *testing.T) {
 		// Подготавливаем входные данные
@@ -122,4 +122,5 @@ func TestGetCharacteristicsForCategory(t *testing.T) {
 		// Это зависит от реализации - может возвращаться пустая карта или базовый набор
 		assert.NotNil(t, characteristics, "Результат не должен быть nil")
 	})
+
 }

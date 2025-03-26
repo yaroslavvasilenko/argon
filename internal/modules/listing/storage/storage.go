@@ -663,6 +663,8 @@ func (s *Listing) GetListingCharacteristics(ctx context.Context, listingID uuid.
 	return characteristics, nil
 }
 
+
+
 func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKeys []string) (models.Filters, error) {
 	// Создаем результирующую карту для хранения значений характеристик
 	result := make(models.Filters)
@@ -670,7 +672,7 @@ func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKey
 	// Для каждого ключа характеристики выполняем отдельный запрос
 	for _, key := range characteristicKeys {
 		switch key {
-		case "price":
+		case models.CHAR_PRICE:
 			// Для цены получаем минимальное и максимальное значение
 			var minPrice, maxPrice *float64
 			query := `SELECT MIN(price), MAX(price) FROM listings WHERE deleted_at IS NULL`
@@ -693,7 +695,7 @@ func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKey
 				Max: max,
 			}
 
-		case "brand", "condition", "color", "season":
+		case models.CHAR_BRAND, models.CHAR_CONDITION, models.CHAR_COLOR, models.CHAR_SEASON:
 			// Для строковых характеристик получаем уникальные значения
 			query := `
 				SELECT DISTINCT jsonb_array_elements_text(characteristics->$1) AS value
@@ -722,11 +724,29 @@ func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKey
 				result[key] = models.DropdownFilter(values)
 			}
 
-		case "stocked":
-			// Для булевых характеристик просто возвращаем true/false
-			result[key] = models.CheckboxFilter(false)
+		case models.CHAR_STOCKED:
+			// Проверяем, есть ли товары с этой характеристикой
+			query := `
+		SELECT COUNT(*) > 0
+		FROM listing_characteristics
+		WHERE characteristics ? $1
+	`
+			var hasValues bool
+			err := s.pool.QueryRow(ctx, query, key).Scan(&hasValues)
+			if err != nil {
+				return nil, fmt.Errorf("ошибка при проверке наличия значений для %s: %w", key, err)
+			}
+			
+			// Если значений нет, возвращаем nil
+			if !hasValues {
+				result[key] = models.CheckboxFilter(nil)
+			} else {
+				// Иначе возвращаем указатель на false
+				falseValue := false
+				result[key] = models.CheckboxFilter(&falseValue)
+			}
 
-		case "height", "width", "depth", "weight", "area", "volume":
+		case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH, models.CHAR_WEIGHT, models.CHAR_AREA, models.CHAR_VOLUME:
 			// Для числовых характеристик получаем минимальное и максимальное значение
 			query := `
 				SELECT 
@@ -777,14 +797,14 @@ func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKey
 // getDimensionUnit возвращает единицу измерения для указанной характеристики
 func getDimensionUnit(key string) string {
 	switch key {
-	case "height", "width", "depth":
-		return "см"
-	case "weight":
-		return "кг"
-	case "area":
-		return "м²"
-	case "volume":
-		return "л"
+	case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH:
+		return models.CM
+	case models.CHAR_WEIGHT:
+		return models.KG
+	case models.CHAR_AREA:
+		return models.M2
+	case models.CHAR_VOLUME:
+		return models.L
 	default:
 		return ""
 	}

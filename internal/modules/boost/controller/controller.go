@@ -26,7 +26,7 @@ func (b *Boost) GetBoost(c *fiber.Ctx) error {
 	// Проверяем, что UUID не пустой
 	if id == uuid.Nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID листинга не может быть пустым",
+			"error": "ID listing cannot be empty",
 		})
 	}
 
@@ -59,7 +59,7 @@ func (b *Boost) UpdateBoost(c *fiber.Ctx) error {
 	// Проверяем, что UUID не пустой
 	if id == uuid.Nil {
 		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "ID листинга не может быть пустым",
+			"error": "ID listing cannot be empty",
 		})
 	}
 

@@ -156,9 +156,9 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters models.Fil
 		
 
 		// Обрабатываем фильтр чекбокса
-			if checkboxFilter, ok := filters.GetCheckboxFilter(key); ok {
+			if checkboxFilter, ok := filters.GetCheckboxFilter(key); ok && checkboxFilter != nil {
 				filterConditions = append(filterConditions, fmt.Sprintf(
-					"(lch.characteristics ->> '%s')::boolean = %t", key, bool(checkboxFilter)))
+					"(lch.characteristics ->> '%s')::boolean = %t", key, *checkboxFilter))
 			}
 		
 
@@ -366,13 +366,13 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 func getSortExpression(sort string, searchType SearchType) string {
 	var orderExpr string
 	switch sort {
-	case "price_asc":
+	case models.SORT_PRICE_ASC:
 		orderExpr = "l.price ASC"
-	case "price_desc":
+	case models.SORT_PRICE_DESC:
 		orderExpr = "l.price DESC"
-	case "newest":
+	case models.SORT_NEWEST:
 		orderExpr = "l.created_at DESC"
-	case "relevance":
+	case models.SORT_RELEVANCE:
 		// Выбираем выражение для сортировки по релевантности в зависимости от типа поиска
 		switch searchType {
 		case FuzzySearch:

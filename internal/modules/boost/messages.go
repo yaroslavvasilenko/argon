@@ -10,13 +10,13 @@ type GetBoostRequest struct {
 }
 
 type GetBoostResponse struct {
-	BoostResp []BoostResp `json:"boosts"`
+	AvailableBoosts []BoostResp `json:"boosts"`
 	EnableBoostTypes []models.BoostType `json:"enable_boost_types,omitempty"`
 }
 
 type BoostResp struct {
 	Type              models.BoostType `json:"type"`
-	CommissionPercent float64          `json:"commission_percent"`
+	CommissionPercent float64          `json:"commission_percents"`
 }
 
 type UpdateBoostRequest struct {
