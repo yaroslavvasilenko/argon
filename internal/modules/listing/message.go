@@ -34,6 +34,7 @@ type CreateListingRequest struct {
 	Location        models.Location       `json:"location,omitempty"`
 	Categories      []string              `json:"categories,omitempty"`
 	Characteristics models.Characteristic `json:"characteristics,omitempty"`
+	Images          []string              `json:"images"`
 }
 
 func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
@@ -54,15 +55,7 @@ func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
 }
 
 type CreateListingResponse struct {
-	ID              uuid.UUID              `json:"id" validate:"required"`
-	Title           string                 `json:"title" validate:"required"`
-	Description     string                 `json:"description,omitempty"`
-	Price           float64                `json:"price,omitempty" validate:"gte=0"`
-	Currency        models.Currency        `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
-	Location        models.Location        `json:"location,omitempty"`
-	Categories      []string               `json:"categories,omitempty" validate:"required"`
-	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
-	Boosts          []BoostResp            `json:"boosts,omitempty"`
+	FullListingResponse
 }
 
 type BoostResp struct {
@@ -80,6 +73,7 @@ type UpdateListingRequest struct {
 	Categories      []string               `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
+	Images          []string               `json:"images"`
 }
 
 type FullListingResponse struct {
@@ -92,6 +86,7 @@ type FullListingResponse struct {
 	Categories      []string               `json:"categories,omitempty"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
+	Images          []string               `json:"images"`
 }
 
 type GetFiltersForCategoryResponse struct {
