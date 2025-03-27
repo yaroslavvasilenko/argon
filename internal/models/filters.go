@@ -304,6 +304,13 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 			// Создаем фильтр цены с одинаковыми min и max
 			(*c)[filter.Role] = PriceFilter{Min: int(price), Max: int(price)}
 		case CHAR_COLOR:
+			// Пробуем разобрать как объект ColorFilter
+			var colorFilter ColorFilter
+			if err := json.Unmarshal(filter.Param, &colorFilter); err == nil {
+				(*c)[filter.Role] = colorFilter
+				continue
+			}
+			
 			// Пробуем разобрать как массив строк
 			var strArray []string
 			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
