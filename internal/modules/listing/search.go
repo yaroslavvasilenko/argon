@@ -110,11 +110,11 @@ type ListingResponse struct {
 	Title            string          `json:"title"`
 	Price            float64         `json:"price"`
 	Currency         models.Currency `json:"currency"`
-	OriginalPrice    float64         `json:"original_price,omitempty"`
-	OriginalCurrency models.Currency `json:"original_currency,omitempty"`
-	Description      string          `json:"description,omitempty"`
-	Location         models.Location `json:"location,omitempty"`
-	Category         CategoryInfo    `json:"category,omitempty"`
+	OriginalPrice    float64         `json:"original_price"`
+	OriginalCurrency models.Currency `json:"original_currency"`
+	Description      string          `json:"description"`
+	Location         models.Location `json:"location"`
+	Category         CategoryInfo    `json:"category"`
 	Images           []string        `json:"images,omitempty"`
 	IsHighlighted    bool            `json:"is_highlighted,omitempty"`
 	IsBuyable        bool            `json:"is_buyable,omitempty"`
