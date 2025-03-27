@@ -229,13 +229,8 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 
 // GetFiltersForCategory возвращает фильтры для указанной категории
 func (s *Listing) GetFiltersForCategory(ctx context.Context, categoryId string) (listing.GetFiltersForCategoryResponse, error) {
-	_, characteristicKeys, _, err := s.getCategoryCharacteristics(ctx, []string{categoryId})
-	if err != nil {
-		return listing.GetFiltersForCategoryResponse{}, err
-	}
-
 	// Получаем значения характеристик из БД
-	charValues, err := s.s.GetCharacteristicValues(ctx, characteristicKeys)
+	charValues, err := s.s.GetCategoryFilters(ctx, categoryId)
 	if err != nil {
 		return listing.GetFiltersForCategoryResponse{}, fmt.Errorf("error getting characteristic values: %w", err)
 	}

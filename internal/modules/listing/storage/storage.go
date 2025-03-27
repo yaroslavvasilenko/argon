@@ -277,13 +277,13 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 	if characteristics != nil && len(characteristics) > 0 {
 		// Логируем характеристики для отладки
 		fmt.Printf("Характеристики для сохранения: %+v\n", characteristics)
-		
+
 		// Преобразуем map в JSON
 		characteristicsJSON, err := json.Marshal(characteristics)
 		if err != nil {
 			return err
 		}
-		
+
 		// Логируем JSON для отладки
 		fmt.Printf("JSON характеристик: %s\n", string(characteristicsJSON))
 
@@ -663,131 +663,269 @@ func (s *Listing) GetListingCharacteristics(ctx context.Context, listingID uuid.
 	return characteristics, nil
 }
 
-
-
-func (s *Listing) GetCharacteristicValues(ctx context.Context, characteristicKeys []string) (models.Filters, error) {
-	// Создаем результирующую карту для хранения значений характеристик
+// GetCategoryFilters получает все доступные фильтры для указанной категории
+func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (models.Filters, error) {
+	// Создаем результирующую карту для хранения фильтров
 	result := make(models.Filters)
 
-	// Для каждого ключа характеристики выполняем отдельный запрос
-	for _, key := range characteristicKeys {
-		switch key {
-		case models.CHAR_PRICE:
-			// Для цены получаем минимальное и максимальное значение
-			var minPrice, maxPrice *float64
-			query := `SELECT MIN(price), MAX(price) FROM listings WHERE deleted_at IS NULL`
-			err := s.pool.QueryRow(ctx, query).Scan(&minPrice, &maxPrice)
-			if err != nil {
-				return nil, fmt.Errorf("ошибка при получении диапазона цен: %w", err)
-			}
-			
-			// Устанавливаем значения по умолчанию, если в базе нет данных
-			min, max := 0, 0
-			if minPrice != nil {
-				min = int(*minPrice)
-			}
-			if maxPrice != nil {
-				max = int(*maxPrice)
-			}
-			
-			result[key] = models.PriceFilter{
-				Min: min,
-				Max: max,
-			}
+	// Сначала проверим, существует ли категория
+	var categoryExists bool
+	checkQuery := `SELECT EXISTS(SELECT 1 FROM listing_categories WHERE category_id = $1)`
+	err := s.pool.QueryRow(ctx, checkQuery, categoryID).Scan(&categoryExists)
+	if err != nil {
+		return nil, fmt.Errorf("ошибка при проверке существования категории %s: %w", categoryID, err)
+	}
 
-		case models.CHAR_BRAND, models.CHAR_CONDITION, models.CHAR_COLOR, models.CHAR_SEASON:
-			// Для строковых характеристик получаем уникальные значения
-			query := `
-				SELECT DISTINCT jsonb_array_elements_text(characteristics->$1) AS value
-				FROM listing_characteristics
-				WHERE characteristics ? $1
-				ORDER BY value
-			`
-			rows, err := s.pool.Query(ctx, query, key)
-			if err != nil {
-				return nil, fmt.Errorf("ошибка при получении уникальных значений для %s: %w", key, err)
-			}
-			defer rows.Close()
+	// Если категория не существует или нет товаров в этой категории, вернем пустые фильтры
+	if !categoryExists {
+		return result, nil
+	}
 
-			values := make([]string, 0)
-			for rows.Next() {
-				var value string
-				if err := rows.Scan(&value); err != nil {
-					return nil, fmt.Errorf("ошибка при сканировании значения для %s: %w", key, err)
-				}
-				values = append(values, value)
-			}
-			
-			if key == "color" {
-				result[key] = models.ColorFilter(values)
-			} else {
-				result[key] = models.DropdownFilter(values)
-			}
-
-		case models.CHAR_STOCKED:
-			// Проверяем, есть ли товары с этой характеристикой
-			query := `
-		SELECT COUNT(*) > 0
-		FROM listing_characteristics
-		WHERE characteristics ? $1
+	// SQL-запрос для получения минимальной и максимальной цены, а также всех характеристик в категории
+	query := `
+	WITH category_listings AS (
+		SELECT l.id, l.price
+		FROM listings l
+		JOIN listing_categories lc ON l.id = lc.listing_id
+		WHERE lc.category_id = $1
+		AND l.deleted_at IS NULL
+	)
+	SELECT 
+		MIN(cl.price) AS min_price,
+		MAX(cl.price) AS max_price,
+		(
+			-- Подзапрос для получения всех уникальных характеристик в категории
+			SELECT jsonb_object_agg(
+				key, 
+				CASE
+					-- Для цены возвращаем объект с min и max значениями
+					WHEN key = 'price' THEN jsonb_build_object(
+						'min', MIN(cl.price),
+						'max', MAX(cl.price)
+					)
+					-- Для цветов возвращаем массив уникальных значений
+					WHEN key = 'color' THEN (
+						SELECT jsonb_agg(DISTINCT value)
+						FROM (
+							-- Обработка массивов
+							SELECT jsonb_array_elements_text(lch.characteristics->'color') AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'color'
+							AND jsonb_typeof(lch.characteristics->'color') = 'array'
+							UNION ALL
+							-- Обработка скалярных значений
+							SELECT lch.characteristics->>'color' AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'color'
+							AND jsonb_typeof(lch.characteristics->'color') != 'array'
+						) subq
+						WHERE value IS NOT NULL
+					)
+					-- Для брендов возвращаем массив уникальных значений
+					WHEN key = 'brand' THEN (
+						SELECT jsonb_agg(DISTINCT value)
+						FROM (
+							-- Обработка массивов
+							SELECT jsonb_array_elements_text(lch.characteristics->'brand') AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'brand'
+							AND jsonb_typeof(lch.characteristics->'brand') = 'array'
+							UNION ALL
+							-- Обработка скалярных значений
+							SELECT lch.characteristics->>'brand' AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'brand'
+							AND jsonb_typeof(lch.characteristics->'brand') != 'array'
+						) subq
+						WHERE value IS NOT NULL
+					)
+					-- Для состояния (новый/б/у) возвращаем массив уникальных значений
+					WHEN key = 'condition' THEN (
+						SELECT jsonb_agg(DISTINCT value)
+						FROM (
+							-- Обработка массивов
+							SELECT jsonb_array_elements_text(lch.characteristics->'condition') AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'condition'
+							AND jsonb_typeof(lch.characteristics->'condition') = 'array'
+							UNION ALL
+							-- Обработка скалярных значений
+							SELECT lch.characteristics->>'condition' AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'condition'
+							AND jsonb_typeof(lch.characteristics->'condition') != 'array'
+						) subq
+						WHERE value IS NOT NULL
+					)
+					-- Для сезона возвращаем массив уникальных значений
+					WHEN key = 'season' THEN (
+						SELECT jsonb_agg(DISTINCT value)
+						FROM (
+							-- Обработка массивов
+							SELECT jsonb_array_elements_text(lch.characteristics->'season') AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'season'
+							AND jsonb_typeof(lch.characteristics->'season') = 'array'
+							UNION ALL
+							-- Обработка скалярных значений
+							SELECT lch.characteristics->>'season' AS value
+							FROM listing_characteristics lch
+							JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+							WHERE lc.category_id = $1
+							AND lch.characteristics ? 'season'
+							AND jsonb_typeof(lch.characteristics->'season') != 'array'
+						) subq
+						WHERE value IS NOT NULL
+					)
+					-- Для булевых значений (например, "в наличии")
+					WHEN key = 'stocked' THEN (
+						SELECT jsonb_agg(DISTINCT (lch.characteristics->>'stocked')::boolean)
+						FROM listing_characteristics lch
+						JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+						WHERE lc.category_id = $1
+						AND lch.characteristics ? 'stocked'
+					)
+					-- Для размерных характеристик (высота, ширина и т.д.)
+					WHEN key IN ('height', 'width', 'depth', 'weight', 'area', 'volume') THEN (
+						SELECT jsonb_build_object(
+							'min', MIN(
+								CASE 
+									WHEN jsonb_typeof(lch.characteristics->key) = 'number' THEN (lch.characteristics->>key)::numeric
+									ELSE NULL
+								END
+							),
+							'max', MAX(
+								CASE 
+									WHEN jsonb_typeof(lch.characteristics->key) = 'number' THEN (lch.characteristics->>key)::numeric
+									ELSE NULL
+								END
+							),
+							'dimension', CASE
+								WHEN key = 'height' OR key = 'width' OR key = 'depth' THEN 'cm'
+								WHEN key = 'weight' THEN 'kg'
+								WHEN key = 'area' THEN 'm2'
+								WHEN key = 'volume' THEN 'l'
+								ELSE ''
+							END
+						)
+						FROM listing_characteristics lch
+						JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+						WHERE lc.category_id = $1
+					)
+					ELSE NULL
+				END
+			)
+			FROM (
+				-- Получаем все ключи характеристик, которые есть в категории
+				SELECT DISTINCT key
+				FROM (
+					SELECT jsonb_object_keys(lch.characteristics) AS key
+					FROM listing_characteristics lch
+					JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+					WHERE lc.category_id = $1
+				) subq
+			) keys
+		) AS characteristics
+	FROM category_listings cl;
 	`
-			var hasValues bool
-			err := s.pool.QueryRow(ctx, query, key).Scan(&hasValues)
-			if err != nil {
-				return nil, fmt.Errorf("ошибка при проверке наличия значений для %s: %w", key, err)
-			}
-			
-			// Если значений нет, возвращаем nil
-			if !hasValues {
-				result[key] = models.CheckboxFilter(nil)
-			} else {
-				// Иначе возвращаем указатель на false
-				falseValue := false
-				result[key] = models.CheckboxFilter(&falseValue)
-			}
 
-		case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH, models.CHAR_WEIGHT, models.CHAR_AREA, models.CHAR_VOLUME:
-			// Для числовых характеристик получаем минимальное и максимальное значение
-			query := `
-				SELECT 
-					MIN(CAST(characteristics->$1 AS NUMERIC)), 
-					MAX(CAST(characteristics->$1 AS NUMERIC))
-				FROM listing_characteristics
-				WHERE characteristics ? $1
-			`
-			var minValue, maxValue *float64
-			err := s.pool.QueryRow(ctx, query, key).Scan(&minValue, &maxValue)
-			if err != nil {
-				// Если нет данных, устанавливаем значения по умолчанию
-				if err == pgx.ErrNoRows {
-					result[key] = models.DimensionFilter{
-						Min:       0,
-						Max:       0,
-						Dimension: "",
-					}
-					continue
+	// Выполняем запрос
+	var minPrice, maxPrice *float64
+	var characteristicsJSON []byte
+
+	err = s.pool.QueryRow(ctx, query, categoryID).Scan(&minPrice, &maxPrice, &characteristicsJSON)
+	if err != nil {
+		if err == pgx.ErrNoRows {
+			// Если нет данных, возвращаем пустую карту фильтров
+			return result, nil
+		}
+		return nil, fmt.Errorf("ошибка при получении фильтров для категории %s: %w", categoryID, err)
+	}
+
+	// Создаем фильтр цены
+	if minPrice != nil && maxPrice != nil {
+		result[models.CHAR_PRICE] = models.PriceFilter{
+			Min: int(*minPrice),
+			Max: int(*maxPrice),
+		}
+	}
+
+	// Парсим JSON с характеристиками
+	if len(characteristicsJSON) > 0 && characteristicsJSON != nil {
+		var characteristics map[string]json.RawMessage
+		if err := json.Unmarshal(characteristicsJSON, &characteristics); err != nil {
+			// Если JSON пустой или null, просто вернем пустые фильтры
+			if err.Error() == "unexpected end of JSON input" {
+				return result, nil
+			}
+			return nil, fmt.Errorf("ошибка при разборе JSON характеристик: %w", err)
+		}
+
+		// Обрабатываем каждую характеристику
+		for key, value := range characteristics {
+			switch key {
+			case models.CHAR_COLOR:
+				// Для цвета
+				var colors []string
+				if err := json.Unmarshal(value, &colors); err != nil {
+					continue // Пропускаем некорректные данные
 				}
-				return nil, fmt.Errorf("ошибка при получении диапазона для %s: %w", key, err)
-			}
-			
-			// Устанавливаем значения по умолчанию, если в базе нет данных
-			min, max := 0, 0
-			if minValue != nil {
-				min = int(*minValue)
-			}
-			if maxValue != nil {
-				max = int(*maxValue)
-			}
-			
-			result[key] = models.DimensionFilter{
-				Min:       min,
-				Max:       max,
-				Dimension: getDimensionUnit(key),
-			}
+				if colors != nil && len(colors) > 0 {
+					result[key] = models.ColorFilter(colors)
+				}
 
-		default:
-			// Для неизвестных характеристик пропускаем
-			continue
+			case models.CHAR_BRAND, models.CHAR_CONDITION, models.CHAR_SEASON:
+				// Для выпадающих списков
+				var options []string
+				if err := json.Unmarshal(value, &options); err != nil {
+					continue // Пропускаем некорректные данные
+				}
+				if options != nil && len(options) > 0 {
+					result[key] = models.DropdownFilter(options)
+				}
+
+			case models.CHAR_STOCKED:
+				// Для булевых значений
+				var boolValues []bool
+				if err := json.Unmarshal(value, &boolValues); err != nil {
+					continue // Пропускаем некорректные данные
+				}
+				if boolValues != nil && len(boolValues) > 0 {
+					boolValue := boolValues[0]
+					result[key] = models.CheckboxFilter(&boolValue)
+				}
+
+			case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH, models.CHAR_WEIGHT, models.CHAR_AREA, models.CHAR_VOLUME:
+				// Для размерных характеристик
+				var dimensionFilter struct {
+					Min       float64 `json:"min"`
+					Max       float64 `json:"max"`
+					Dimension string  `json:"dimension"`
+				}
+				if err := json.Unmarshal(value, &dimensionFilter); err != nil {
+					continue // Пропускаем некорректные данные
+				}
+				
+				result[key] = models.DimensionFilter{
+					Min:       int(dimensionFilter.Min),
+					Max:       int(dimensionFilter.Max),
+					Dimension: dimensionFilter.Dimension,
+				}
+			}
 		}
 	}
 
