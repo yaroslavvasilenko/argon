@@ -34,7 +34,7 @@ type CreateListingRequest struct {
 	Location        models.Location       `json:"location,omitempty"`
 	Categories      []string              `json:"categories,omitempty"`
 	Characteristics models.Characteristic `json:"characteristics,omitempty"`
-	Images          []string              `json:"images"`
+	Images          []string              `json:"images,omitempty"`
 }
 
 func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
@@ -73,7 +73,7 @@ type UpdateListingRequest struct {
 	Categories      []string               `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
-	Images          []string               `json:"images"`
+	Images          []string               `json:"images,omitempty"`
 }
 
 type FullListingResponse struct {
@@ -86,7 +86,7 @@ type FullListingResponse struct {
 	Categories      []string               `json:"categories,omitempty"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
-	Images          []string               `json:"images"`
+	Images          []string               `json:"images,omitempty"`
 }
 
 type GetFiltersForCategoryResponse struct {
