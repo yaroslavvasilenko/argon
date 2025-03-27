@@ -183,6 +183,7 @@ func CreateSearchListingsResponse(
 			Description:      listing.Description,
 			Location:         location,
 			Category:         categoryInfo,
+			Images:           []string{},
 			IsHighlighted:    isHighlighted,
 			IsBuyable:        isBuyable,
 			// Можно добавить характеристики и изображения, если они нужны в ответе
