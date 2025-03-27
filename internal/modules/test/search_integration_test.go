@@ -246,9 +246,9 @@ func TestSearchListings(t *testing.T) {
 			// Характеристики объявления
 			Characteristics: map[string]interface{}{
 				models.CHAR_COLOR:   []string{"black", "silver"},
-				models.CHAR_BRAND:           "Samsung",
-				models.CHAR_STOCKED:            true,
-				models.CHAR_WEIGHT:       15,
+				models.CHAR_BRAND:   "Samsung",
+				models.CHAR_STOCKED: true,
+				models.CHAR_WEIGHT:  15,
 			},
 		}
 		res := user.createListing(t, notebook)
@@ -263,8 +263,8 @@ func TestSearchListings(t *testing.T) {
 				Min: 90000,
 				Max: 150000,
 			},
-			models.COLOR_TYPE:    models.ColorFilter{Options: []string{"black", "silver"}},
-			models.CHAR_BRAND: models.DropdownFilter{"Samsung"},
+			models.COLOR_TYPE:   models.ColorFilter{Options: []string{"black", "silver"}},
+			models.CHAR_BRAND:   models.DropdownFilter{"Samsung"},
 			models.CHAR_STOCKED: func() models.CheckboxFilter { trueValue := true; return &trueValue }(),
 			models.CHAR_WEIGHT: models.DimensionFilter{
 				Min:       14,
@@ -364,7 +364,7 @@ func TestSearchListings(t *testing.T) {
 
 		// Создаем фильтр с ключом, но без значения
 		// Проверяем каждый тип фильтра
-		
+
 		// Тест пустого фильтра цены
 		filters := models.Filters{
 			models.PRICE_TYPE: models.PriceFilter{}, // Пустой фильтр цены
@@ -374,7 +374,7 @@ func TestSearchListings(t *testing.T) {
 
 		// Проверяем, что нашли ноутбук, так как пустой фильтр цены не должен влиять на поиск
 		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром цены")
-		
+
 		// Тест пустого фильтра цвета
 		filters = models.Filters{
 			models.COLOR_TYPE: models.ColorFilter{Options: []string{}}, // Пустой фильтр цвета
@@ -439,7 +439,7 @@ func TestSearchListings(t *testing.T) {
 		require.Equal(t, http.StatusOK, res.StatusCode)
 
 		// Поиск с пустым запросом
-		req := getSearchListingsRequest("", 10, "", "relevance", "")
+		req := getSearchListingsRequest("", 10, "", "", "")
 
 		// Выполняем поиск без фильтров
 		resp := user.searchListings(t, req)
@@ -512,7 +512,7 @@ func TestSearchListingsByLocation(t *testing.T) {
 	t.Run("Successful search by location", func(t *testing.T) {
 		// Создаем запрос на поиск с теми же координатами
 		req := getSearchListingsRequest("Квартира", 10, "", "relevance", "")
-		
+
 		// Добавляем локацию в запрос поиска
 		req.Location = models.Location{
 			Area: models.Area{
@@ -540,7 +540,7 @@ func TestSearchListingsByLocation(t *testing.T) {
 	t.Run("No results when searching with different location", func(t *testing.T) {
 		// Создаем запрос на поиск с другими координатами (Санкт-Петербург)
 		req := getSearchListingsRequest("Квартира", 10, "", "relevance", "")
-		
+
 		// Добавляем локацию в запрос поиска с другими координатами
 		req.Location = models.Location{
 			Area: models.Area{
@@ -565,7 +565,7 @@ func TestSearchListingsByLocation(t *testing.T) {
 	t.Run("No results when searching with small radius", func(t *testing.T) {
 		// Создаем запрос на поиск с теми же координатами, но маленьким радиусом
 		req := getSearchListingsRequest("Квартира", 10, "", "relevance", "")
-		
+
 		// Добавляем локацию в запрос поиска с немного смещенными координатами и маленьким радиусом
 		req.Location = models.Location{
 			Area: models.Area{
