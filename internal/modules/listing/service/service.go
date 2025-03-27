@@ -72,17 +72,15 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 	}
 
 	resp := listing.CreateListingResponse{
-		FullListingResponse: listing.FullListingResponse{
-			ID:          fullListing.Listing.ID,
-			Title:       fullListing.Listing.Title,
-			Description: fullListing.Listing.Description,
-			Price:       fullListing.Listing.Price,
-			Currency:    fullListing.Listing.Currency,
-			Location:    fullListing.Location,
-			Categories:  fullListing.Categories.ID,
-			Characteristics: fullListing.Characteristics,
-			Boosts:          boosts,
-		},
+		ID:              fullListing.Listing.ID,
+		Title:           fullListing.Listing.Title,
+		Description:     fullListing.Listing.Description,
+		Price:           fullListing.Listing.Price,
+		Currency:        fullListing.Listing.Currency,
+		Location:        fullListing.Location,
+		Categories:      fullListing.Categories.ID,
+		Characteristics: fullListing.Characteristics,
+		Boosts:          boosts,
 	}
 
 	return resp, nil

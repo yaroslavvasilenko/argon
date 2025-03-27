@@ -2,6 +2,7 @@ package listing
 
 import (
 	"errors"
+	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -34,7 +35,7 @@ type CreateListingRequest struct {
 	Location        models.Location       `json:"location,omitempty"`
 	Categories      []string              `json:"categories,omitempty"`
 	Characteristics models.Characteristic `json:"characteristics,omitempty"`
-	Images          []string              `json:"images,omitempty"`
+	Images          []string              `json:"images"`
 }
 
 func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
@@ -55,7 +56,16 @@ func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
 }
 
 type CreateListingResponse struct {
-	FullListingResponse
+	ID              uuid.UUID              `json:"id"`
+	Title           string                 `json:"title"`
+	Description     string                 `json:"description,omitempty"`
+	Price           float64                `json:"price,omitempty"`
+	Currency        models.Currency        `json:"currency,omitempty"`
+	Location        models.Location        `json:"location,omitempty"`
+	Categories      []string               `json:"categories,omitempty"`
+	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Boosts          []BoostResp            `json:"boosts,omitempty"`
+	Images          []string               `json:"images"`
 }
 
 type BoostResp struct {
@@ -73,22 +83,30 @@ type UpdateListingRequest struct {
 	Categories      []string               `json:"categories,omitempty" validate:"required"`
 	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
-	Images          []string               `json:"images,omitempty"`
+	Images          []string               `json:"images"`
 }
 
 type FullListingResponse struct {
-	ID              uuid.UUID              `json:"id"`
-	Title           string                 `json:"title"`
-	Description     string                 `json:"description,omitempty"`
-	Price           float64                `json:"price,omitempty"`
-	Currency        models.Currency        `json:"currency,omitempty"`
-	Location        models.Location        `json:"location,omitempty"`
-	Categories      []string               `json:"categories,omitempty"`
-	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
-	Boosts          []BoostResp            `json:"boosts,omitempty"`
-	Images          []string               `json:"images,omitempty"`
+	ID                  uuid.UUID              `json:"id"`
+	Title               string                 `json:"title"`
+	Description         string                 `json:"description"`
+	OriginalDescription string                 `json:"original_description"`
+	Price               float64                `json:"price"`
+	Currency            models.Currency        `json:"currency"`
+	OriginalPrice       float64                `json:"original_price"`
+	OriginalCurrency    models.Currency        `json:"original_currency"`
+	Location            models.Location        `json:"location,omitempty"`
+	Seller              models.Seller          `json:"seller,omitempty"`
+	Categories          []string               `json:"categories"`
+	Characteristics     map[string]interface{} `json:"characteristics"`
+	Images              []string               `json:"images"`
+	CreatedAt           time.Time              `json:"created_at"`
+	UpdatedAt           time.Time              `json:"updated_at"`
+	Boosts              []BoostResp            `json:"boosts,omitempty"`
+	IsEditable          bool                 `json:"is_editable,omitempty"`
+	IsBuyout            bool                 `json:"is_buyout,omitempty"`
+	IsNSFW              bool                 `json:"is_nsfw,omitempty"`
 }
-
 type GetFiltersForCategoryResponse struct {
 	Filters models.Filters `json:"filter_params"`
 }
