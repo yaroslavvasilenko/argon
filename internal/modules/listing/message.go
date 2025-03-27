@@ -95,8 +95,8 @@ type FullListingResponse struct {
 	Currency            models.Currency        `json:"currency"`
 	OriginalPrice       float64                `json:"original_price"`
 	OriginalCurrency    models.Currency        `json:"original_currency"`
-	Location            models.Location        `json:"location,omitempty"`
-	Seller              models.Seller          `json:"seller,omitempty"`
+	Location            models.Location        `json:"location"`
+	Seller              models.Seller          `json:"seller"`
 	Categories          []string               `json:"categories"`
 	Characteristics     map[string]interface{} `json:"characteristics"`
 	Images              []string               `json:"images"`
@@ -107,6 +107,7 @@ type FullListingResponse struct {
 	IsBuyout            bool                 `json:"is_buyout,omitempty"`
 	IsNSFW              bool                 `json:"is_nsfw,omitempty"`
 }
+
 type GetFiltersForCategoryResponse struct {
 	Filters models.Filters `json:"filter_params"`
 }

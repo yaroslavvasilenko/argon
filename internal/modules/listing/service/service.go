@@ -81,6 +81,7 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 		Categories:      fullListing.Categories.ID,
 		Characteristics: fullListing.Characteristics,
 		Boosts:          boosts,
+		Images:          []string{} ,
 	}
 
 	return resp, nil
@@ -113,6 +114,7 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		Location:       fullListing.Location,
 		Categories:     fullListing.Categories.ID,
 		Characteristics: fullListing.Characteristics,
+		Images:          []string{},
 		Boosts:         boosts,
 	}
 
