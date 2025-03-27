@@ -340,6 +340,143 @@ func TestSearchListings(t *testing.T) {
 		// Проверяем, что ничего не найдено при поиске с неподходящим размером экрана
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим размером экрана")
 	})
+
+	t.Run("Filter with key but no value", func(t *testing.T) {
+		// Создаем объявление для проверки поиска по характеристикам
+		emptyFilterNotebook := listing.CreateListingRequest{
+			Title:       "ноутбук с пустым фильтром",
+			Description: "ноутбук для теста пустых фильтров",
+			Price:       130000,
+			Currency:    models.Currency("RUB"),
+			// Характеристики объявления
+			Characteristics: map[string]interface{}{
+				models.CHAR_COLOR:   []string{"white", "gold"},
+				models.CHAR_BRAND:   "Apple",
+				models.CHAR_STOCKED: true,
+				models.CHAR_WEIGHT:  20,
+			},
+		}
+		res := user.createListing(t, emptyFilterNotebook)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+
+		// Поиск с пустым фильтром
+		req := getSearchListingsRequest("ноутбук", 5, "", "relevance", "")
+
+		// Создаем фильтр с ключом, но без значения
+		// Проверяем каждый тип фильтра
+		
+		// Тест пустого фильтра цены
+		filters := models.Filters{
+			models.PRICE_TYPE: models.PriceFilter{}, // Пустой фильтр цены
+		}
+		req.Filters = filters
+		resp := user.searchListings(t, req)
+
+		// Проверяем, что нашли ноутбук, так как пустой фильтр цены не должен влиять на поиск
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром цены")
+		
+		// Тест пустого фильтра цвета
+		filters = models.Filters{
+			models.COLOR_TYPE: models.ColorFilter{Options: []string{}}, // Пустой фильтр цвета
+		}
+		req.Filters = filters
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что нашли ноутбук, так как пустой фильтр цвета не должен влиять на поиск
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром цвета")
+
+		// Тест пустого фильтра бренда
+		filters = models.Filters{
+			models.CHAR_BRAND: models.DropdownFilter{}, // Пустой фильтр бренда
+		}
+		req.Filters = filters
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что нашли ноутбук, так как пустой фильтр бренда не должен влиять на поиск
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром бренда")
+
+		// Тест пустого фильтра размеров
+		filters = models.Filters{
+			models.CHAR_WEIGHT: models.DimensionFilter{
+				Min:       0,
+				Max:       0,
+				Dimension: "kg", // Указываем размерность, так как она обязательна
+			}, // Пустой фильтр веса
+		}
+		req.Filters = filters
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что нашли ноутбук, так как пустой фильтр веса не должен влиять на поиск
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром веса")
+
+		// Тест фильтра с nil значением
+		filters = models.Filters{
+			models.CHAR_STOCKED: nil, // Nil значение для булевого фильтра
+		}
+		req.Filters = filters
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что нашли ноутбук, так как nil фильтр не должен влиять на поиск
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с nil фильтром")
+	})
+
+	t.Run("Empty query search", func(t *testing.T) {
+		// Создаем объявление для проверки поиска с пустым запросом
+		emptyQueryItem := listing.CreateListingRequest{
+			Title:       "Тестовый товар для поиска с пустым запросом",
+			Description: "Этот товар должен находиться при поиске с пустым запросом",
+			Price:       50000,
+			Currency:    models.Currency("RUB"),
+			// Характеристики объявления
+			Characteristics: map[string]interface{}{
+				models.CHAR_COLOR:   []string{"black"},
+				models.CHAR_BRAND:   "TestBrand",
+				models.CHAR_STOCKED: true,
+				models.CHAR_WEIGHT:  15,
+			},
+		}
+		res := user.createListing(t, emptyQueryItem)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+
+		// Поиск с пустым запросом
+		req := getSearchListingsRequest("", 10, "", "relevance", "")
+
+		// Выполняем поиск без фильтров
+		resp := user.searchListings(t, req)
+
+		// Проверяем, что поиск вернул результаты
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым запросом")
+
+		// Проверяем, что среди результатов есть наш тестовый товар
+		found := false
+		for _, result := range resp.Results {
+			if result.Title == "Тестовый товар для поиска с пустым запросом" {
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "Тестовый товар не найден при поиске с пустым запросом")
+
+		// Проверяем поиск с пустым запросом и фильтром
+		filters := models.Filters{
+			models.CHAR_BRAND: models.DropdownFilter{"TestBrand"},
+		}
+		req.Filters = filters
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что поиск вернул результаты
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым запросом и фильтром бренда")
+
+		// Проверяем, что среди результатов есть наш тестовый товар
+		found = false
+		for _, result := range resp.Results {
+			if result.Title == "Тестовый товар для поиска с пустым запросом" {
+				found = true
+				break
+			}
+		}
+		require.True(t, found, "Тестовый товар не найден при поиске с пустым запросом и фильтром бренда")
+	})
 }
 
 func TestSearchListingsByLocation(t *testing.T) {

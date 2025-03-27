@@ -23,8 +23,10 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 			return listing.SearchListingsResponse{}, err
 		}
 
-		req.SortOrder = search.SortOrder
-		req.Filters = search.Filters
+		if search != nil {
+			req.SortOrder = search.SortOrder
+			req.Filters = search.Filters
+		}
 	}
 
 	if req.Cursor != "" {
@@ -126,5 +128,9 @@ func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.Sear
 		return listing.SearchID{}, err
 	}
 
-	return search, nil
+	if search == nil {
+		return listing.SearchID{}, nil
+	}
+
+	return *search, nil
 }

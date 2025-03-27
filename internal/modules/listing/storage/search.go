@@ -125,8 +125,13 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters models.Fil
 
 		for key, _ := range filters {
 			if priceFilter, ok := filters.GetPriceFilter(key); ok {
-				filterConditions = append(filterConditions, fmt.Sprintf("l.price >= %d",  priceFilter.Min))
-				filterConditions = append(filterConditions, fmt.Sprintf("l.price <= %d", priceFilter.Max))
+				// Проверяем, что фильтр цены не пустой (Min и Max не равны 0 одновременно)
+				if priceFilter.Min > 0 {
+					filterConditions = append(filterConditions, fmt.Sprintf("l.price >= %d", priceFilter.Min))
+				}
+				if priceFilter.Max > 0 {
+					filterConditions = append(filterConditions, fmt.Sprintf("l.price <= %d", priceFilter.Max))
+				}
 			}
 		
 
@@ -164,10 +169,15 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters models.Fil
 
 		// Обрабатываем фильтр размеров
 			if dimensionFilter, ok := filters.GetDimensionFilter(key); ok {
-				filterConditions = append(filterConditions, fmt.Sprintf(
-					"(lch.characteristics ->> '%s')::float >= %f", key, float64(dimensionFilter.Min)))
-				filterConditions = append(filterConditions, fmt.Sprintf(
-					"(lch.characteristics ->> '%s')::float <= %f", key, float64(dimensionFilter.Max)))
+				// Проверяем, что фильтр размеров не пустой (Min и Max не равны 0 одновременно)
+				if dimensionFilter.Min > 0 {
+					filterConditions = append(filterConditions, fmt.Sprintf(
+						"(lch.characteristics ->> '%s')::float >= %f", key, float64(dimensionFilter.Min)))
+				}
+				if dimensionFilter.Max > 0 {
+					filterConditions = append(filterConditions, fmt.Sprintf(
+						"(lch.characteristics ->> '%s')::float <= %f", key, float64(dimensionFilter.Max)))
+				}
 			}
 		}
 
@@ -260,19 +270,35 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters models.Fil
 func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *models.Listing, searchType SearchType) (string, []interface{}) {
 	var args []interface{}
 
-	var tsQueryVersion string
-	switch searchType {
-	case FuzzySearch, FullTextSearch:
-		// Для нечеткого или полнотекстового поиска используем один параметр
-		args = []interface{}{searchQuery}
-	case CombinedSearch:
-		// Для комбинированного поиска используем два параметра:
-		// - оригинальный запрос для нечеткого поиска
-		// - обработанный запрос для полнотекстового поиска
+	// Если запрос пустой, не добавляем условия поиска по названию
+	if searchQuery == "" {
+		// Для пустого запроса используем только параметр для LIMIT
+		args = []interface{}{}
 		
-		// Используем prepareTsQuery для очистки запроса от специальных символов
-		tsQueryVersion = prepareTsQuery(searchQuery)
-		args = []interface{}{searchQuery, tsQueryVersion}
+		// Для пустого запроса изменяем базовый запрос, убирая условие поиска по названию
+		baseQuery = `
+			SELECT ` + listingFields + `
+			FROM ` + itemTable + ` l
+			WHERE l.deleted_at IS NULL
+		`
+		
+		// Для пустого запроса используем простую сортировку по дате создания
+		orderExpr = "l.created_at DESC"
+	} else {
+		var tsQueryVersion string
+		switch searchType {
+		case FuzzySearch, FullTextSearch:
+			// Для нечеткого или полнотекстового поиска используем один параметр
+			args = []interface{}{searchQuery}
+		case CombinedSearch:
+			// Для комбинированного поиска используем два параметра:
+			// - оригинальный запрос для нечеткого поиска
+			// - обработанный запрос для полнотекстового поиска
+			
+			// Используем prepareTsQuery для очистки запроса от специальных символов
+			tsQueryVersion = prepareTsQuery(searchQuery)
+			args = []interface{}{searchQuery, tsQueryVersion}
+		}
 	}
 
 	if cursor == nil {
@@ -280,10 +306,13 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 		if limit > 0 {
 			// Лимит положительный: выбираем первые limit записей, сортируя результат по заданному orderExpr
 			
-			// Определяем номер параметра для LIMIT в зависимости от типа поиска
-			limitParam := "$2"
-			if searchType == CombinedSearch {
-				limitParam = "$3"
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска и наличия запроса
+			limitParam := "$1"
+			if searchQuery != "" {
+				limitParam = "$2"
+				if searchType == CombinedSearch {
+					limitParam = "$3"
+				}
 			}
 			
 			return baseQuery + `
@@ -298,10 +327,13 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 			// 3. Внешний запрос переворачивает результат для восстановления исходного порядка.
 			reverseExpr := getReverseOrderExpression(orderExpr)
 			
-			// Определяем номер параметра для LIMIT в зависимости от типа поиска
-			limitParam := "$2"
-			if searchType == CombinedSearch {
-				limitParam = "$3"
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска и наличия запроса
+			limitParam := "$1"
+			if searchQuery != "" {
+				limitParam = "$2"
+				if searchType == CombinedSearch {
+					limitParam = "$3"
+				}
 			}
 			
 			sql := `
@@ -322,10 +354,13 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 			// Функция getCursorCondition формирует условие, исключающее курсор из результата.
 			cond := getCursorCondition(orderExpr, cursor, false)
 			
-			// Определяем номер параметра для LIMIT в зависимости от типа поиска
-			limitParam := "$2"
-			if searchType == CombinedSearch {
-				limitParam = "$3"
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска и наличия запроса
+			limitParam := "$1"
+			if searchQuery != "" {
+				limitParam = "$2"
+				if searchType == CombinedSearch {
+					limitParam = "$3"
+				}
 			}
 			
 			return baseQuery + `
@@ -342,10 +377,13 @@ func buildSQLQuery(baseQuery, orderExpr, searchQuery string, limit int, cursor *
 			reverseExpr := getReverseOrderExpression(orderExpr)
 			cond := getCursorCondition(reverseExpr, cursor, true)
 			
-			// Определяем номер параметра для LIMIT в зависимости от типа поиска
-			limitParam := "$2"
-			if searchType == CombinedSearch {
-				limitParam = "$3"
+			// Определяем номер параметра для LIMIT в зависимости от типа поиска и наличия запроса
+			limitParam := "$1"
+			if searchQuery != "" {
+				limitParam = "$2"
+				if searchType == CombinedSearch {
+					limitParam = "$3"
+				}
 			}
 			
 			sql := `

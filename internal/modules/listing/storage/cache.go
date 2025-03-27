@@ -113,7 +113,7 @@ func (s *Cache) GetCursor(cursorId string) (listing.SearchCursor, error) {
 	return cursor, nil
 }
 
-func (s *Cache) GetSearchInfo(searchId string) (listing.SearchID, error) {
+func (s *Cache) GetSearchInfo(searchId string) (*listing.SearchID, error) {
 	var searchBytes []byte
 	var expiresAt time.Time
 
@@ -123,7 +123,7 @@ func (s *Cache) GetSearchInfo(searchId string) (listing.SearchID, error) {
 	).Scan(&searchBytes, &expiresAt)
 
 	if err != nil {
-		return listing.SearchID{}, errors.New("invalid search id")
+		return nil, errors.New("invalid search id")
 	}
 
 	if time.Now().After(expiresAt) {
@@ -132,12 +132,12 @@ func (s *Cache) GetSearchInfo(searchId string) (listing.SearchID, error) {
 			"DELETE FROM search_info WHERE id = $1",
 			searchId,
 		)
-		return listing.SearchID{}, errors.New("search info expired")
+		return nil, nil
 	}
 
-	var searchInfo listing.SearchID
-	if err := json.Unmarshal(searchBytes, &searchInfo); err != nil {
-		return listing.SearchID{}, errors.New("invalid search info data")
+	searchInfo := &listing.SearchID{}
+	if err := json.Unmarshal(searchBytes, searchInfo); err != nil {
+		return nil, errors.New("invalid search info data")
 	}
 
 	return searchInfo, nil
