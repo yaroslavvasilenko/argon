@@ -34,8 +34,8 @@ func TestFiltersUnmarshalJSON(t *testing.T) {
 		// Проверяем фильтр цвета (строковое значение)
 		colorFilter, ok := filters.GetColorFilter(CHAR_COLOR)
 		require.True(t, ok, "Фильтр цвета не найден")
-		require.Len(t, colorFilter, 1, "Фильтр цвета должен содержать 1 элемент")
-		assert.Equal(t, "white", colorFilter[0], "Цвет должен быть 'white'")
+		require.Len(t, colorFilter.Options, 1, "Фильтр цвета должен содержать 1 элемент")
+		assert.Equal(t, "white", colorFilter.Options[0], "Цвет должен быть 'white'")
 
 		// Проверяем фильтр бренда (строковое значение)
 		brandFilter, ok := filters.GetDropdownFilter(CHAR_BRAND)
@@ -74,7 +74,7 @@ func TestFiltersUnmarshalJSON(t *testing.T) {
 		filters[CHAR_PRICE] = priceFilter
 
 		// Добавляем фильтр цвета
-		colorFilter := ColorFilter{"black", "red"}
+		colorFilter := ColorFilter{Options: []string{"black", "red"}}
 		filters[CHAR_COLOR] = colorFilter
 
 		// Добавляем фильтр бренда
@@ -152,8 +152,8 @@ func TestFiltersUnmarshalJSON(t *testing.T) {
 		// Проверяем фильтр цвета
 		colorFilter, ok := testFilters.GetColorFilter(CHAR_COLOR)
 		require.True(t, ok, "Фильтр цвета не найден")
-		require.Len(t, colorFilter, 1, "Фильтр цвета должен содержать 1 элемент")
-		assert.Equal(t, "white", colorFilter[0], "Цвет должен быть 'white'")
+		require.Len(t, colorFilter.Options, 1, "Фильтр цвета должен содержать 1 элемент")
+		assert.Equal(t, "white", colorFilter.Options[0], "Цвет должен быть 'white'")
 
 		// Проверяем фильтр бренда
 		brandFilter, ok := testFilters.GetDropdownFilter(CHAR_BRAND)

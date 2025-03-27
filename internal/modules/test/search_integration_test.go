@@ -263,7 +263,7 @@ func TestSearchListings(t *testing.T) {
 				Min: 90000,
 				Max: 150000,
 			},
-			models.COLOR_TYPE:    models.ColorFilter{"black", "silver"},
+			models.COLOR_TYPE:    models.ColorFilter{Options: []string{"black", "silver"}},
 			models.CHAR_BRAND: models.DropdownFilter{"Samsung"},
 			models.CHAR_STOCKED: func() models.CheckboxFilter { trueValue := true; return &trueValue }(),
 			models.CHAR_WEIGHT: models.DimensionFilter{
@@ -296,7 +296,7 @@ func TestSearchListings(t *testing.T) {
 		// Тест фильтра по цвету
 		filtersEdit = make(models.Filters)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[models.COLOR_TYPE] = models.ColorFilter{"red", "green"}
+		filtersEdit[models.COLOR_TYPE] = models.ColorFilter{Options: []string{"red", "green"}}
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
 

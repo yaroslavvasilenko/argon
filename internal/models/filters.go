@@ -52,7 +52,9 @@ type PriceFilter struct {
 	Max int `json:"max,omitempty"`
 }
 
-type ColorFilter []string
+type ColorFilter struct {
+	Options []string `json:"options"`
+}
 
 type DropdownFilter []string
 
@@ -305,7 +307,7 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 			// Пробуем разобрать как массив строк
 			var strArray []string
 			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
-				(*c)[filter.Role] = ColorFilter(strArray)
+				(*c)[filter.Role] = ColorFilter{Options: strArray}
 				continue
 			}
 			
@@ -316,7 +318,7 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 			}
 			
 			// Преобразуем строку в массив из одного элемента
-			(*c)[filter.Role] = ColorFilter([]string{str})
+			(*c)[filter.Role] = ColorFilter{Options: []string{str}}
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
 			// Пробуем разобрать как массив строк
 			var strArray []string

@@ -131,9 +131,9 @@ func buildBaseQuery(searchType SearchType, categoryID string, filters models.Fil
 		
 
 		// Обрабатываем фильтр цвета
-			if colorFilter, ok := filters.GetColorFilter(key); ok && len(colorFilter) > 0 {
+			if colorFilter, ok := filters.GetColorFilter(key); ok && len(colorFilter.Options) > 0 {
 				colorConditions := []string{}
-				for _, color := range colorFilter {
+				for _, color := range colorFilter.Options {
 					// Проверяем, содержит ли массив цветов заданный цвет
 					colorConditions = append(colorConditions, fmt.Sprintf(
 						"lch.characteristics -> '%s' ? '%s'", key, color))

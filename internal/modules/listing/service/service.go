@@ -249,14 +249,14 @@ func (s *Listing) filterEmptyValues(filters models.Filters) models.Filters {
 	for key, filter := range filters {
 		switch f := filter.(type) {
 		case models.PriceFilter:
-			// Добавляем фильтр цены только если есть реальный диапазон цен
-			if f.Min <= f.Max && (f.Min > 0 || f.Max > 0) {
+			// Добавляем фильтр цены только если есть реальный диапазон цен и минимальная цена не равна максимальной
+			if f.Min < f.Max && (f.Min > 0 || f.Max > 0) {
 				result[key] = f
 			}
 
 		case models.ColorFilter:
 			// Добавляем фильтр цвета только если есть значения
-			if len(f) > 0 {
+			if len(f.Options) > 0 {
 				result[key] = f
 			}
 

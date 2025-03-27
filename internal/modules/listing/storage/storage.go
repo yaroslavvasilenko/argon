@@ -885,7 +885,7 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 					continue // Пропускаем некорректные данные
 				}
 				if colors != nil && len(colors) > 0 {
-					result[key] = models.ColorFilter(colors)
+					result[key] = models.ColorFilter{Options: colors}
 				}
 
 			case models.CHAR_BRAND, models.CHAR_CONDITION, models.CHAR_SEASON:
