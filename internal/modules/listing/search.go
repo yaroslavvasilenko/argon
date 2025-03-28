@@ -100,9 +100,9 @@ func GetSearchListingsRequest(c *fiber.Ctx) (SearchListingsRequest, error) {
 
 type SearchListingsResponse struct {
 	Results      []ListingResponse `json:"items"`
-	CursorAfter  string            `json:"cursor_after,omitempty"`
-	CursorBefore string            `json:"cursor_before,omitempty"`
-	SearchID     string            `json:"search_id,omitempty" query:"search_id,omitempty"`
+	CursorAfter  string            `json:"cursor_after"`
+	CursorBefore string            `json:"cursor_before"`
+	SearchID     string            `json:"qid"`
 }
 
 type ListingResponse struct {
