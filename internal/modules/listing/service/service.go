@@ -44,6 +44,7 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 	ID := uuid.New()
 	timeNow := time.Now()
 
+	// Создаем объявление с переданными ID категорий
 	err := s.s.CreateListing(ctx, models.Listing{
 		ID:          ID,
 		Title:       p.Title,
@@ -57,18 +58,25 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 		return listing.CreateListingResponse{}, err
 	}
 
+	// Получаем полные данные объявления
 	fullListing, err := s.s.GetFullListing(ctx, ID.String())
 	if err != nil {
 		return listing.CreateListingResponse{}, err
 	}
 
+	// Формируем массив бустов
 	boosts := []listing.BoostResp{}
-
 	for _, boost := range fullListing.Boosts {
 		boosts = append(boosts, listing.BoostResp{
 			Type:              boost.Type,
 			CommissionPercent: boost.Commission,
 		})
+	}
+
+	// Получаем локализованные названия категорий
+	categories, err := listing.GetCategoriesWithLocalizedNames(ctx, fullListing.Categories.ID)
+	if err != nil {
+		return listing.CreateListingResponse{}, err
 	}
 
 	resp := listing.CreateListingResponse{
@@ -78,10 +86,10 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 		Price:           fullListing.Listing.Price,
 		Currency:        fullListing.Listing.Currency,
 		Location:        fullListing.Location,
-		Categories:      fullListing.Categories.ID,
+		Categories:      categories,
 		Characteristics: fullListing.Characteristics,
 		Boosts:          boosts,
-		Images:          []string{} ,
+		Images:          []string{},
 	}
 
 	return resp, nil
@@ -105,6 +113,12 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		})
 	}
 
+	// Получаем локализованные названия категорий
+	categories, err := listing.GetCategoriesWithLocalizedNames(ctx, fullListing.Categories.ID)
+	if err != nil {
+		return listing.FullListingResponse{}, err
+	}
+
 	resp := listing.FullListingResponse{
 		ID:             fullListing.Listing.ID,
 		Title:          fullListing.Listing.Title,
@@ -114,7 +128,7 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		OriginalPrice:  fullListing.Listing.Price,
 		OriginalCurrency: fullListing.Listing.Currency,
 		Location:       fullListing.Location,
-		Categories:     fullListing.Categories.ID,
+		Categories:     categories,
 		Characteristics: fullListing.Characteristics,
 		Images:          []string{},
 		Boosts:         boosts,

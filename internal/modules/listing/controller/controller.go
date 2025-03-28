@@ -30,8 +30,11 @@ func (h *Listing) CreateListing(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
+	
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
 
-	listing, err := h.s.CreateListing(c.UserContext(), r)
+	listing, err := h.s.CreateListing(ctx, r)
 	if err != nil {
 		return err
 	}
@@ -42,7 +45,10 @@ func (h *Listing) CreateListing(c *fiber.Ctx) error {
 func (h *Listing) GetListing(c *fiber.Ctx) error {
 	listingID := c.Params("listing_id")
 
-	listing, err := h.s.GetListing(c.UserContext(), listingID)
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
+
+	listing, err := h.s.GetListing(ctx, listingID)
 	if err != nil {
 		return err
 	}
@@ -98,7 +104,10 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 		return err
 	}
 
-	listings, err := h.s.SearchListings(c.UserContext(), req)
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
+
+	listings, err := h.s.SearchListings(ctx, req)
 	if err != nil {
 		return err
 	}

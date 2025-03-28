@@ -121,8 +121,8 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 
 	
 
-	return listing.CreateSearchListingsResponse(listingsRes, 
-		resp.CursorAfter, resp.CursorBefore, resp.SearchID), nil
+	return listing.CreateSearchListingsResponse(ctx, listingsRes, 
+		resp.CursorAfter, resp.CursorBefore, resp.SearchID)
 }
 
 

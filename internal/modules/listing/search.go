@@ -1,6 +1,7 @@
 package listing
 
 import (
+	"context"
 	"fmt"
 
 	"github.com/gofiber/fiber/v2"
@@ -100,8 +101,8 @@ func GetSearchListingsRequest(c *fiber.Ctx) (SearchListingsRequest, error) {
 
 type SearchListingsResponse struct {
 	Results      []ListingResponse `json:"items"`
-	CursorAfter  *string            `json:"cursor_after"`
-	CursorBefore *string            `json:"cursor_before"`
+	CursorAfter  *string           `json:"cursor_after"`
+	CursorBefore *string           `json:"cursor_before"`
 	SearchID     string            `json:"qid"`
 }
 
@@ -114,42 +115,47 @@ type ListingResponse struct {
 	OriginalCurrency models.Currency `json:"original_currency"`
 	Description      string          `json:"description"`
 	Location         models.Location `json:"location"`
-	Category         CategoryInfo    `json:"category"`
+	Category         Category        `json:"category"`
 	Images           []string        `json:"images"`
 	IsHighlighted    bool            `json:"is_highlighted"`
 	IsBuyable        bool            `json:"is_buyable"`
 }
 
-type CategoryInfo struct {
-	ID    string `json:"id"`
-	Name  string `json:"name"`
-	Image string `json:"image,omitempty"`
-}
-
 // CreateSearchListingsResponse создает ответ на запрос поиска объявлений
 func CreateSearchListingsResponse(
+	ctx context.Context,
 	listings []models.ListingResult,
 	cursorAfter *string,
 	cursorBefore *string,
 	searchID string,
-) SearchListingsResponse {
+) (SearchListingsResponse, error) {
 	results := make([]ListingResponse, 0, len(listings))
 
 	for _, listingResult := range listings {
 		listing := listingResult.Listing
 
 		// Подготавливаем данные для ответа
-		var categoryInfo CategoryInfo
+		var categoryInfo Category
 		var isHighlighted bool
 		var isBuyable bool
 		var location models.Location
 
 		// Обрабатываем категории
 		if len(listingResult.Categories) > 0 {
-			// TODO: сделать получение имени и изображения категории из справочника категорий
-			categoryInfo = CategoryInfo{
-				ID:   listingResult.Categories[0].ID[0],
-				Name: "TODO: получить имя категории",
+			// Получаем локализованное название категории
+			categoryID := listingResult.Categories[0].ID[0]
+			categoryName := ""
+			categoryNames, err := GetCategoriesWithLocalizedNames(ctx, []string{categoryID})
+			if err != nil {
+				return SearchListingsResponse{}, err
+			}
+
+			if len(categoryNames) != 0 {
+				categoryName = categoryNames[0].Name
+			}
+			categoryInfo = Category{
+				ID:   categoryID,
+				Name: categoryName,
 			}
 		}
 
@@ -166,8 +172,7 @@ func CreateSearchListingsResponse(
 			// TODO: сделать логику для определения IsBuyable на основе бустов
 			if boost.Type == models.BoostTypeUpfront {
 				isBuyable = true
-	
-	
+
 			}
 		}
 
@@ -199,7 +204,7 @@ func CreateSearchListingsResponse(
 		CursorAfter:  cursorAfter,
 		CursorBefore: cursorBefore,
 		SearchID:     searchID,
-	}
+	}, nil
 }
 
 type SearchBlock string
