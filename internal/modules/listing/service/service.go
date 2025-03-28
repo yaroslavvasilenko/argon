@@ -111,11 +111,15 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		Description:    fullListing.Listing.Description,
 		Price:          fullListing.Listing.Price,
 		Currency:       fullListing.Listing.Currency,
+		OriginalPrice:  fullListing.Listing.Price,
+		OriginalCurrency: fullListing.Listing.Currency,
 		Location:       fullListing.Location,
 		Categories:     fullListing.Categories.ID,
 		Characteristics: fullListing.Characteristics,
 		Images:          []string{},
 		Boosts:         boosts,
+		CreatedAt:      fullListing.Listing.CreatedAt,
+		UpdatedAt:      fullListing.Listing.UpdatedAt,
 	}
 
 	return resp, nil
