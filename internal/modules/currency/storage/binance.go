@@ -3,9 +3,7 @@ package storage
 import (
 	"context"
 	"fmt"
-	"math/rand"
 	"strconv"
-	"time"
 
 	client "github.com/binance/binance-connector-go"
 	"github.com/yaroslavvasilenko/argon/config"
@@ -18,15 +16,36 @@ type IBinance interface {
 type LocalBinance struct{}
 
 func (b *LocalBinance) GetExchangeRateFromBinance(symbol string) (float64, error) {
-	// Используем текущее время как seed для рандома
-	rand.Seed(time.Now().UnixNano())
+	// Захардкоженные курсы валют (примерно реальные на март 2025)
+	exchangeRates := map[string]float64{
+		// Основные пары с USD
+		"EURUSD": 1.08,  // EUR/USD
+		"USDRUB": 92.5,  // USD/RUB
+		"USDARS": 950.0, // USD/ARS
 
-	// Генерируем случайное число от 90 до 110
-	base := 100.0
-	variation := 10.0
-	randomPrice := base + (rand.Float64()*variation*2 - variation)
+		// Обратные пары
+		"USDEUR": 0.925,   // USD/EUR
+		"RUBUSD": 0.0108,  // RUB/USD
+		"ARSUSD": 0.00105, // ARS/USD
 
-	return randomPrice, nil
+		// Кросс-курсы EUR
+		"EURRUB": 100.0,   // EUR/RUB
+		"EURARS": 1027.0,  // EUR/ARS
+		"RUBEUR": 0.01,    // RUB/EUR
+		"ARSEUR": 0.00097, // ARS/EUR
+
+		// Кросс-курсы RUB и ARS
+		"RUBARS": 10.27,  // RUB/ARS
+		"ARSRUB": 0.0974, // ARS/RUB
+	}
+
+	// Проверяем, есть ли запрошенный символ в нашей таблице курсов
+	rate, exists := exchangeRates[symbol]
+	if !exists {
+		return 0, fmt.Errorf("курс для пары %s не найден", symbol)
+	}
+
+	return rate, nil
 }
 
 type Binance struct {
