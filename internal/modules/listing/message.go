@@ -202,5 +202,5 @@ type CharacteristicParamItem struct {
 type CharacteristicParam map[string]interface{}
 
 type GetCharacteristicsForCategoryResponse struct {
-	Characteristics CharacteristicParam `json:"characteristics_params"`
+	CharacteristicParams CharacteristicParam `json:"characteristic_params"`
 }

@@ -213,7 +213,7 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 	}
 
 	return listing.GetCharacteristicsForCategoryResponse{
-		Characteristics: result,
+		CharacteristicParams: result,
 	}, nil
 }
 
