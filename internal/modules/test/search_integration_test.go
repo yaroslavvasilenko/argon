@@ -1,6 +1,7 @@
 package modules
 
 import (
+	"encoding/json"
 	"fmt"
 	"maps"
 	"net/http"
@@ -476,6 +477,132 @@ func TestSearchListings(t *testing.T) {
 			}
 		}
 		require.True(t, found, "Тестовый товар не найден при поиске с пустым запросом и фильтром бренда")
+	})
+
+	t.Run("Search by category filter", func(t *testing.T) {
+		// Создаем объявления в разных категориях
+		smartphone := listing.CreateListingRequest{
+			Title:       "iPhone 13 Pro Max",
+			Description: "Смартфон Apple iPhone 13 Pro Max",
+			Price:       90000,
+			Currency:    models.Currency("RUB"),
+			Categories:  []string{"smartphones"}, // Категория смартфонов
+		}
+		res := user.createListing(t, smartphone)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		
+		// Получаем ID созданного объявления смартфона
+		var smartphoneResp listing.CreateListingResponse
+		err := json.NewDecoder(res.Body).Decode(&smartphoneResp)
+		require.NoError(t, err)
+		t.Logf("Создано объявление смартфона с ID: %s, категории: %v", smartphoneResp.ID, smartphoneResp.Categories)
+
+		clothing := listing.CreateListingRequest{
+			Title:       "Мужская куртка",
+			Description: "Стильная мужская куртка",
+			Price:       5000,
+			Currency:    models.Currency("RUB"),
+			Categories:  []string{"men's clothing"}, // Категория мужской одежды
+		}
+		res = user.createListing(t, clothing)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		
+		// Получаем ID созданного объявления одежды
+		var clothingResp listing.CreateListingResponse
+		err = json.NewDecoder(res.Body).Decode(&clothingResp)
+		require.NoError(t, err)
+		t.Logf("Создано объявление одежды с ID: %s, категории: %v", clothingResp.ID, clothingResp.Categories)
+
+		furniture := listing.CreateListingRequest{
+			Title:       "Диван угловой",
+			Description: "Удобный угловой диван",
+			Price:       25000,
+			Currency:    models.Currency("RUB"),
+			Categories:  []string{"furniture"}, // Категория мебели
+		}
+		res = user.createListing(t, furniture)
+		require.Equal(t, http.StatusOK, res.StatusCode)
+		
+		// Получаем ID созданного объявления мебели
+		var furnitureResp listing.CreateListingResponse
+		err = json.NewDecoder(res.Body).Decode(&furnitureResp)
+		require.NoError(t, err)
+		t.Logf("Создано объявление мебели с ID: %s, категории: %v", furnitureResp.ID, furnitureResp.Categories)
+
+		// Поиск по категории смартфонов
+		req := getSearchListingsRequest("", 10, "", "relevance", "")
+		req.CategoryID = "smartphones" // Используем одну категорию в запросе поиска
+		t.Logf("Выполняем поиск по категории: %s", req.CategoryID)
+
+		resp := user.searchListings(t, req)
+		t.Logf("Найдено результатов: %d", len(resp.Results))
+
+		// Проверяем, что найдено только объявление из категории смартфонов
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске по категории смартфонов")
+		
+		// Выводим информацию о каждом найденном объявлении
+		for i, result := range resp.Results {
+			t.Logf("Результат #%d: Заголовок=%s", 
+				i+1, result.Title)
+		}
+		
+		found := false
+		for _, result := range resp.Results {
+			if result.Title == "iPhone 13 Pro Max" {
+				found = true
+			}
+			// Проверяем, что не найдены объявления из других категорий
+			assert.NotEqual(t, "Мужская куртка", result.Title, "Найдено объявление из неправильной категории")
+			assert.NotEqual(t, "Диван угловой", result.Title, "Найдено объявление из неправильной категории")
+		}
+		require.True(t, found, "Не найдено объявление из категории смартфонов")
+
+		// Поиск по категории мужской одежды
+		req = getSearchListingsRequest("", 10, "", "relevance", "")
+		req.CategoryID = "men's clothing" // Используем одну категорию в запросе поиска
+
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что найдено только объявление из категории мужской одежды
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске по категории мужской одежды")
+		found = false
+		for _, result := range resp.Results {
+			if result.Title == "Мужская куртка" {
+				found = true
+			}
+			// Проверяем, что не найдены объявления из других категорий
+			assert.NotEqual(t, "iPhone 13 Pro Max", result.Title, "Найдено объявление из неправильной категории")
+			assert.NotEqual(t, "Диван угловой", result.Title, "Найдено объявление из неправильной категории")
+		}
+		require.True(t, found, "Не найдено объявление из категории мужской одежды")
+
+		// Поиск по категории мебели
+		req = getSearchListingsRequest("", 10, "", "relevance", "")
+		req.CategoryID = "furniture" // Используем одну категорию в запросе поиска
+
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что найдено только объявление из категории мебели
+		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске по категории мебели")
+		found = false
+		for _, result := range resp.Results {
+			if result.Title == "Диван угловой" {
+				found = true
+			}
+			// Проверяем, что не найдены объявления из других категорий
+			assert.NotEqual(t, "iPhone 13 Pro Max", result.Title, "Найдено объявление из неправильной категории")
+			assert.NotEqual(t, "Мужская куртка", result.Title, "Найдено объявление из неправильной категории")
+		}
+		require.True(t, found, "Не найдено объявление из категории мебели")
+
+		// Поиск по несуществующей категории
+		req = getSearchListingsRequest("", 10, "", "relevance", "")
+		req.CategoryID = "nonexistent_category"
+
+		resp = user.searchListings(t, req)
+
+		// Проверяем, что ничего не найдено
+		require.Empty(t, resp.Results, "Найдены объявления при поиске по несуществующей категории")
 	})
 }
 
