@@ -116,8 +116,8 @@ type ListingResponse struct {
 	Location         models.Location `json:"location"`
 	Category         CategoryInfo    `json:"category"`
 	Images           []string        `json:"images"`
-	IsHighlighted    bool            `json:"is_highlighted,omitempty"`
-	IsBuyable        bool            `json:"is_buyable,omitempty"`
+	IsHighlighted    bool            `json:"is_highlighted"`
+	IsBuyable        bool            `json:"is_buyable"`
 }
 
 type CategoryInfo struct {
