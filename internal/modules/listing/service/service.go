@@ -103,8 +103,8 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		Characteristics: fullListing.Characteristics,
 		Images:          []string{},
 		Boosts:         boosts,
-		CreatedAt:      fullListing.Listing.CreatedAt,
-		UpdatedAt:      fullListing.Listing.UpdatedAt,
+		CreatedAt:      fullListing.Listing.CreatedAt.UnixMilli(),
+		UpdatedAt:      fullListing.Listing.UpdatedAt.UnixMilli(),
 	}
 
 	return resp, nil

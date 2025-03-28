@@ -4,7 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
-	"time"
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
@@ -102,8 +101,8 @@ type FullListingResponse struct {
 	Categories          []Category            `json:"categories"`
 	Characteristics     models.Characteristic `json:"characteristics"`
 	Images              []string              `json:"images"`
-	CreatedAt           time.Time             `json:"created_at"`
-	UpdatedAt           time.Time             `json:"updated_at"`
+	CreatedAt           int64                `json:"created_at"`
+	UpdatedAt           int64                `json:"updated_at"`
 	Boosts              []BoostResp           `json:"boosts,omitempty"`
 	IsEditable          bool                  `json:"is_editable"`
 	IsBuyout            bool                  `json:"is_buyout"`
