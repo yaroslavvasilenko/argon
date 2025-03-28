@@ -119,7 +119,7 @@ type Characteristic map[string]interface{}
 // CharacteristicItem представляет отдельную характеристику с ролью и значением
 type CharacteristicItem struct {
 	Role  string      `json:"role"`
-	Param interface{} `json:"param"`
+	Value interface{} `json:"value"`
 }
 
 func CreateCharacteristics(keys []string, translations map[string]string) Characteristic {
@@ -149,7 +149,7 @@ func (c Characteristic) MarshalJSON() ([]byte, error) {
 	for role, param := range c {
 		charItems = append(charItems, CharacteristicItem{
 			Role:  role,
-			Param: param,
+			Value: param,
 		})
 	}
 
@@ -168,7 +168,7 @@ func (c *Characteristic) UnmarshalJSON(data []byte) error {
 	}
 
 	for _, item := range charItems {
-		(*c)[item.Role] = item.Param
+		(*c)[item.Role] = item.Value
 	}
 
 	return nil

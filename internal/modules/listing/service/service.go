@@ -210,7 +210,7 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 		if translation, ok := characteristicsTranslations[key]; ok {
 			result = append(result, models.CharacteristicItem{
 				Role:  key,
-				Param: translation,
+				Value: translation,
 			})
 		}
 	}
