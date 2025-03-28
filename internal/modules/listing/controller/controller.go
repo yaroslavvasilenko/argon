@@ -30,7 +30,7 @@ func (h *Listing) CreateListing(c *fiber.Ctx) error {
 	if err != nil {
 		return err
 	}
-	
+
 	// Создаем контекст с информацией о языке
 	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
 
@@ -167,7 +167,11 @@ func (h *Listing) GetCharacteristicsForCategory(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(characteristics)
+	return c.JSON(struct {
+		Characteristics []models.CharacteristicItem `json:"characteristics"`
+	}{
+		Characteristics: characteristics,
+	})
 }
 
 // GetFiltersForCategory возвращает фильтры для указанной категории
