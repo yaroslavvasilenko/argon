@@ -167,11 +167,7 @@ func (h *Listing) GetCharacteristicsForCategory(c *fiber.Ctx) error {
 		return err
 	}
 
-	return c.JSON(struct {
-		Characteristics []models.CharacteristicItem `json:"characteristics"`
-	}{
-		Characteristics: characteristics,
-	})
+	return c.JSON(characteristics)
 }
 
 // GetFiltersForCategory возвращает фильтры для указанной категории

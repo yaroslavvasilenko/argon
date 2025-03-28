@@ -803,13 +803,13 @@ components:
     GetCharacteristicsByCategoryResponse:
       type: object
       properties:
-        characteristics:
+        characteristic_params:
           type: array
           description: Упорядоченный массив параметров характеристик данных категорий без повторений. Порядок формируется приортетно для категорий идущих первыми в списке.
           items:
             $ref: '#/components/schemas/CharacteristicParam'
       required:
-        - characteristics
+        - characteristic_params
     
     GetFiltersByCategoryResponse:
       type: object

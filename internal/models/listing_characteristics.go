@@ -173,3 +173,5 @@ func (c *Characteristic) UnmarshalJSON(data []byte) error {
 
 	return nil
 }
+
+

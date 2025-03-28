@@ -156,3 +156,51 @@ func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) 
 
 	return categories, nil
 }
+
+
+// MarshalJSON реализует интерфейс json.Marshaler для типа Characteristic
+func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
+	if c == nil {
+		return []byte("null"), nil
+	}
+
+	charItems := make([]CharacteristicParamItem, 0, len(c))
+	for role, param := range c {
+		charItems = append(charItems, CharacteristicParamItem{
+			Role:  role,
+			Param: param,
+		})
+	}
+
+	return json.Marshal(charItems)
+}
+
+// UnmarshalJSON реализует интерфейс json.Unmarshaler для типа Characteristic
+func (c *CharacteristicParam) UnmarshalJSON(data []byte) error {
+	var charItems []CharacteristicParamItem
+	if err := json.Unmarshal(data, &charItems); err != nil {
+		return err
+	}
+
+	if *c == nil {
+		*c = make(CharacteristicParam)
+	}
+
+	for _, item := range charItems {
+		(*c)[item.Role] = item.Param
+	}
+
+	return nil
+}
+
+type CharacteristicParamItem struct {
+	Role  string `json:"role"`
+	Param interface{} `json:"param"`
+}
+
+
+type CharacteristicParam map[string]interface{}
+
+type GetCharacteristicsForCategoryResponse struct {
+	Characteristics CharacteristicParam `json:"characteristics_params"`
+}

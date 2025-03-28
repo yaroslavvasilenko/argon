@@ -195,27 +195,26 @@ func applyTranslations(nodes *[]listing.CategoryNode, translations map[string]st
 }
 
 
-func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds []string) ([]models.CharacteristicItem, error) {
+func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds []string) (listing.GetCharacteristicsForCategoryResponse, error) {
 	// Получаем характеристики и переводы
 	_, characteristicKeys, characteristicsTranslations, err := s.getCategoryCharacteristics(ctx, categoryIds)
 	if err != nil {
-		return nil, err
+		return listing.GetCharacteristicsForCategoryResponse{}, err
 	}
 
 	// Создаем массив характеристик в порядке их ключей
-	result := make([]models.CharacteristicItem, 0, len(characteristicKeys))
+	result := make(listing.CharacteristicParam, len(characteristicKeys))
 	
 	// Добавляем характеристики в порядке их следования в иерархии категорий
 	for _, key := range characteristicKeys {
 		if translation, ok := characteristicsTranslations[key]; ok {
-			result = append(result, models.CharacteristicItem{
-				Role:  key,
-				Value: translation,
-			})
+			result[key] = translation
 		}
 	}
 
-	return result, nil
+	return listing.GetCharacteristicsForCategoryResponse{
+		Characteristics: result,
+	}, nil
 }
 
 // GetFiltersForCategory возвращает фильтры для указанной категории
