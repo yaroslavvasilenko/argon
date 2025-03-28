@@ -100,8 +100,8 @@ func GetSearchListingsRequest(c *fiber.Ctx) (SearchListingsRequest, error) {
 
 type SearchListingsResponse struct {
 	Results      []ListingResponse `json:"items"`
-	CursorAfter  string            `json:"cursor_after"`
-	CursorBefore string            `json:"cursor_before"`
+	CursorAfter  *string            `json:"cursor_after"`
+	CursorBefore *string            `json:"cursor_before"`
 	SearchID     string            `json:"qid"`
 }
 
@@ -129,8 +129,8 @@ type CategoryInfo struct {
 // CreateSearchListingsResponse создает ответ на запрос поиска объявлений
 func CreateSearchListingsResponse(
 	listings []models.ListingResult,
-	cursorAfter string,
-	cursorBefore string,
+	cursorAfter *string,
+	cursorBefore *string,
 	searchID string,
 ) SearchListingsResponse {
 	results := make([]ListingResponse, 0, len(listings))
@@ -166,6 +166,8 @@ func CreateSearchListingsResponse(
 			// TODO: сделать логику для определения IsBuyable на основе бустов
 			if boost.Type == models.BoostTypeUpfront {
 				isBuyable = true
+	
+	
 			}
 		}
 

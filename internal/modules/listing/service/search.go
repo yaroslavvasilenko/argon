@@ -88,7 +88,9 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 			newCursor.Block = listing.TitleBlock
 		}
 
-		resp.CursorAfter = s.cache.StoreCursor(newCursor)
+		cursor := s.cache.StoreCursor(newCursor)
+
+		resp.CursorAfter = &cursor
 	}
 
 	if listingAnchor != nil {
@@ -104,7 +106,9 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 			newCursor.Block = listing.DescriptionBlock
 		}
 
-		resp.CursorBefore = s.cache.StoreCursor(newCursor)
+		cursor := s.cache.StoreCursor(newCursor)
+
+		resp.CursorBefore = &cursor
 	}
 
 	searchId := listing.SearchID{
