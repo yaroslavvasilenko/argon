@@ -40,7 +40,7 @@ func (s *Listing) Ping() string {
 	return "pong"
 }
 
-func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequest) (listing.CreateListingResponse, error) {
+func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequest) (listing.FullListingResponse, error) {
 	ID := uuid.New()
 	timeNow := time.Now()
 
@@ -55,41 +55,12 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 		UpdatedAt:   timeNow,
 	}, p.Categories, p.Location, p.Characteristics)
 	if err != nil {
-		return listing.CreateListingResponse{}, err
+		return listing.FullListingResponse{}, err
 	}
 
-	// Получаем полные данные объявления
-	fullListing, err := s.s.GetFullListing(ctx, ID.String())
+	resp, err := s.GetListing(ctx, ID.String())
 	if err != nil {
-		return listing.CreateListingResponse{}, err
-	}
-
-	// Формируем массив бустов
-	boosts := []listing.BoostResp{}
-	for _, boost := range fullListing.Boosts {
-		boosts = append(boosts, listing.BoostResp{
-			Type:              boost.Type,
-			CommissionPercent: boost.Commission,
-		})
-	}
-
-	// Получаем локализованные названия категорий
-	categories, err := listing.GetCategoriesWithLocalizedNames(ctx, fullListing.Categories.ID)
-	if err != nil {
-		return listing.CreateListingResponse{}, err
-	}
-
-	resp := listing.CreateListingResponse{
-		ID:              fullListing.Listing.ID,
-		Title:           fullListing.Listing.Title,
-		Description:     fullListing.Listing.Description,
-		Price:           fullListing.Listing.Price,
-		Currency:        fullListing.Listing.Currency,
-		Location:        fullListing.Location,
-		Categories:      categories,
-		Characteristics: fullListing.Characteristics,
-		Boosts:          boosts,
-		Images:          []string{},
+		return listing.FullListingResponse{}, err
 	}
 
 	return resp, nil

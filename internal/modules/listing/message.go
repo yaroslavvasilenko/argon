@@ -105,9 +105,9 @@ type FullListingResponse struct {
 	CreatedAt           time.Time             `json:"created_at"`
 	UpdatedAt           time.Time             `json:"updated_at"`
 	Boosts              []BoostResp           `json:"boosts,omitempty"`
-	IsEditable          bool                  `json:"is_editable,omitempty"`
-	IsBuyout            bool                  `json:"is_buyout,omitempty"`
-	IsNSFW              bool                  `json:"is_nsfw,omitempty"`
+	IsEditable          bool                  `json:"is_editable"`
+	IsBuyout            bool                  `json:"is_buyout"`
+	IsNSFW              bool                  `json:"is_nsfw"`
 }
 
 type GetFiltersForCategoryResponse struct {
