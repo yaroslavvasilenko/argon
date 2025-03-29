@@ -165,8 +165,5 @@ func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.GetS
 		resp.Location = location
 	}
 
-	resp.Filters = search.Filters
-	resp.SortOrder = search.SortOrder
-
 	return resp, nil
 }
