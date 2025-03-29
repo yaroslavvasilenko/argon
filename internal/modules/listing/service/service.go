@@ -17,6 +17,7 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
+	"github.com/yaroslavvasilenko/argon/internal/modules/location/service"
 	"gorm.io/gorm"
 )
 
@@ -24,9 +25,10 @@ type Listing struct {
 	s      *storage.Listing
 	logger *logger.Glog
 	cache  *storage.Cache
+	location *service.Location
 }
 
-func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.Glog) *Listing {
+func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.Glog, locationService *service.Location) *Listing {
 	srv := &Listing{
 		s:      s,
 		cache:  storage.NewCache(pool),

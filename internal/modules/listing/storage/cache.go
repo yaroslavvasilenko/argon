@@ -57,31 +57,7 @@ func (s *Cache) StoreCursor(cursorInfo listing.SearchCursor) string {
 	return hash
 }
 
-func (s *Cache) StoreSearchInfo(searchInfo listing.SearchID) string {
-	searchBytes, err := json.Marshal(searchInfo)
-	if err != nil {
-		return ""
-	}
 
-	// Создаем HMAC с SHA-256
-	h := hmac.New(sha256.New, s.secret)
-	h.Write(searchBytes)
-	hash := hex.EncodeToString(h.Sum(nil))
-
-	// Сохраняем в базу
-	_, err = s.pool.Exec(context.Background(),
-		"INSERT INTO search_info (id, search_data, expires_at) VALUES ($1, $2, $3) "+
-			"ON CONFLICT (id) DO UPDATE SET search_data = $2, expires_at = $3",
-		hash,
-		searchBytes,
-		time.Now().Add(7*24*time.Hour),
-	)
-	if err != nil {
-		return ""
-	}
-
-	return hash
-}
 
 func (s *Cache) GetCursor(cursorId string) (listing.SearchCursor, error) {
 	var cursorBytes []byte
@@ -111,6 +87,32 @@ func (s *Cache) GetCursor(cursorId string) (listing.SearchCursor, error) {
 	}
 
 	return cursor, nil
+}
+
+func (s *Cache) StoreSearchInfo(searchInfo listing.SearchID) string {
+	searchBytes, err := json.Marshal(searchInfo)
+	if err != nil {
+		return ""
+	}
+
+	// Создаем HMAC с SHA-256
+	h := hmac.New(sha256.New, s.secret)
+	h.Write(searchBytes)
+	hash := hex.EncodeToString(h.Sum(nil))
+
+	// Сохраняем в базу
+	_, err = s.pool.Exec(context.Background(),
+		"INSERT INTO search_info (id, search_data, expires_at) VALUES ($1, $2, $3) "+
+			"ON CONFLICT (id) DO UPDATE SET search_data = $2, expires_at = $3",
+		hash,
+		searchBytes,
+		time.Now().Add(7*24*time.Hour),
+	)
+	if err != nil {
+		return ""
+	}
+
+	return hash
 }
 
 func (s *Cache) GetSearchInfo(searchId string) (*listing.SearchID, error) {

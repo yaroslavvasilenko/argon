@@ -122,15 +122,41 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 		resp.CursorAfter, resp.CursorBefore, resp.SearchID)
 }
 
-func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.SearchID, error) {
+func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.GetSearchParamsResponse, error) {
 	search, err := s.cache.GetSearchInfo(qID)
 	if err != nil {
-		return listing.SearchID{}, err
+		return listing.GetSearchParamsResponse{}, err
 	}
 
 	if search == nil {
-		return listing.SearchID{}, nil
+		return listing.GetSearchParamsResponse{}, nil
 	}
 
-	return *search, nil
+	// Получаем данные о категории
+	category, err := s.GetCategoryById(ctx, search.CategoryID)
+	if err != nil {
+		s.logger.Errorf("Ошибка при получении категории: %v", err)
+		// Не возвращаем ошибку, чтобы не блокировать весь запрос
+		// Просто продолжаем с пустой категорией
+	}
+
+	// Получаем данные о локации
+	var location models.Location
+	if s.location != nil && search.LocationID != "" {
+		location, err = s.location.GetLocationById(ctx, search.LocationID)
+		if err != nil {
+			s.logger.Errorf("Ошибка при получении локации: %v", err)
+			// Не возвращаем ошибку, чтобы не блокировать весь запрос
+			// Просто продолжаем с пустой локацией
+		}
+	}
+
+	resp := listing.GetSearchParamsResponse{
+		Category:  category,
+		Location:  location,
+		Filters:   search.Filters,
+		SortOrder: search.SortOrder,
+	}
+
+	return resp, nil
 }

@@ -225,3 +225,10 @@ type SearchID struct {
 	SortOrder  string
 	LocationID string
 }
+
+type GetSearchParamsResponse struct {
+	Category Category        `json:"category"`
+	Location models.Location `json:"location"`
+	Filters  models.Filters  `json:"filters"`
+	SortOrder string         `json:"sort_order"`
+}
