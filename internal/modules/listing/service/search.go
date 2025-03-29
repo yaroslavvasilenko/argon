@@ -114,6 +114,7 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 		CategoryID: req.CategoryID,
 		Filters:    req.Filters,
 		SortOrder:  req.SortOrder,
+		LocationID: req.Location.ID,
 	}
 
 	resp.SearchID = s.cache.StoreSearchInfo(searchId)

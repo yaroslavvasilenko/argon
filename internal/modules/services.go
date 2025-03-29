@@ -18,7 +18,6 @@ type Services struct {
 
 
 func NewServices(storages *Storages, pool *pgxpool.Pool, lg *logger.Glog) *Services {
-	// Сначала создаем сервис локаций, так как он нужен для сервиса листинга
 	locationService := locservice.NewLocation(storages.Location, lg)
 
 	return &Services{

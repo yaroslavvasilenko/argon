@@ -33,6 +33,7 @@ func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.Glog, loc
 		s:      s,
 		cache:  storage.NewCache(pool),
 		logger: logger,
+		location: locationService,
 	}
 
 	return srv

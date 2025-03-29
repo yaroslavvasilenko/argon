@@ -30,6 +30,12 @@ type Address struct {
 	Country     string `json:"country,omitempty"`
 }
 
+// Centroid содержит координаты центра локации
+type Centroid struct {
+	Type        string    `json:"type"`
+	Coordinates []float64 `json:"coordinates"`
+}
+
 type Location struct {
 	baseUrl string
 }
