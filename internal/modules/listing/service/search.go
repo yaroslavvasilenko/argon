@@ -42,8 +42,13 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 	// Используем абсолютное значение для емкости слайса, чтобы избежать ошибки при отрицательном значении req.Limit
 	listingsRes := make([]models.ListingResult, 0, int(math.Abs(float64(req.Limit))))
 	if cursor.Block == "" || cursor.Block == listing.TitleBlock {
+
+		filters, err := req.Filters.ToFilters()
+		if err != nil {
+			return listing.SearchListingsResponse{}, err
+		}
 		var listings []models.ListingResult
-		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, req.Filters, req.Location)
+		listingAnchor, listings, err = s.s.SearchListingsByTitle(ctx, req.Query, req.Limit, cursor.LastIndex, req.SortOrder, req.CategoryID, filters, req.Location)
 		if err != nil {
 			if errors.Is(err, gorm.ErrRecordNotFound) {
 				return listing.SearchListingsResponse{}, fiber.NewError(fiber.StatusNotFound, err.Error())

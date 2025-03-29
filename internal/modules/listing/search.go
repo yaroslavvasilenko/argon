@@ -17,7 +17,7 @@ type SearchListingsRequest struct {
 	Limit      int             `json:"limit,omitempty"`
 	CategoryID string          `json:"category_id,omitempty"`
 	Location   models.Location `json:"location,omitempty"`
-	Filters    models.Filters  `json:"filters,omitempty"`
+	Filters    models.FilterParams  `json:"filters,omitempty"`
 	SortOrder  string          `json:"sort_order,omitempty"`
 }
 
@@ -30,7 +30,7 @@ func GetSearchListingsRequest(c *fiber.Ctx) (SearchListingsRequest, error) {
 		Limit      int             `json:"limit,omitempty"`
 		CategoryID string          `json:"category_id,omitempty"`
 		Location   models.Location `json:"location,omitempty"`
-		Filters    models.Filters  `json:"filters,omitempty"`
+		Filters    models.FilterParams  `json:"filters,omitempty"`
 		SortOrder  string          `json:"sort_order,omitempty"`
 	}{}
 
@@ -80,11 +80,11 @@ func GetSearchListingsRequest(c *fiber.Ctx) (SearchListingsRequest, error) {
 	}
 
 	// Validate filters if provided
-	if len(req.Filters) > 0 {
-		if err := req.Filters.Validate(); err != nil {
-			return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, err.Error())
-		}
-	}
+	// if len(req.Filters) > 0 {
+	// 	if err := req.Filters.Validate(); err != nil {
+	// 		return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, err.Error())
+	// 	}
+	// }
 
 	return SearchListingsRequest{
 		Query:      *req.Query,
@@ -221,7 +221,7 @@ type SearchCursor struct {
 
 type SearchID struct {
 	CategoryID string
-	Filters    models.Filters
+	Filters    models.FilterParams
 	SortOrder  string
 	Location models.Location
 }
@@ -229,6 +229,6 @@ type SearchID struct {
 type GetSearchParamsResponse struct {
 	Category *Category        `json:"category,omitempty"`
 	Location *models.Location `json:"location,omitempty"`
-	Filters  *models.Filters  `json:"filters,omitempty"`
+	Filters  *models.FilterParams  `json:"filters,omitempty"`
 	SortOrder *string         `json:"sort_order,omitempty"`
 }

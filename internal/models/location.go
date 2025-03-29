@@ -2,6 +2,7 @@ package models
 
 import (
 	"fmt"
+
 	"github.com/google/uuid"
 )
 
@@ -27,11 +28,11 @@ func (l Location) Validate() error {
 	if l.Name == "" {
 		return fmt.Errorf("имя местоположения не может быть пустым")
 	}
-	
+
 	if err := l.Area.Validate(); err != nil {
 		return fmt.Errorf("недопустимая область: %w", err)
 	}
-	
+
 	return nil
 }
 
