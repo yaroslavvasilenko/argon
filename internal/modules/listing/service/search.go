@@ -136,11 +136,11 @@ func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.GetS
 	}
 
 	if search.SortOrder != "" {
-		resp.SortOrder = search.SortOrder
+		resp.SortOrder = &search.SortOrder
 	}
 
 	if len(search.Filters) > 0 {
-		resp.Filters = search.Filters
+		resp.Filters = &search.Filters
 	}
 
 	if search.CategoryID != "" {
@@ -151,7 +151,7 @@ func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.GetS
 			// Не возвращаем ошибку, чтобы не блокировать весь запрос
 			// Просто продолжаем с пустой категорией
 		}
-		resp.Category = category
+		resp.Category = &category
 	}
 
 	// Получаем данные о локации
@@ -162,7 +162,7 @@ func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.GetS
 			// Не возвращаем ошибку, чтобы не блокировать весь запрос
 			// Просто продолжаем с пустой локацией
 		}
-		resp.Location = location
+		resp.Location = &location
 	}
 
 	return resp, nil
