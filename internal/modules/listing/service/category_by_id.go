@@ -2,9 +2,11 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/core/parser"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 )
 
@@ -45,25 +47,50 @@ func (s *Listing) GetCategoryById(ctx context.Context, categoryID string) (listi
 		Name: categoryID, // По умолчанию используем ID как имя
 	}
 
-	// Получаем язык из контекста
-	lang := parser.GetLang(ctx)
 
-	// Получаем перевод имени категории в зависимости от языка
-	// В реальном приложении здесь должна быть логика получения перевода из конфига
-	// Сейчас мы просто используем ID как имя
+	// Получаем перевод категории из конфигурации
+	lang := models.Localization(parser.GetLang(ctx))
 	switch lang {
-	case "ru":
-		// Здесь должна быть логика получения русского перевода
-		category.Name = "Категория " + categoryID
-	case "en":
-		// Здесь должна быть логика получения английского перевода
-		category.Name = "Category " + categoryID
-	case "es":
-		// Здесь должна быть логика получения испанского перевода
-		category.Name = "Categoría " + categoryID
-	default:
-		category.Name = "Category " + categoryID
+	case models.LanguageRu:
+		// Используем русский перевод из конфигурации
+		if cfg.Categories.Lang.Ru != "" {
+			var categories map[string]interface{}
+			if err := json.Unmarshal([]byte(cfg.Categories.Lang.Ru), &categories); err == nil {
+				if catData, ok := categories[categoryID].(map[string]interface{}); ok {
+					if name, ok := catData["name"].(string); ok && name != "" {
+						category.Name = name
+					}
+				}
+			}
+		}
+	case models.LanguageEn:
+		// Используем английский перевод из конфигурации
+		if cfg.Categories.Lang.En != "" {
+			var categories map[string]interface{}
+			if err := json.Unmarshal([]byte(cfg.Categories.Lang.En), &categories); err == nil {
+				if catData, ok := categories[categoryID].(map[string]interface{}); ok {
+					if name, ok := catData["name"].(string); ok && name != "" {
+						category.Name = name
+					}
+				}
+			}
+		}
+	case models.LanguageEs:
+		// Используем испанский перевод из конфигурации
+		if cfg.Categories.Lang.Es != "" {
+			var categories map[string]interface{}
+			if err := json.Unmarshal([]byte(cfg.Categories.Lang.Es), &categories); err == nil {
+				if catData, ok := categories[categoryID].(map[string]interface{}); ok {
+					if name, ok := catData["name"].(string); ok && name != "" {
+						category.Name = name
+					}
+				}
+			}
+		}
 	}
+	
+	// Если перевод не найден, продолжаем использовать ID как имя
+	// В будущем можно добавить поле Name в структуру CategoryNode
 
 	return category, nil
 }
