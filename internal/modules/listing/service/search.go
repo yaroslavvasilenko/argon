@@ -25,6 +25,8 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 		if search != nil {
 			req.SortOrder = search.SortOrder
 			req.Filters = search.Filters
+			req.Location = search.Location
+			req.CategoryID = search.CategoryID
 		}
 	}
 
