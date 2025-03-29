@@ -136,7 +136,10 @@ func (h *Listing) SearchListingsParams(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "qid parameter is required")
 	}
 
-	listings, err := h.s.GetSearchParams(c.UserContext(), qID)
+	// Создаем контекст с информацией о языке
+	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
+
+	listings, err := h.s.GetSearchParams(ctx, qID)
 	if err != nil {
 		return err
 	}
