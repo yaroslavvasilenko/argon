@@ -227,8 +227,8 @@ type SearchID struct {
 }
 
 type GetSearchParamsResponse struct {
-	Category Category        `json:"category"`
-	Location models.Location `json:"location"`
-	Filters  models.Filters  `json:"filters"`
-	SortOrder string         `json:"sort_order"`
+	Category Category        `json:"category,omitempty"`
+	Location models.Location `json:"location,omitempty"`
+	Filters  models.Filters  `json:"filters,omitempty"`
+	SortOrder string         `json:"sort_order,omitempty"`
 }
