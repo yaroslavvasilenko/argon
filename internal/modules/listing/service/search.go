@@ -2,13 +2,12 @@ package service
 
 import (
 	"context"
+	"errors"
 	"math"
 
+	"github.com/gofiber/fiber/v2"
 	"gorm.io/gorm"
 
-	"errors"
-
-	"github.com/gofiber/fiber/v2"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 )
@@ -112,19 +111,16 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 	}
 
 	searchId := listing.SearchID{
-		CategoryID:  req.CategoryID,
-		Filters:   req.Filters,
-		SortOrder: req.SortOrder,
+		CategoryID: req.CategoryID,
+		Filters:    req.Filters,
+		SortOrder:  req.SortOrder,
 	}
 
 	resp.SearchID = s.cache.StoreSearchInfo(searchId)
 
-	
-
-	return listing.CreateSearchListingsResponse(ctx, listingsRes, 
+	return listing.CreateSearchListingsResponse(ctx, listingsRes,
 		resp.CursorAfter, resp.CursorBefore, resp.SearchID)
 }
-
 
 func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.SearchID, error) {
 	search, err := s.cache.GetSearchInfo(qID)

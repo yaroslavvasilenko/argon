@@ -1,0 +1,160 @@
+# Categories with their characteristics
+
+# Electronics category
+[[categories]]
+id = "electronics"
+
+  # Brand characteristic for electronics
+  [[categories.characteristics]]
+  role = "brand"
+  options = ["apple", "samsung", "google", "xiaomi", "huawei"]
+
+  # Condition characteristic for electronics
+  [[categories.characteristics]]
+  role = "condition"
+  options = ["new", "like_new", "good", "fair", "poor"]
+
+  # Stocked characteristic for electronics
+  [[categories.characteristics]]
+  role = "stocked"
+  options = ["true", "false"]
+
+  # Weight characteristic for electronics
+  [[categories.characteristics]]
+  role = "weight"
+  options = []
+
+  # Smartphones subcategory
+  [[categories.subcategories]]
+  id = "smartphones"
+
+    # Color characteristic for smartphones
+    [[categories.subcategories.characteristics]]
+    role = "color"
+    options = []
+
+    # Height characteristic for smartphones
+    [[categories.subcategories.characteristics]]
+    role = "height"
+    options = []
+
+    # Width characteristic for smartphones
+    [[categories.subcategories.characteristics]]
+    role = "width"
+    options = []
+
+    # Depth characteristic for smartphones
+    [[categories.subcategories.characteristics]]
+    role = "depth"
+    options = []
+
+    # Volume characteristic for smartphones
+    [[categories.subcategories.characteristics]]
+    role = "volume"
+    options = []
+
+    # iPhone subcategory
+    [[categories.subcategories.subcategories]]
+    id = "iphone"
+    characteristics = []
+
+    # Google Pixel subcategory
+    [[categories.subcategories.subcategories]]
+    id = "google pixel"
+    characteristics = []
+
+# Clothing category
+[[categories]]
+id = "clothing"
+
+  # Color characteristic for clothing
+  [[categories.characteristics]]
+  role = "color"
+  options = []
+
+  # Condition characteristic for clothing
+  [[categories.characteristics]]
+  role = "condition"
+  options = ["new", "like_new", "good"]
+
+  # Brand characteristic for clothing
+  [[categories.characteristics]]
+  role = "brand"
+  options = ["nike", "adidas", "zara", "h&m"]
+
+  # Stocked characteristic for clothing
+  [[categories.characteristics]]
+  role = "stocked"
+  options = ["true", "false"]
+
+  # Men's clothing subcategory
+  [[categories.subcategories]]
+  id = "men's clothing"
+
+    # Season characteristic for men's clothing
+    [[categories.subcategories.characteristics]]
+    role = "season"
+    options = ["winter", "spring", "summer", "autumn", "all_season"]
+
+  # Women's clothing subcategory
+  [[categories.subcategories]]
+  id = "women's clothing"
+
+    # Season characteristic for women's clothing
+    [[categories.subcategories.characteristics]]
+    role = "season"
+    options = ["winter", "spring", "summer", "autumn", "all_season"]
+
+# Furniture category
+[[categories]]
+id = "furniture"
+
+  # Color characteristic for furniture
+  [[categories.characteristics]]
+  role = "color"
+  options = []
+
+  # Condition characteristic for furniture
+  [[categories.characteristics]]
+  role = "condition"
+  options = ["new", "like_new", "good", "fair"]
+
+  # Brand characteristic for furniture
+  [[categories.characteristics]]
+  role = "brand"
+  options = ["ikea", "ashley"]
+
+  # Stocked characteristic for furniture
+  [[categories.characteristics]]
+  role = "stocked"
+  options = ["true", "false"]
+
+  # Height characteristic for furniture
+  [[categories.characteristics]]
+  role = "height"
+  options = []
+
+  # Width characteristic for furniture
+  [[categories.characteristics]]
+  role = "width"
+  options = []
+
+  # Depth characteristic for furniture
+  [[categories.characteristics]]
+  role = "depth"
+  options = []
+
+  # Weight characteristic for furniture
+  [[categories.characteristics]]
+  role = "weight"
+  options = []
+
+  # Area characteristic for furniture
+  [[categories.characteristics]]
+  role = "area"
+  options = []
+
+  # Volume characteristic for furniture
+  [[categories.characteristics]]
+  role = "volume"
+  options = []

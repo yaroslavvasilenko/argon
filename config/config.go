@@ -26,20 +26,35 @@ type Config struct {
 	}
 
 	Categories struct {
-		Json string
+		// Toml содержит данные категорий в формате TOML
+		Toml string
+		// Категории в структурированном виде
+		Data CategoriesData
 		Lang struct {
 			Ru string
 			En string
 			Es string
 		}
-		// CategoryCharacteristics содержит JSON с характеристиками категорий
-		Characteristics string
 		// LangCharacteristics содержит переводы характеристик категорий
 		LangCharacteristics struct {
 			Ru string
 			En string
 			Es string
 		}
+		// LangOptions содержит переводы опций характеристик в формате JSON
+		LangOptions struct {
+			Ru string
+			En string
+			Es string
+		}
+		// OptionsTranslations содержит распарсенные переводы опций
+		OptionsTranslations struct {
+			Ru map[string]map[string]string
+			En map[string]map[string]string
+			Es map[string]map[string]string
+		}
+		// CharacteristicOptions содержит опции для характеристик
+		CharacteristicOptions string
 		// CategoryIds содержит все доступные ID категорий для быстрой валидации
 		CategoryIds map[string]bool
 	}
@@ -55,11 +70,22 @@ type Config struct {
 
 var cfg = Config{}
 
+// CategoriesData представляет структуру данных категорий в TOML
+type CategoriesData struct {
+	Categories []CategoryNode `toml:"categories"`
+}
+
+// CategoryNode представляет узел категории
 type CategoryNode struct {
-	Category struct {
-		ID string `json:"id"`
-	} `json:"category"`
-	Subcategories []CategoryNode `json:"subcategories,omitempty"`
+	ID              string               `toml:"id"`
+	Characteristics []CharacteristicNode `toml:"characteristics"`
+	Subcategories   []CategoryNode       `toml:"subcategories"`
+}
+
+// CharacteristicNode представляет характеристику категории
+type CharacteristicNode struct {
+	Role    string   `toml:"role"`
+	Options []string `toml:"options"`
 }
 
 func LoadConfig() {
@@ -98,32 +124,39 @@ func LoadConfig() {
 		log.Fatalf("Ошибка при разборе конфигурации: %v", err)
 	}
 
-	// Read categories.json
-	categoriesPath := filepath.Join(projectRoot, "./categories/categories.json")
+	// Read categories.toml
+	categoriesPath := filepath.Join(projectRoot, "./categories/categories.toml")
 	categoriesFile, err := os.ReadFile(categoriesPath)
 	if err != nil {
-		log.Fatalf("Ошибка чтения файла categories.json: %v", err)
+		log.Fatalf("Ошибка чтения файла categories.toml: %v", err)
 	}
 
-	cfg.Categories.Json = string(categoriesFile)
+	cfg.Categories.Toml = string(categoriesFile)
 
 	// Инициализируем map для ID категорий
 	cfg.Categories.CategoryIds = make(map[string]bool)
 
 	// Парсим категории и собираем их ID
-	var categories []CategoryNode
-	if err := json.Unmarshal(categoriesFile, &categories); err != nil {
-		log.Printf("Ошибка парсинга конфигурации категорий: %v\n", err)
+	var categoriesData CategoriesData
+	// Используем koanf для парсинга TOML
+	catK := koanf.New(".")
+	if err := catK.Load(file.Provider(categoriesPath), toml.Parser()); err != nil {
+		log.Printf("Ошибка парсинга конфигурации категорий TOML: %v\n", err)
+	} else if err := catK.Unmarshal("categories", &categoriesData.Categories); err != nil {
+		log.Printf("Ошибка преобразования данных категорий: %v\n", err)
 	} else {
+		// Сохраняем структурированные данные
+		cfg.Categories.Data = categoriesData
+
 		// Рекурсивно собираем все ID категорий
 		var collectCategoryIds func(nodes []CategoryNode)
 		collectCategoryIds = func(nodes []CategoryNode) {
 			for _, node := range nodes {
-				cfg.Categories.CategoryIds[node.Category.ID] = true
+				cfg.Categories.CategoryIds[node.ID] = true
 				collectCategoryIds(node.Subcategories)
 			}
 		}
-		collectCategoryIds(categories)
+		collectCategoryIds(categoriesData.Categories)
 	}
 
 	// Загрузка переводов категорий
@@ -151,39 +184,89 @@ func LoadConfig() {
 
 	cfg.Categories.Lang.Es = string(categoriesFile)
 
-	// Загрузка характеристик категорий
-	characteristicsPath := filepath.Join(projectRoot, "./categories/category_characteristics.json")
-	characteristicsFile, err := os.ReadFile(characteristicsPath)
+	// Загрузка переводов опций характеристик
+	// Загрузка переводов опций характеристик
+	optionsPath := filepath.Join(projectRoot, "./categories/lang_options/ru.json")
+	optionsFile, err := os.ReadFile(optionsPath)
 	if err != nil {
-		log.Fatalf("Ошибка чтения файла category_characteristics.json: %v", err)
+		log.Printf("Ошибка чтения файла lang_options/ru.json: %v", err)
+	} else {
+		cfg.Categories.LangOptions.Ru = string(optionsFile)
 	}
 
-	cfg.Categories.Characteristics = string(characteristicsFile)
+	optionsPath = filepath.Join(projectRoot, "./categories/lang_options/en.json")
+	optionsFile, err = os.ReadFile(optionsPath)
+	if err != nil {
+		log.Printf("Ошибка чтения файла lang_options/en.json: %v", err)
+	} else {
+		cfg.Categories.LangOptions.En = string(optionsFile)
+	}
+
+	optionsPath = filepath.Join(projectRoot, "./categories/lang_options/es.json")
+	optionsFile, err = os.ReadFile(optionsPath)
+	if err != nil {
+		log.Printf("Ошибка чтения файла lang_options/es.json: %v", err)
+	} else {
+		cfg.Categories.LangOptions.Es = string(optionsFile)
+	}
+
+	// Инициализация структур для переводов опций
+	cfg.Categories.OptionsTranslations.Ru = make(map[string]map[string]string)
+	cfg.Categories.OptionsTranslations.En = make(map[string]map[string]string)
+	cfg.Categories.OptionsTranslations.Es = make(map[string]map[string]string)
+
+	// Парсим переводы из JSON
+	if cfg.Categories.LangOptions.Ru != "" {
+		if err := json.Unmarshal([]byte(cfg.Categories.LangOptions.Ru), &cfg.Categories.OptionsTranslations.Ru); err != nil {
+			log.Printf("Ошибка при парсинге переводов опций на русском: %v", err)
+		}
+	}
+
+	if cfg.Categories.LangOptions.En != "" {
+		if err := json.Unmarshal([]byte(cfg.Categories.LangOptions.En), &cfg.Categories.OptionsTranslations.En); err != nil {
+			log.Printf("Ошибка при парсинге переводов опций на английском: %v", err)
+		}
+	}
+
+	if cfg.Categories.LangOptions.Es != "" {
+		if err := json.Unmarshal([]byte(cfg.Categories.LangOptions.Es), &cfg.Categories.OptionsTranslations.Es); err != nil {
+			log.Printf("Ошибка при парсинге переводов опций на испанском: %v", err)
+		}
+	}
+
+	// Загрузка опций характеристик
+	characteristicOptionsPath := filepath.Join(projectRoot, "./categories/characteristic_options.json")
+	characteristicOptionsFile, err := os.ReadFile(characteristicOptionsPath)
+	if err != nil {
+		log.Printf("Ошибка чтения файла characteristic_options.json: %v", err)
+	} else {
+		cfg.Categories.CharacteristicOptions = string(characteristicOptionsFile)
+	}
 
 	// Загрузка переводов характеристик категорий
-	characteristicsPath = filepath.Join(projectRoot, "./categories/lang_characteristics/ru.json")
-	characteristicsFile, err = os.ReadFile(characteristicsPath)
+	langCharPath := filepath.Join(projectRoot, "./categories/lang_characteristics/ru.json")
+	langCharFile, err := os.ReadFile(langCharPath)
 	if err != nil {
 		log.Fatalf("Ошибка чтения файла lang_characteristics/ru.json: %v", err)
 	}
 
-	cfg.Categories.LangCharacteristics.Ru = string(characteristicsFile)
+	cfg.Categories.LangCharacteristics.Ru = string(langCharFile)
 
-	characteristicsPath = filepath.Join(projectRoot, "./categories/lang_characteristics/en.json")
-	characteristicsFile, err = os.ReadFile(characteristicsPath)
+	langCharPath = filepath.Join(projectRoot, "./categories/lang_characteristics/en.json")
+	langCharFile, err = os.ReadFile(langCharPath)
 	if err != nil {
 		log.Fatalf("Ошибка чтения файла lang_characteristics/en.json: %v", err)
 	}
 
-	cfg.Categories.LangCharacteristics.En = string(characteristicsFile)
+	cfg.Categories.LangCharacteristics.En = string(langCharFile)
 
-	characteristicsPath = filepath.Join(projectRoot, "./categories/lang_characteristics/es.json")
-	characteristicsFile, err = os.ReadFile(characteristicsPath)
+	langCharPath = filepath.Join(projectRoot, "./categories/lang_characteristics/es.json")
+	langCharFile, err = os.ReadFile(langCharPath)
 	if err != nil {
 		log.Fatalf("Ошибка чтения файла lang_characteristics/es.json: %v", err)
 	}
 
-	cfg.Categories.LangCharacteristics.Es = string(characteristicsFile)
+	cfg.Categories.LangCharacteristics.Es = string(langCharFile)
 }
 
 // getProjectRoot returns the absolute path to the project root directory

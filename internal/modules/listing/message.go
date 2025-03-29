@@ -133,7 +133,7 @@ func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) 
 	case models.LanguageEs:
 		langData = config.GetConfig().Categories.Lang.Es
 	default:
-		langData = config.GetConfig().Categories.Lang.Es
+		return nil, errors.New("не поддерживаемый язык: " + string(lang))
 	}
 
 	// Распаковываем локализации
@@ -154,44 +154,28 @@ func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) 
 		})
 	}
 
+
+
 	return categories, nil
 }
 
-
-// MarshalJSON реализует интерфейс json.Marshaler для типа Characteristic
-func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
-	if c == nil {
-		return []byte("null"), nil
-	}
-
-	charItems := make([]CharacteristicParamItem, 0, len(c))
-	for role, param := range c {
-		charItems = append(charItems, CharacteristicParamItem{
-			Role:  role,
-			Param: param,
-		})
-	}
-
-	return json.Marshal(charItems)
-}
-
 // UnmarshalJSON реализует интерфейс json.Unmarshaler для типа Characteristic
-func (c *CharacteristicParam) UnmarshalJSON(data []byte) error {
-	var charItems []CharacteristicParamItem
-	if err := json.Unmarshal(data, &charItems); err != nil {
-		return err
-	}
+// func (c *CharacteristicParam) UnmarshalJSON(data []byte) error {
+// 	var charItems []CharacteristicParamItem
+// 	if err := json.Unmarshal(data, &charItems); err != nil {
+// 		return err
+// 	}
 
-	if *c == nil {
-		*c = make(CharacteristicParam)
-	}
+// 	if *c == nil {
+// 		*c = make(CharacteristicParam)
+// 	}
 
-	for _, item := range charItems {
-		(*c)[item.Role] = item.Param
-	}
+// 	for _, item := range charItems {
+// 		(*c)[item.Role] = item.Param
+// 	}
 
-	return nil
-}
+// 	return nil
+// }
 
 type CharacteristicParamItem struct {
 	Role  string `json:"role"`
@@ -199,8 +183,88 @@ type CharacteristicParamItem struct {
 }
 
 
-type CharacteristicParam map[string]interface{}
+type CharacteristicParam []Characteristic
+
+type Characteristic struct {
+	Characteristics CharacteristicParamItem `json:"characteristics"`
+
+}
+	
 
 type GetCharacteristicsForCategoryResponse struct {
 	CharacteristicParams CharacteristicParam `json:"characteristic_params"`
 }
+
+// MarshalJSON реализует интерфейс json.Marshaler для типа CharacteristicParam
+// func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
+// 	if c == nil {
+// 		return []byte("null"), nil
+// 	}
+
+// 	charItems := make([]CharacteristicParamItem, 0, len(c))
+// 	for role, param := range c {
+// 		// Определяем тип параметра на основе роли характеристики
+// 		paramType, exists := models.CharacteristicParamMap[role]
+// 		if !exists {
+// 			// Если тип не определен, используем параметр как есть
+// 			charItems = append(charItems, CharacteristicParamItem{
+// 				Role:  role,
+// 				Param: param,
+// 			})
+// 			continue
+// 		}
+
+// 		// Преобразуем параметр в соответствующий тип
+// 		var typedParam interface{}
+// 		switch paramType {
+// 		case models.COLOR_TYPE:
+// 			typedParam = &models.ColorParam{}
+// 		case models.DROPDOWN_TYPE:
+// 			// Для выпадающего списка нужно преобразовать options
+// 			if options, ok := param.(map[string]interface{}); ok {
+// 				if optionsArray, ok := options["options"].([]interface{}); ok {
+// 					stringOptions := make([]string, 0, len(optionsArray))
+// 					for _, opt := range optionsArray {
+// 						if strOpt, ok := opt.(string); ok {
+// 							stringOptions = append(stringOptions, strOpt)
+// 						}
+// 					}
+// 					typedParam = &models.DropdownParam{Options: stringOptions}
+// 				} else {
+// 					typedParam = &models.DropdownParam{}
+// 				}
+// 			} else {
+// 				typedParam = &models.DropdownParam{}
+// 			}
+// 		case models.CHECKBOX_TYPE:
+// 			typedParam = &models.CheckboxParam{}
+// 		case models.DIMENSION_TYPE:
+// 			// Для размерных параметров нужно преобразовать dimension_options
+// 			if dimensions, ok := param.(map[string]interface{}); ok {
+// 				if dimOptions, ok := dimensions["dimension_options"].([]interface{}); ok {
+// 					dimensionOptions := make([]models.Dimension, 0, len(dimOptions))
+// 					for _, dim := range dimOptions {
+// 						if strDim, ok := dim.(string); ok {
+// 							dimensionOptions = append(dimensionOptions, models.Dimension(strDim))
+// 						}
+// 					}
+// 					typedParam = &models.DimensionParam{DimensionOptions: dimensionOptions}
+// 				} else {
+// 					typedParam = &models.DimensionParam{}
+// 				}
+// 			} else {
+// 				typedParam = &models.DimensionParam{}
+// 			}
+// 		default:
+// 			// Если тип не распознан, используем параметр как есть
+// 			typedParam = param
+// 		}
+
+// 		charItems = append(charItems, CharacteristicParamItem{
+// 			Role:  role,
+// 			Param: typedParam,
+// 		})
+// 	}
+
+// 	return json.Marshal(charItems)
+// }

@@ -1,0 +1,46 @@
+{
+  "brand": {
+    "apple": "Apple",
+    "samsung": "Samsung",
+    "google": "Google",
+    "xiaomi": "Xiaomi",
+    "huawei": "Huawei",
+    "nike": "Nike",
+    "adidas": "Adidas",
+    "zara": "Zara",
+    "h&m": "H&M",
+    "ikea": "IKEA",
+    "ashley": "Ashley Furniture"
+  },
+  "condition": {
+    "new": "New",
+    "like_new": "Like New",
+    "good": "Good Condition",
+    "fair": "Fair Condition",
+    "poor": "Poor Condition"
+  },
+  "stocked": {
+    "true": "In Stock",
+    "false": "Out of Stock"
+  },
+  "color": {
+    "black": "Black",
+    "white": "White",
+    "red": "Red",
+    "green": "Green",
+    "blue": "Blue",
+    "yellow": "Yellow",
+    "purple": "Purple",
+    "pink": "Pink",
+    "orange": "Orange",
+    "gray": "Gray",
+    "brown": "Brown"
+  },
+  "season": {
+    "winter": "Winter",
+    "spring": "Spring",
+    "summer": "Summer",
+    "autumn": "Autumn",
+    "all_season": "All Season"
+  }
+}

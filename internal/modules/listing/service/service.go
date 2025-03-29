@@ -91,20 +91,20 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 	}
 
 	resp := listing.FullListingResponse{
-		ID:             fullListing.Listing.ID,
-		Title:          fullListing.Listing.Title,
-		Description:    fullListing.Listing.Description,
-		Price:          fullListing.Listing.Price,
-		Currency:       fullListing.Listing.Currency,
-		OriginalPrice:  fullListing.Listing.Price,
+		ID:               fullListing.Listing.ID,
+		Title:            fullListing.Listing.Title,
+		Description:      fullListing.Listing.Description,
+		Price:            fullListing.Listing.Price,
+		Currency:         fullListing.Listing.Currency,
+		OriginalPrice:    fullListing.Listing.Price,
 		OriginalCurrency: fullListing.Listing.Currency,
-		Location:       fullListing.Location,
-		Categories:     categories,
-		Characteristics: fullListing.Characteristics,
-		Images:          []string{},
-		Boosts:         boosts,
-		CreatedAt:      fullListing.Listing.CreatedAt.UnixMilli(),
-		UpdatedAt:      fullListing.Listing.UpdatedAt.UnixMilli(),
+		Location:         fullListing.Location,
+		Categories:       categories,
+		Characteristics:  fullListing.Characteristics,
+		Images:           []string{},
+		Boosts:           boosts,
+		CreatedAt:        fullListing.Listing.CreatedAt.UnixMilli(),
+		UpdatedAt:        fullListing.Listing.UpdatedAt.UnixMilli(),
 	}
 
 	return resp, nil
@@ -143,9 +143,13 @@ func (s *Listing) UpdateListing(ctx context.Context, p listing.UpdateListingRequ
 
 func (s *Listing) GetCategories(ctx context.Context) (listing.ResponseGetCategories, error) {
 	// Получаем базовую структуру категорий
-	var categories []listing.CategoryNode
-	if err := json.Unmarshal([]byte(config.GetConfig().Categories.Json), &categories); err != nil {
-		return listing.ResponseGetCategories{}, errors.New("ошибка при разборе базовых категорий: " + err.Error())
+	// Преобразуем структуру из конфига в формат для API
+	configCategories := config.GetConfig().Categories.Data.Categories
+	categories := make([]listing.CategoryNode, 0, len(configCategories))
+
+	// Преобразуем формат категорий из TOML в формат API
+	for _, cat := range configCategories {
+		categories = append(categories, convertCategoryNodeToAPI(cat))
 	}
 
 	// Получаем язык из контекста
@@ -194,21 +198,33 @@ func applyTranslations(nodes *[]listing.CategoryNode, translations map[string]st
 	}
 }
 
-
 func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds []string) (listing.GetCharacteristicsForCategoryResponse, error) {
 	// Получаем характеристики и переводы
-	_, characteristicKeys, characteristicsTranslations, err := s.getCategoryCharacteristics(ctx, categoryIds)
+	_, characteristicKeys, translations, err := s.getCategoryCharacteristics(ctx, categoryIds)
+	if err != nil {
+		return listing.GetCharacteristicsForCategoryResponse{}, err
+	}
+
+	// Загружаем опции характеристик
+	characteristicOptions, err := s.loadCharacteristicOptions(ctx)
 	if err != nil {
 		return listing.GetCharacteristicsForCategoryResponse{}, err
 	}
 
 	// Создаем массив характеристик в порядке их ключей
-	result := make(listing.CharacteristicParam, len(characteristicKeys))
-	
-	// Добавляем характеристики в порядке их следования в иерархии категорий
-	for _, key := range characteristicKeys {
-		if translation, ok := characteristicsTranslations[key]; ok {
-			result[key] = translation
+	result := make(listing.CharacteristicParam, 0, len(characteristicKeys))
+
+	for i, key := range characteristicKeys {
+		if len(result) < i+1 {
+			result = append(result, listing.Characteristic{})
+		}
+
+		// Создаем параметр в зависимости от типа характеристики
+		param := s.createParamForCharacteristic(key, characteristicOptions, translations)
+
+		result[i].Characteristics = listing.CharacteristicParamItem{
+			Role:  key,
+			Param: param,
 		}
 	}
 
@@ -282,10 +298,13 @@ func (s *Listing) getCategoryCharacteristics(ctx context.Context, categoryIds []
 	// Получаем язык из контекста
 	lang := ctx.Value(models.KeyLanguage).(string)
 
-	// Загружаем характеристики категорий из конфига
-	var categoryCharacteristics map[string][]string
-	if err := json.Unmarshal([]byte(config.GetConfig().Categories.Characteristics), &categoryCharacteristics); err != nil {
-		return nil, nil, nil, errors.New("ошибка при разборе характеристик категорий: " + err.Error())
+	// Собираем характеристики категорий из структуры категорий в конфиге
+	categoryCharacteristics := make(map[string][]string)
+
+	// Собираем характеристики из категорий в конфиге
+	for _, cat := range config.GetConfig().Categories.Data.Categories {
+		charRoles := extractCharacteristicRoles(cat)
+		categoryCharacteristics[cat.ID] = charRoles
 	}
 
 	// Загружаем переводы характеристик в зависимости от языка
@@ -330,4 +349,153 @@ func (s *Listing) getCategoryCharacteristics(ctx context.Context, categoryIds []
 	}
 
 	return categoryCharacteristics, characteristicKeys, characteristicsTranslations, nil
+}
+
+// extractCharacteristicRoles извлекает роли характеристик из категории
+func extractCharacteristicRoles(category config.CategoryNode) []string {
+	roles := make([]string, 0, len(category.Characteristics))
+
+	// Добавляем роли характеристик текущей категории
+	for _, char := range category.Characteristics {
+		roles = append(roles, char.Role)
+	}
+
+	return roles
+}
+
+// createParamForCharacteristic создает параметр нужного типа для характеристики
+func (s *Listing) createParamForCharacteristic(characteristicKey string, options map[string][]string, translations map[string]string) interface{} {
+	// Получаем тип параметра из мапы
+	paramType, exists := models.CharacteristicParamMap[characteristicKey]
+	if !exists {
+		// Если тип не определен, возвращаем nil
+		return nil
+	}
+
+	// Получаем язык из контекста
+	lang := context.Background().Value(models.KeyLanguage)
+
+	// Выбираем карту переводов в зависимости от языка
+	var langOptions map[string]map[string]string
+	switch lang {
+	case string(models.LanguageRu):
+		langOptions = config.GetConfig().Categories.OptionsTranslations.Ru
+	case string(models.LanguageEn):
+		langOptions = config.GetConfig().Categories.OptionsTranslations.En
+	case string(models.LanguageEs):
+		langOptions = config.GetConfig().Categories.OptionsTranslations.Es
+	default:
+		langOptions = config.GetConfig().Categories.OptionsTranslations.En
+	}
+
+	// В зависимости от типа параметра создаем соответствующую структуру
+	switch paramType.(type) {
+	case models.ColorParam:
+		// Для цвета просто возвращаем пустую структуру
+		return models.ColorParam{}
+
+	case models.StringParam:
+		// Для строковых параметров (выпадающих списков) загружаем опции
+		paramOptions := []models.StringParamItem{}
+
+		// Получаем опции для данной характеристики
+		if optionValues, ok := options[characteristicKey]; ok && len(optionValues) > 0 {
+			for _, value := range optionValues {
+				// По умолчанию используем значение как метку
+				label := value
+
+				// Если есть переводы для этой характеристики
+				if optionTranslations, ok := langOptions[characteristicKey]; ok {
+					// Если есть перевод для этого значения
+					if translation, ok := optionTranslations[value]; ok {
+						label = translation
+					}
+				}
+
+				paramOptions = append(paramOptions, models.StringParamItem{
+					Value: value,
+					Label: label,
+				})
+			}
+		}
+
+		return models.StringParam{
+			Options: paramOptions,
+		}
+
+	case models.CheckboxParam:
+		// Для чекбокса просто возвращаем пустую структуру
+		return models.CheckboxParam{}
+
+	case models.AmountParam:
+		// Для числовых параметров добавляем соответствующие единицы измерения
+		dimensions := s.getDimensionsForCharacteristic(characteristicKey)
+		return models.AmountParam{
+			DimensionOptions: dimensions,
+		}
+
+	default:
+		// Для неизвестных типов возвращаем nil
+		return nil
+	}
+}
+
+// getDimensionsForCharacteristic возвращает единицы измерения для числовой характеристики
+func (s *Listing) getDimensionsForCharacteristic(characteristicKey string) []models.Dimension {
+	switch characteristicKey {
+	case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH:
+		// Для линейных размеров
+		return []models.Dimension{models.Dimension(models.CM), models.Dimension(models.M), models.Dimension(models.KM)}
+
+	case models.CHAR_AREA:
+		// Для площади
+		return []models.Dimension{models.Dimension(models.CM2), models.Dimension(models.M2), models.Dimension(models.KM2)}
+
+	case models.CHAR_VOLUME:
+		// Для объема
+		return []models.Dimension{models.Dimension(models.CM3), models.Dimension(models.M3), models.Dimension(models.ML), models.Dimension(models.L)}
+
+	case models.CHAR_WEIGHT:
+		// Для веса
+		return []models.Dimension{models.Dimension(models.G), models.Dimension(models.KG), models.Dimension(models.T)}
+
+	default:
+		return []models.Dimension{}
+	}
+}
+
+// loadCharacteristicOptions загружает опции характеристик из конфига
+func (s *Listing) loadCharacteristicOptions(ctx context.Context) (map[string][]string, error) {
+	// Получаем опции характеристик из конфига
+	characteristicOptionsJson := config.GetConfig().Categories.CharacteristicOptions
+	if characteristicOptionsJson == "" {
+		return nil, errors.New("опции характеристик не найдены в конфиге")
+	}
+
+	// Парсим опции
+	var characteristicOptions map[string][]string
+	if err := json.Unmarshal([]byte(characteristicOptionsJson), &characteristicOptions); err != nil {
+		return nil, errors.New("ошибка при разборе опций характеристик: " + err.Error())
+	}
+
+	return characteristicOptions, nil
+}
+
+// convertCategoryNodeToAPI преобразует структуру категории из конфига в формат API
+func convertCategoryNodeToAPI(configNode config.CategoryNode) listing.CategoryNode {
+	node := listing.CategoryNode{
+		Category: listing.Category{
+			ID: configNode.ID,
+		},
+	}
+
+	// Преобразуем подкатегории рекурсивно
+	if len(configNode.Subcategories) > 0 {
+		node.Subcategories = make([]listing.CategoryNode, 0, len(configNode.Subcategories))
+		for _, subCat := range configNode.Subcategories {
+			node.Subcategories = append(node.Subcategories, convertCategoryNodeToAPI(subCat))
+		}
+	}
+
+	return node
 }

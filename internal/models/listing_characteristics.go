@@ -58,26 +58,28 @@ const (
 	OM = "om" // ом
 )
 
-// Структуры для параметров характеристик
-
-// DropdownOption представляет опцию выпадающего списка
 
 // ColorParam представляет параметр цвета
 type ColorParam struct {
 	// Пустая структура, так как ограничения нужны только для фильтров
 }
 
-// DropdownParam представляет параметр выпадающего списка
-type DropdownParam struct {
-	Options []string `json:"options,omitempty"`
+// StringParam представляет параметр выпадающего списка
+type StringParam struct {
+	Options []StringParamItem `json:"options"`
+}
+
+type StringParamItem struct {
+	Value string `json:"value"`
+	Label string `json:"label"`
 }
 
 // Dimension представляет единицу измерения
 type Dimension string
 
 // AmountParam представляет параметр с числовым значением и единицей измерения
-type DimensionParam struct {
-	DimensionOptions []Dimension `json:"dimension_options,omitempty"`
+type AmountParam struct {
+	DimensionOptions []Dimension `json:"dimension_options"`
 }
 
 // CheckboxParam представляет параметр чекбокса
@@ -89,28 +91,25 @@ type CheckboxParam struct {
 type CharacteristicParam interface{}
 
 // CharacteristicParamMap сопоставляет характеристики с их типами параметров
-var CharacteristicParamMap = map[string]string{
-	// Цена
-	CHAR_PRICE: PRICE_TYPE,
-	
+var CharacteristicParamMap = map[string]interface{}{
 	// Цвет
-	CHAR_COLOR: COLOR_TYPE,
+	CHAR_COLOR: ColorParam{},
 	
 	// Выпадающие списки
-	CHAR_CONDITION: DROPDOWN_TYPE,
-	CHAR_SEASON:    DROPDOWN_TYPE,
-	CHAR_BRAND:     DROPDOWN_TYPE,
+	CHAR_CONDITION: StringParam{},
+	CHAR_SEASON:    StringParam{},
+	CHAR_BRAND:     StringParam{},
 	
 	// Чекбоксы
-	CHAR_STOCKED: CHECKBOX_TYPE,
+	CHAR_STOCKED: CheckboxParam{},
 	
 	// Размеры и измерения
-	CHAR_HEIGHT: DIMENSION_TYPE,
-	CHAR_WIDTH:  DIMENSION_TYPE,
-	CHAR_DEPTH:  DIMENSION_TYPE,
-	CHAR_WEIGHT: DIMENSION_TYPE,
-	CHAR_AREA:   DIMENSION_TYPE,
-	CHAR_VOLUME: DIMENSION_TYPE,
+	CHAR_HEIGHT: AmountParam{},
+	CHAR_WIDTH:  AmountParam{},
+	CHAR_DEPTH:  AmountParam{},
+	CHAR_WEIGHT: AmountParam{},
+	CHAR_AREA:   AmountParam{},
+	CHAR_VOLUME: AmountParam{},
 }
 
 // Characteristic представляет собой карту характеристик, где ключ - это роль, а значение - это значение характеристики

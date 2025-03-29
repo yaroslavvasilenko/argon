@@ -1,0 +1,46 @@
+{
+  "brand": [
+    "apple",
+    "samsung",
+    "google",
+    "xiaomi",
+    "huawei",
+    "nike",
+    "adidas",
+    "zara",
+    "h&m",
+    "ikea",
+    "ashley"
+  ],
+  "condition": [
+    "new",
+    "like_new",
+    "good",
+    "fair",
+    "poor"
+  ],
+  "stocked": [
+    "true",
+    "false"
+  ],
+  "color": [
+    "black",
+    "white",
+    "red",
+    "green",
+    "blue",
+    "yellow",
+    "purple",
+    "pink",
+    "orange",
+    "gray",
+    "brown"
+  ],
+  "season": [
+    "winter",
+    "spring",
+    "summer",
+    "autumn",
+    "all_season"
+  ]
+}
