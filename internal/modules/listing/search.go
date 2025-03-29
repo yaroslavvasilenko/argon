@@ -223,7 +223,7 @@ type SearchID struct {
 	CategoryID string
 	Filters    models.Filters
 	SortOrder  string
-	LocationID string
+	Location models.Location
 }
 
 type GetSearchParamsResponse struct {

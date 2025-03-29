@@ -114,7 +114,7 @@ func (s *Listing) SearchListings(ctx context.Context, req listing.SearchListings
 		CategoryID: req.CategoryID,
 		Filters:    req.Filters,
 		SortOrder:  req.SortOrder,
-		LocationID: req.Location.ID,
+		Location: req.Location,
 	}
 
 	resp.SearchID = s.cache.StoreSearchInfo(searchId)
@@ -156,14 +156,8 @@ func (s *Listing) GetSearchParams(ctx context.Context, qID string) (listing.GetS
 	}
 
 	// Получаем данные о локации
-	if search.LocationID != "" {
-		location, err := s.location.GetLocationById(ctx, search.LocationID)
-		if err != nil {
-			s.logger.Errorf("Ошибка при получении локации: %v", err)
-			// Не возвращаем ошибку, чтобы не блокировать весь запрос
-			// Просто продолжаем с пустой локацией
-		}
-		resp.Location = &location
+	if search.Location.ID != "" {
+		resp.Location = &search.Location
 	}
 
 	return resp, nil
