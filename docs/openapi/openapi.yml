@@ -314,7 +314,7 @@ paths:
                   description: НЕЛОКАЛИЗОВАННЫЕ значения фильтров, которые были использованы в поиске
                   type: array
                   items:
-                    $ref: '#/components/schemas/FilterValue'
+                    $ref: '#/components/schemas/FilterType'
                 sort_order:
                   description: Сортировка, если не указано, то по релевантности
                   $ref: '#/components/schemas/SortOrder'
@@ -837,6 +837,29 @@ components:
         - role
         - param
 
+    FilterType:
+      type: object
+      properties:
+        role:
+          $ref: '#/components/schemas/FilterRole'
+        param:
+          oneOf:
+            - $ref: '#/components/schemas/PriceFilterParam'
+            - $ref: '#/components/schemas/ColorFilterParam'
+            - $ref: '#/components/schemas/DropdownFilterParam'
+            - $ref: '#/components/schemas/CheckboxFilterParam'
+            - $ref: '#/components/schemas/AmountFilterParam'
+        value:
+          oneOf:
+            - $ref: '#/components/schemas/PriceFilterValue'
+            - $ref: '#/components/schemas/ColorFilterValue'
+            - $ref: '#/components/schemas/DropdownFilterValue'
+            - $ref: '#/components/schemas/CheckboxFilterValue'
+            - $ref: '#/components/schemas/AmountFilterValue'
+      required:
+        - role
+        - param
+
     CharacteristicParam:
       type: object
       properties:
@@ -1045,7 +1068,7 @@ components:
           type: array
           description: Фильтры, которые были использованы в поиске
           items:
-            $ref: '#/components/schemas/FilterValue'
+            $ref: '#/components/schemas/FilterType'
         sort_order:
           description: Сортировка, если не указано, то по релевантности
           $ref: '#/components/schemas/SortOrder'
@@ -1199,22 +1222,6 @@ components:
       type: string
       description: Поддерживаемые валюты для цен в объявлениях
       enum: [USD, RUB, ARS, EUR]
-
-    FilterValue:
-      type: object
-      properties:
-        role:
-          $ref: '#/components/schemas/FilterRole'
-        value:
-          oneOf:
-            - $ref: '#/components/schemas/PriceFilterValue'
-            - $ref: '#/components/schemas/ColorFilterValue'
-            - $ref: '#/components/schemas/DropdownFilterValue'
-            - $ref: '#/components/schemas/CheckboxFilterValue'
-            - $ref: '#/components/schemas/AmountFilterValue'
-      required:
-        - role
-        - value
 
     ExchangeRateResponse:
       type: object
