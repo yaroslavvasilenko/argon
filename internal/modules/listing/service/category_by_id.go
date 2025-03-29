@@ -51,35 +51,28 @@ func (s *Listing) GetCategoryById(ctx context.Context, categoryID string) (listi
 	lang := models.Localization(parser.GetLang(ctx))
 	switch lang {
 	case models.LanguageRu:
-		var categories map[string]interface{}
+		var categories map[string]string
 		if err := json.Unmarshal([]byte(cfg.Categories.Lang.Ru), &categories); err == nil {
-			if catData, ok := categories[categoryID].(map[string]interface{}); ok {
-				if name, ok := catData["name"].(string); ok && name != "" {
-					category.Name = name
-				}
+			if name, ok := categories[categoryID]; ok && name != "" {
+				category.Name = name
 			}
 		}
 
 	case models.LanguageEn:
-		var categories map[string]interface{}
+		var categories map[string]string
 		if err := json.Unmarshal([]byte(cfg.Categories.Lang.En), &categories); err == nil {
-			if catData, ok := categories[categoryID].(map[string]interface{}); ok {
-				if name, ok := catData["name"].(string); ok && name != "" {
-					category.Name = name
-				}
+			if name, ok := categories[categoryID]; ok && name != "" {
+				category.Name = name
 			}
 		}
 
 	case models.LanguageEs:
-		var categories map[string]interface{}
+		var categories map[string]string
 		if err := json.Unmarshal([]byte(cfg.Categories.Lang.Es), &categories); err == nil {
-			if catData, ok := categories[categoryID].(map[string]interface{}); ok {
-				if name, ok := catData["name"].(string); ok && name != "" {
-					category.Name = name
-				}
+			if name, ok := categories[categoryID]; ok && name != "" {
+				category.Name = name
 			}
 		}
-
 	}
 
 	// Если перевод не найден, продолжаем использовать ID как имя
