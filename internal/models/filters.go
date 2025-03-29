@@ -500,11 +500,11 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 
 	// Обрабатываем каждый элемент фильтра
 	for _, filter := range fp {
-		// Используем значение из Value, если оно есть, иначе из Param
-		value := filter.Value
-		if value == nil {
-			value = filter.Param
+		// Используем только значение из Value
+		if filter.Value == nil {
+			continue
 		}
+		
 		switch filter.Role {
 		case CHAR_PRICE:
 			// Обрабатываем фильтр цены
