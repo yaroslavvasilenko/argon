@@ -502,10 +502,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 	for _, filter := range fp {
 		// Используем значение из Value, если оно есть, иначе из Param
 		value := filter.Value
-		if value == nil {
-			value = filter.Param
-		}
-		
+
 		// Если значение все еще nil, пропускаем этот фильтр
 		if value == nil {
 			continue
