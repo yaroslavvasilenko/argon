@@ -217,18 +217,15 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 	// Создаем массив характеристик в порядке их ключей
 	result := make(listing.CharacteristicParam, 0, len(characteristicKeys))
 
-	for i, key := range characteristicKeys {
-		if len(result) < i+1 {
-			result = append(result, listing.Characteristic{})
-		}
-
+	for _, key := range characteristicKeys {
 		// Создаем параметр в зависимости от типа характеристики
 		param := s.createParamForCharacteristic(key, characteristicOptions, translations)
 
-		result[i].Characteristics = listing.CharacteristicParamItem{
+		// Добавляем новый элемент напрямую в массив
+		result = append(result, listing.CharacteristicParamItem{
 			Role:  key,
 			Param: param,
-		}
+		})
 	}
 
 	return listing.GetCharacteristicsForCategoryResponse{

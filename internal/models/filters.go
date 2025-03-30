@@ -500,15 +500,21 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 
 	// Обрабатываем каждый элемент фильтра
 	for _, filter := range fp {
-		// Используем только значение из Value
-		if filter.Value == nil {
+		// Используем значение из Value, если оно есть, иначе из Param
+		value := filter.Value
+		if value == nil {
+			value = filter.Param
+		}
+		
+		// Если значение все еще nil, пропускаем этот фильтр
+		if value == nil {
 			continue
 		}
 		
 		switch filter.Role {
 		case CHAR_PRICE:
 			// Обрабатываем фильтр цены
-			priceMap, ok := filter.Value.(map[string]interface{})
+			priceMap, ok := value.(map[string]interface{})
 			if ok {
 				// Создаем объект PriceFilter
 				priceFilter := PriceFilter{}
@@ -548,7 +554,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			
 		case CHAR_COLOR:
 			// Обрабатываем фильтр цвета
-			switch v := filter.Value.(type) {
+			switch v := value.(type) {
 			case []interface{}:
 				// Преобразуем массив интерфейсов в массив строк
 				colors := make([]string, len(v))
@@ -569,7 +575,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
 			// Обрабатываем фильтры выпадающих списков
-			switch v := filter.Value.(type) {
+			switch v := value.(type) {
 			case []interface{}:
 				// Преобразуем массив интерфейсов в массив строк
 				options := make([]string, len(v))
@@ -590,7 +596,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			
 		case CHAR_STOCKED:
 			// Обрабатываем фильтр чекбокса
-			switch v := filter.Value.(type) {
+			switch v := value.(type) {
 			case bool:
 				boolValue := v
 				filters[filter.Role] = CheckboxFilter(&boolValue)
@@ -600,7 +606,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			
 		case CHAR_HEIGHT, CHAR_WIDTH, CHAR_DEPTH, CHAR_WEIGHT, CHAR_AREA, CHAR_VOLUME:
 			// Обрабатываем фильтры размеров
-			dimMap, ok := filter.Value.(map[string]interface{})
+			dimMap, ok := value.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("invalid dimension filter value: %v", filter.Value)
 			}

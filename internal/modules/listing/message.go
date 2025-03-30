@@ -183,12 +183,8 @@ type CharacteristicParamItem struct {
 }
 
 
-type CharacteristicParam []Characteristic
+type CharacteristicParam []CharacteristicParamItem
 
-type Characteristic struct {
-	Characteristics CharacteristicParamItem `json:"characteristics"`
-
-}
 	
 
 type GetCharacteristicsForCategoryResponse struct {
