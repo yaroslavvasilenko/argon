@@ -40,6 +40,17 @@ var SortOrders = []string{
 	SORT_RELEVANCE,
 }
 
+type FilterParams map[string]FilterItem
+
+// FilterItem представляет отдельный элемент фильтра с ролью и значением
+type FilterItem struct {
+	Role  string      `json:"role"`
+	Param interface{} `json:"param"`
+	Value interface{} `json:"value"`
+}
+
+
+
 // ListingFilters представляет характеристики объявления в базе данных
 type ListingFilters struct {
 	ListingID uuid.UUID `json:"listing_id"`
@@ -385,4 +396,265 @@ func (c Filters) MarshalJSON() ([]byte, error) {
 
 	// Сериализуем массив в JSON
 	return json.Marshal(filters)
+}
+
+// UnmarshalJSON реализует интерфейс json.Unmarshaler для типа FilterParams
+func (fp *FilterParams) UnmarshalJSON(data []byte) error {
+	// Инициализируем карту, если она nil
+	if *fp == nil {
+		*fp = make(FilterParams)
+	}
+
+	// Пробуем разобрать JSON как массив с разными возможными структурами
+	var items []map[string]json.RawMessage
+	if err := json.Unmarshal(data, &items); err != nil {
+		return fmt.Errorf("failed to unmarshal JSON as array: %v", err)
+	}
+
+	// Обрабатываем каждый элемент массива
+	for _, itemMap := range items {
+		// Получаем роль
+		roleRaw, ok := itemMap["role"]
+		if !ok {
+			return fmt.Errorf("missing 'role' field in filter item")
+		}
+		
+		var role string
+		if err := json.Unmarshal(roleRaw, &role); err != nil {
+			return fmt.Errorf("failed to unmarshal role: %v", err)
+		}
+		
+		// Создаем новый элемент фильтра
+		item := FilterItem{
+			Role: role,
+		}
+		
+		// Проверяем наличие поля param
+		if paramRaw, ok := itemMap["param"]; ok {
+			var param interface{}
+			if err := json.Unmarshal(paramRaw, &param); err != nil {
+				return fmt.Errorf("failed to unmarshal param: %v", err)
+			}
+			item.Param = param
+		}
+		
+		// Проверяем наличие поля value
+		if valueRaw, ok := itemMap["value"]; ok {
+			var value interface{}
+			if err := json.Unmarshal(valueRaw, &value); err != nil {
+				return fmt.Errorf("failed to unmarshal value: %v", err)
+			}
+			item.Value = value
+		}
+		
+		// Добавляем элемент в карту
+		(*fp)[role] = item
+	}
+
+	return nil
+}
+
+// MarshalJSON реализует интерфейс json.Marshaler для типа FilterParams
+func (fp FilterParams) MarshalJSON() ([]byte, error) {
+	// Создаем массив для хранения элементов фильтра
+	items := make([]interface{}, 0, len(fp))
+
+	// Добавляем все элементы из карты в массив
+	for key, item := range fp {
+		// Если роль не установлена, используем ключ карты
+		if item.Role == "" {
+			item.Role = key
+		}
+		
+		// Создаем объект для сериализации
+		itemMap := map[string]interface{}{
+			"role": item.Role,
+		}
+		
+		// Добавляем поле param, если оно есть
+		if item.Param != nil {
+			itemMap["param"] = item.Param
+		}
+		
+		// Добавляем поле value, если оно есть
+		if item.Value != nil {
+			itemMap["value"] = item.Value
+		}
+		
+		items = append(items, itemMap)
+	}
+
+	// Если нет элементов, возвращаем пустой массив
+	if len(items) == 0 {
+		return []byte("[]"), nil
+	}
+
+	// Сериализуем массив в JSON
+	return json.Marshal(items)
+}
+
+// ToFilters конвертирует FilterParams в Filters
+func (fp FilterParams) ToFilters() (Filters, error) {
+	// Создаем новый объект Filters
+	filters := make(Filters)
+
+	// Обрабатываем каждый элемент фильтра
+	for _, filter := range fp {
+		// Используем значение из Value, если оно есть, иначе из Param
+		value := filter.Value
+
+		// Если значение все еще nil, пропускаем этот фильтр
+		if value == nil {
+			continue
+		}
+		
+		switch filter.Role {
+		case CHAR_PRICE:
+			// Обрабатываем фильтр цены
+			priceMap, ok := value.(map[string]interface{})
+			if ok {
+				// Создаем объект PriceFilter
+				priceFilter := PriceFilter{}
+				
+				// Получаем значения min и max
+				if min, ok := priceMap["min"]; ok {
+					switch v := min.(type) {
+					case float64:
+						priceFilter.Min = int(v)
+					case int:
+						priceFilter.Min = v
+					}
+				}
+				
+				if max, ok := priceMap["max"]; ok {
+					switch v := max.(type) {
+					case float64:
+						priceFilter.Max = int(v)
+					case int:
+						priceFilter.Max = v
+					}
+				}
+				
+				filters[filter.Role] = priceFilter
+			} else {
+				// Если значение не объект, пробуем обработать как число
+				switch v := filter.Value.(type) {
+				case float64:
+					price := int(v)
+					filters[filter.Role] = PriceFilter{Min: price, Max: price}
+				case int:
+					filters[filter.Role] = PriceFilter{Min: v, Max: v}
+				default:
+					return nil, fmt.Errorf("invalid price filter value: %v", filter.Value)
+				}
+			}
+			
+		case CHAR_COLOR:
+			// Обрабатываем фильтр цвета
+			switch v := value.(type) {
+			case []interface{}:
+				// Преобразуем массив интерфейсов в массив строк
+				colors := make([]string, len(v))
+				for i, color := range v {
+					if s, ok := color.(string); ok {
+						colors[i] = s
+					} else {
+						return nil, fmt.Errorf("invalid color value: %v", color)
+					}
+				}
+				filters[filter.Role] = ColorFilter{Options: colors}
+			case string:
+				// Если значение строка, создаем массив из одного элемента
+				filters[filter.Role] = ColorFilter{Options: []string{v}}
+			default:
+				return nil, fmt.Errorf("invalid color filter value: %v", filter.Value)
+			}
+			
+		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
+			// Обрабатываем фильтры выпадающих списков
+			switch v := value.(type) {
+			case []interface{}:
+				// Преобразуем массив интерфейсов в массив строк
+				options := make([]string, len(v))
+				for i, option := range v {
+					if s, ok := option.(string); ok {
+						options[i] = s
+					} else {
+						return nil, fmt.Errorf("invalid dropdown option value: %v", option)
+					}
+				}
+				filters[filter.Role] = DropdownFilter(options)
+			case string:
+				// Если значение строка, создаем массив из одного элемента
+				filters[filter.Role] = DropdownFilter([]string{v})
+			default:
+				return nil, fmt.Errorf("invalid dropdown filter value: %v", filter.Value)
+			}
+			
+		case CHAR_STOCKED:
+			// Обрабатываем фильтр чекбокса
+			switch v := value.(type) {
+			case bool:
+				boolValue := v
+				filters[filter.Role] = CheckboxFilter(&boolValue)
+			default:
+				return nil, fmt.Errorf("invalid checkbox filter value: %v", filter.Value)
+			}
+			
+		case CHAR_HEIGHT, CHAR_WIDTH, CHAR_DEPTH, CHAR_WEIGHT, CHAR_AREA, CHAR_VOLUME:
+			// Обрабатываем фильтры размеров
+			dimMap, ok := value.(map[string]interface{})
+			if !ok {
+				return nil, fmt.Errorf("invalid dimension filter value: %v", filter.Value)
+			}
+			
+			// Создаем объект DimensionFilter
+			dimFilter := DimensionFilter{}
+			
+			// Получаем значения min, max и dimension
+			if min, ok := dimMap["min"]; ok {
+				switch v := min.(type) {
+				case float64:
+					dimFilter.Min = int(v)
+				case int:
+					dimFilter.Min = v
+				}
+			}
+			
+			if max, ok := dimMap["max"]; ok {
+				switch v := max.(type) {
+				case float64:
+					dimFilter.Max = int(v)
+				case int:
+					dimFilter.Max = v
+				}
+			}
+			
+			if dim, ok := dimMap["dimension"]; ok {
+				if s, ok := dim.(string); ok {
+					dimFilter.Dimension = s
+				}
+			}
+			
+			filters[filter.Role] = dimFilter
+		}
+	}
+
+	return filters, nil
+}
+
+// FromFilters конвертирует Filters в FilterParams
+func FromFilters(filters Filters) FilterParams {
+	// Создаем новый объект FilterParams
+	fp := make(FilterParams, len(filters))
+
+	// Обрабатываем каждый элемент фильтра
+	for role, value := range filters {
+		fp[role] = FilterItem{
+			Role:  role,
+			Value: value,
+		}
+	}
+
+	return fp
 }
