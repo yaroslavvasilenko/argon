@@ -26,6 +26,8 @@ tags:
     description: Поиск объявлений
   - name: Seller
     description: Операции с продавцами
+  - name: Favorites
+    description: Операции со списком избранных
 
 paths:
   /api/v1/ping:
@@ -526,6 +528,95 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/favorites:
+    get:
+      summary: Получить список избранных листингов отправителя запроса
+      tags:
+        - Favorites
+      parameters:
+        - name: Accept-Language
+          in: header
+          description: Язык локализации (по умолчанию ИСПАНСКИЙ)
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
+        - name: cursor
+          in: query
+          required: false
+          schema:
+            nullable: true
+            type: string
+            example: "123e4567-e89b-12d3-a456-426614174000"
+          description: Курсор для пагинации. Если не указан, то первая страница (или последняя, при отрицательном лимите). Указывает на элемент, предшествующий первому в результатах запроса, при положительном лимите. При отрицательном лимите, указывает на последний элемент в результатах запроса.
+        - name: limit
+          in: query
+          required: false
+          schema:
+            type: number
+            minimum: 1
+            maximum: 100
+            default: 20
+          description: Количество результатов на странице, если отрицательное, от курсора идти в обратную сторону
+      responses:
+        '200':
+          description: Успешный ответ со списком избранных листингов отправителя запроса, как при поиске только без qid
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/FavoritesResponse'
+        '403':
+          description: Доступ запрещен. Возникает, если пользователь не авторизован.
+
+    post:
+      summary: Добавить список листингов в избранное отправителя запроса
+      tags:
+        - Favorites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                listing_ids:
+                  type: array
+                  description: Уникальные идентификаторы листингов, которые стоит добавить в список избранного для отправителя запроса.
+                  items:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+              required:
+                - listing_ids
+      responses:
+        '200':
+          description: Список успешно пополнен.
+        '403':
+          description: Доступ запрещен. Возникает, если пользователь не авторизован.
+
+    delete:
+      summary: Удалить список листингов из избранных отправителя запроса.
+      tags:
+        - Favorites
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                listing_ids:
+                  type: array
+                  description: Уникальные идентификаторы листингов, которые стоит удалить из списка избранного для отправителя запроса. Если удалить пытаются то, чего нет в списке избранного, то просто игнорировать отсутствующие записи.
+                  items:
+                    type: string
+                    example: "123e4567-e89b-12d3-a456-426614174000"
+      responses:
+        '200':
+          description: Объявление успешно удалено
+        '403':
+          description: Доступ запрещен. Возникает, если пользователь не авторизован.
+
 components:
   schemas:
     PingResponse:
@@ -810,7 +901,7 @@ components:
             $ref: '#/components/schemas/CharacteristicParam'
       required:
         - characteristic_params
-    
+
     GetFiltersByCategoryResponse:
       type: object
       properties:
@@ -1029,6 +1120,28 @@ components:
       type: object
       description: Пустой объект, так как для чекбокса не требуются ограничительные параметры.
 
+    FavoritesResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SearchItem'
+        cursor_before:
+          type: string
+          nullable: true
+          description: Курсор для предыдущей страницы, указывается в следующем запросе. Содержит информацию об элементе предшествующем текущей странице (или, что то же самое, последнем элементе предыдущей страницы).
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        cursor_after:
+          type: string
+          nullable: true
+          description: Курсор для следующей страницы, указывается в следующем запросе. Содержит информацию о последнем элементе текущей страницы (или, что то же самое, эелементе, предшествующем следующей странице).
+          example: "123e4567-e89b-12d3-a456-426614174000"
+      required:
+        - items
+        - cursor_before
+        - cursor_after
+
     SearchResponse:
       type: object
       properties:
@@ -1039,7 +1152,7 @@ components:
         cursor_before:
           type: string
           nullable: true
-          description: Курсор для предыдущей страницы, указывается в следующем запросе. Содержит информацию о элементе предшествующем текущей странице (или, что то же самое, последнем элементе предыдущей страницы).
+          description: Курсор для предыдущей страницы, указывается в следующем запросе. Содержит информацию об элементе предшествующем текущей странице (или, что то же самое, последнем элементе предыдущей страницы).
           example: "123e4567-e89b-12d3-a456-426614174000"
         cursor_after:
           type: string
