@@ -103,11 +103,17 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		OriginalCurrency: fullListing.Listing.Currency,
 		Location:         fullListing.Location,
 		Categories:       categories,
-		Characteristics:  fullListing.Characteristics,
+		Characteristics:  make(map[string]interface{}),
 		Images:           []string{},
 		Boosts:           boosts,
 		CreatedAt:        fullListing.Listing.CreatedAt.UnixMilli(),
 		UpdatedAt:        fullListing.Listing.UpdatedAt.UnixMilli(),
+	}
+
+	for key, value := range fullListing.Characteristics {
+		if value != nil {
+			resp.Characteristics[key] = value
+		}
 	}
 
 	return resp, nil
