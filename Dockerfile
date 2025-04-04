@@ -1,5 +1,5 @@
 # Шаг сборки
-FROM golang:1.23.2 AS builder
+FROM golang:1.24.1 AS builder
 
 # Устанавливаем рабочую директорию
 WORKDIR /app
@@ -10,6 +10,10 @@ RUN go mod download
 
 # Скопируем весь проект
 COPY . .
+
+# Добавляем логирование для проверки структуры проекта
+RUN echo "=== Содержимое корня проекта ===" && ls -la
+RUN echo "=== Содержимое директории categories ===" && ls -la categories/
 
 # Переходим в директорию, где лежит main.go
 WORKDIR /app/cmd
@@ -24,9 +28,18 @@ WORKDIR /root/
 # Копируем бинарник из builder-контейнера
 COPY --from=builder /go/bin/app .
 
+# Копируем конфигурационные файлы
 COPY --from=builder /app/config/config.toml ./config/
+
+# Копируем директорию categories со всеми файлами
 COPY --from=builder /app/categories ./categories/
+
+# Копируем go.mod
 COPY --from=builder /app/go.mod .
+
+# Добавляем подробное логирование при сборке
+RUN echo "Содержимое директории /root:" && ls -la
+RUN echo "Содержимое директории /root/categories:" && ls -la ./categories/ || echo "Директория categories не существует"
 
 # Пробрасываем порт, на котором слушает Go-приложение
 EXPOSE 8080
