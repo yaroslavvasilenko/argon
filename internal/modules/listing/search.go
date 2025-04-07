@@ -2,101 +2,21 @@ package listing
 
 import (
 	"context"
-	"fmt"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
 type SearchListingsRequest struct {
-	Query      string          `json:"query" query:"query"`
-	Currency   models.Currency `json:"currency,omitempty"`
-	Cursor     string          `json:"cursor,omitempty"`
-	SearchID   string          `json:"qid,omitempty"`
-	Limit      int             `json:"limit,omitempty"`
-	CategoryID string          `json:"category_id,omitempty"`
-	Location   models.Location `json:"location,omitempty"`
-	Filters    models.FilterParams  `json:"filters,omitempty"`
-	SortOrder  string          `json:"sort_order,omitempty"`
-}
-
-func GetSearchListingsRequest(c *fiber.Ctx) (SearchListingsRequest, error) {
-	req := struct {
-		Query      *string         `json:"query"`
-		Currency   models.Currency `json:"currency,omitempty"`
-		Cursor     string          `json:"cursor,omitempty"`
-		SearchID   string          `json:"qid,omitempty"`
-		Limit      int             `json:"limit,omitempty"`
-		CategoryID string          `json:"category_id,omitempty"`
-		Location   models.Location `json:"location,omitempty"`
-		Filters    models.FilterParams  `json:"filters,omitempty"`
-		SortOrder  string          `json:"sort_order,omitempty"`
-	}{}
-
-	if err := c.BodyParser(&req); err != nil {
-		return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, "Error parsing request body: "+err.Error())
-	}
-
-	// Validate required fields
-	if req.Query == nil {
-		return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, "query parameter is required")
-	}
-
-	// Validate currency
-	if err := req.Currency.Validate(); err != nil {
-		return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, err.Error())
-	}
-
-	// Validate limit
-	if req.Limit == 0 {
-		// Set default limit if not provided
-		req.Limit = 20
-	} else if req.Limit < -100 || req.Limit > 100 {
-		return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest,
-			fmt.Sprintf("limit must be between -100 and 100, got: %d", req.Limit))
-	}
-
-	// Validate sort order if provided
-	if req.SortOrder != "" {
-		sortOrderValid := false
-		for _, so := range models.SortOrders {
-			if req.SortOrder == so {
-				sortOrderValid = true
-				break
-			}
-		}
-		if !sortOrderValid {
-			return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest,
-				fmt.Sprintf("invalid sort_order: %s. Supported values: %v", req.SortOrder, models.SortOrders))
-		}
-	}
-
-	// Validate location if provided
-	if req.Location.ID != "" {
-		if err := req.Location.Validate(); err != nil {
-			return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, err.Error())
-		}
-	}
-
-	// Validate filters if provided
-	// if len(req.Filters) > 0 {
-	// 	if err := req.Filters.Validate(); err != nil {
-	// 		return SearchListingsRequest{}, fiber.NewError(fiber.StatusBadRequest, err.Error())
-	// 	}
-	// }
-
-	return SearchListingsRequest{
-		Query:      *req.Query,
-		Currency:   req.Currency,
-		Cursor:     req.Cursor,
-		SearchID:   req.SearchID,
-		Limit:      req.Limit,
-		CategoryID: req.CategoryID,
-		Location:   req.Location,
-		Filters:    req.Filters,
-		SortOrder:  req.SortOrder,
-	}, nil
+	Query      string              `json:"query" query:"query"`
+	Currency   models.Currency     `json:"currency,omitempty"`
+	Cursor     string              `json:"cursor,omitempty"`
+	SearchID   string              `json:"qid,omitempty"`
+	Limit      int                 `json:"limit,omitempty"`
+	CategoryID string              `json:"category_id,omitempty"`
+	Location   models.Location     `json:"location,omitempty"`
+	Filters    models.FilterParams `json:"filters,omitempty"`
+	SortOrder  string              `json:"sort_order,omitempty"`
 }
 
 type SearchListingsResponse struct {
@@ -223,12 +143,12 @@ type SearchID struct {
 	CategoryID string
 	Filters    models.FilterParams
 	SortOrder  string
-	Location models.Location
+	Location   models.Location
 }
 
 type GetSearchParamsResponse struct {
-	Category *Category        `json:"category,omitempty"`
-	Location *models.Location `json:"location,omitempty"`
-	Filters  *models.FilterParams  `json:"filters,omitempty"`
-	SortOrder *string         `json:"sort_order,omitempty"`
+	Category  *Category            `json:"category,omitempty"`
+	Location  *models.Location     `json:"location,omitempty"`
+	Filters   *models.FilterParams `json:"filters,omitempty"`
+	SortOrder *string              `json:"sort_order,omitempty"`
 }

@@ -11,3 +11,9 @@ const (
 	LanguageEn Localization = "en"
 	LanguageEs Localization = "es"
 )
+
+var LocalMap = map[Localization]struct{}{
+	LanguageRu: {},
+	LanguageEn: {},
+	LanguageEs: {},
+}

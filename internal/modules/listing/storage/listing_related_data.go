@@ -21,7 +21,7 @@ func (s *Listing) getListingWithRelatedData(ctx context.Context, listing models.
 		Pluck("category_id", &categoryIDs).Error; err != nil {
 		return models.ListingResult{}, err
 	}
-	
+
 	// Затем создаем объекты категорий с правильной структурой
 	if len(categoryIDs) > 0 {
 		// Создаем одну категорию с массивом идентификаторов
@@ -63,7 +63,7 @@ func (s *Listing) getListingWithRelatedData(ctx context.Context, listing models.
 	// Создаем переменные для хранения координат и радиуса
 	var latitude, longitude float64
 	var radius int
-	
+
 	// Получаем данные из БД напрямую в локальные переменные
 	var location models.Location
 	if err := s.gorm.Table("locations").
@@ -75,10 +75,7 @@ func (s *Listing) getListingWithRelatedData(ctx context.Context, listing models.
 	} else {
 		// Преобразуем данные из БД в структуру Area
 		location.Area = models.Area{
-			Coordinates: struct {
-				Lat float64 `json:"lat" validate:"required"`
-				Lng float64 `json:"lng" validate:"required"`
-			}{
+			Coordinates: models.Coordinates{
 				Lat: latitude,
 				Lng: longitude,
 			},
@@ -89,5 +86,3 @@ func (s *Listing) getListingWithRelatedData(ctx context.Context, listing models.
 
 	return result, nil
 }
-
-

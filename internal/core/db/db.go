@@ -50,7 +50,7 @@ func NewSqlDB(ctx context.Context, dbUrl string, log log.Logger, debug bool) (*g
 	if err != nil {
 		return nil, nil, err
 	}
-	
+
 	confPgx.ConnConfig.Tracer = &QueryTracer{log: log}
 
 	pool, err := pgxpool.NewWithConfig(ctx, confPgx)

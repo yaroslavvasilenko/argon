@@ -60,7 +60,7 @@ id = "electronics"
 
     # Google Pixel subcategory
     [[categories.subcategories.subcategories]]
-    id = "google pixel"
+    id = "google_pixel"
     characteristics = []
 
 # Clothing category
@@ -80,7 +80,7 @@ id = "clothing"
   # Brand characteristic for clothing
   [[categories.characteristics]]
   role = "brand"
-  options = ["nike", "adidas", "zara", "h&m"]
+  options = ["nike", "adidas", "zara", "hm"]
 
   # Stocked characteristic for clothing
   [[categories.characteristics]]
@@ -89,7 +89,7 @@ id = "clothing"
 
   # Men's clothing subcategory
   [[categories.subcategories]]
-  id = "men's clothing"
+  id = "mens_clothing"
 
     # Season characteristic for men's clothing
     [[categories.subcategories.characteristics]]
@@ -98,7 +98,7 @@ id = "clothing"
 
   # Women's clothing subcategory
   [[categories.subcategories]]
-  id = "women's clothing"
+  id = "womens_clothing"
 
     # Season characteristic for women's clothing
     [[categories.subcategories.characteristics]]

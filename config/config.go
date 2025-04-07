@@ -30,7 +30,8 @@ type Config struct {
 		Toml string
 		// Категории в структурированном виде
 		Data CategoriesData
-		Lang struct {
+		// LangCategories содержит переводы категорий в формате JSON
+		LangCategories struct {
 			Ru string
 			En string
 			Es string
@@ -53,10 +54,11 @@ type Config struct {
 			En map[string]map[string]string
 			Es map[string]map[string]string
 		}
-		// CharacteristicOptions содержит опции для характеристик
-		CharacteristicOptions string
+		CategoryOptions map[string][]string
+		// CategoryCharacteristics содержит характеристики для категорий
+		CategoryCharacteristics map[string][]string
 		// CategoryIds содержит все доступные ID категорий для быстрой валидации
-		CategoryIds map[string]bool
+		CategoryIds map[string]struct{}
 	}
 	Binance struct {
 		APIKey    string
@@ -134,7 +136,7 @@ func LoadConfig() {
 	cfg.Categories.Toml = string(categoriesFile)
 
 	// Инициализируем map для ID категорий
-	cfg.Categories.CategoryIds = make(map[string]bool)
+	cfg.Categories.CategoryIds = make(map[string]struct{})
 
 	// Парсим категории и собираем их ID
 	var categoriesData CategoriesData
@@ -152,7 +154,7 @@ func LoadConfig() {
 		var collectCategoryIds func(nodes []CategoryNode)
 		collectCategoryIds = func(nodes []CategoryNode) {
 			for _, node := range nodes {
-				cfg.Categories.CategoryIds[node.ID] = true
+				cfg.Categories.CategoryIds[node.ID] = struct{}{}
 				collectCategoryIds(node.Subcategories)
 			}
 		}
@@ -166,7 +168,7 @@ func LoadConfig() {
 		log.Fatalf("Ошибка чтения файла categories/lang/ru.json: %v", err)
 	}
 
-	cfg.Categories.Lang.Ru = string(categoriesFile)
+	cfg.Categories.LangCategories.Ru = string(categoriesFile)
 
 	categoriesPath = filepath.Join(projectRoot, "./categories/lang/en.json")
 	categoriesFile, err = os.ReadFile(categoriesPath)
@@ -174,7 +176,7 @@ func LoadConfig() {
 		log.Fatalf("Ошибка чтения файла categories/lang/en.json: %v", err)
 	}
 
-	cfg.Categories.Lang.En = string(categoriesFile)
+	cfg.Categories.LangCategories.En = string(categoriesFile)
 
 	categoriesPath = filepath.Join(projectRoot, "./categories/lang/es.json")
 	categoriesFile, err = os.ReadFile(categoriesPath)
@@ -182,7 +184,7 @@ func LoadConfig() {
 		log.Fatalf("Ошибка чтения файла categories/lang/es.json: %v", err)
 	}
 
-	cfg.Categories.Lang.Es = string(categoriesFile)
+	cfg.Categories.LangCategories.Es = string(categoriesFile)
 
 	// Загрузка переводов опций характеристик
 	// Загрузка переводов опций характеристик
@@ -240,7 +242,35 @@ func LoadConfig() {
 	if err != nil {
 		log.Printf("Ошибка чтения файла characteristic_options.json: %v", err)
 	} else {
-		cfg.Categories.CharacteristicOptions = string(characteristicOptionsFile)
+		var CharOpt []struct {
+			Name    string   `json:"name"`
+			Options []string `json:"options"`
+		}
+
+		if err := json.Unmarshal(characteristicOptionsFile, &CharOpt); err != nil {
+			log.Printf("Ошибка парсинга файла characteristic_options.json: %v", err)
+		} else {
+			cfg.Categories.CategoryOptions = make(map[string][]string)
+			for _, item := range CharOpt {
+				cfg.Categories.CategoryOptions[item.Name] = item.Options
+			}
+		}
+	}
+
+	// Загрузка характеристики категорий
+	categoryCharacteristicsPath := filepath.Join(projectRoot, "./categories/category_characteristics.json")
+	categoryCharacteristicsFile, err := os.ReadFile(categoryCharacteristicsPath)
+	if err != nil {
+		log.Printf("Ошибка чтения файла category_characteristics.json: %v", err)
+	} else {
+		// Файл имеет формат {"category": ["characteristic1", "characteristic2", ...]}
+		var categoryCharacteristics map[string][]string
+
+		if err := json.Unmarshal(categoryCharacteristicsFile, &categoryCharacteristics); err != nil {
+			log.Printf("Ошибка парсинга файла category_characteristics.json: %v", err)
+		} else {
+			cfg.Categories.CategoryCharacteristics = categoryCharacteristics
+		}
 	}
 
 	// Загрузка переводов характеристик категорий

@@ -52,7 +52,7 @@ func (s *Listing) GetCategoryById(ctx context.Context, categoryID string) (listi
 	switch lang {
 	case models.LanguageRu:
 		var categories map[string]string
-		if err := json.Unmarshal([]byte(cfg.Categories.Lang.Ru), &categories); err == nil {
+		if err := json.Unmarshal([]byte(cfg.Categories.LangCategories.Ru), &categories); err == nil {
 			if name, ok := categories[categoryID]; ok && name != "" {
 				category.Name = name
 			}
@@ -60,7 +60,7 @@ func (s *Listing) GetCategoryById(ctx context.Context, categoryID string) (listi
 
 	case models.LanguageEn:
 		var categories map[string]string
-		if err := json.Unmarshal([]byte(cfg.Categories.Lang.En), &categories); err == nil {
+		if err := json.Unmarshal([]byte(cfg.Categories.LangCategories.En), &categories); err == nil {
 			if name, ok := categories[categoryID]; ok && name != "" {
 				category.Name = name
 			}
@@ -68,7 +68,7 @@ func (s *Listing) GetCategoryById(ctx context.Context, categoryID string) (listi
 
 	case models.LanguageEs:
 		var categories map[string]string
-		if err := json.Unmarshal([]byte(cfg.Categories.Lang.Es), &categories); err == nil {
+		if err := json.Unmarshal([]byte(cfg.Categories.LangCategories.Es), &categories); err == nil {
 			if name, ok := categories[categoryID]; ok && name != "" {
 				category.Name = name
 			}

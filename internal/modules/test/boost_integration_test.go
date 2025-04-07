@@ -73,13 +73,10 @@ func TestBoostController(t *testing.T) {
 		Description: "Описание тестового объявления для проверки работы буста",
 		Price:       1000.0,
 		Currency:    models.RUB,
-		Location: models.Location{
+		Location: &models.Location{
 			Name: "Москва, Россия",
 			Area: models.Area{
-				Coordinates: struct {
-					Lat float64 `json:"lat" validate:"required"`
-					Lng float64 `json:"lng" validate:"required"`
-				}{
+				Coordinates: models.Coordinates{
 					Lat: 55.7558,
 					Lng: 37.6173,
 				},

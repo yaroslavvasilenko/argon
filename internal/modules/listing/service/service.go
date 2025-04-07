@@ -56,7 +56,7 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 		Currency:    p.Currency,
 		CreatedAt:   timeNow,
 		UpdatedAt:   timeNow,
-	}, p.Categories, p.Location, p.Characteristics)
+	}, p.Categories, *p.Location, p.Characteristics)
 	if err != nil {
 		return listing.FullListingResponse{}, err
 	}
@@ -173,14 +173,11 @@ func (s *Listing) GetCategories(ctx context.Context) (listing.ResponseGetCategor
 
 	switch lang {
 	case models.LanguageRu:
-		langData = config.GetConfig().Categories.Lang.Ru
+		langData = config.GetConfig().Categories.LangCategories.Ru
 	case models.LanguageEn:
-		langData = config.GetConfig().Categories.Lang.En
+		langData = config.GetConfig().Categories.LangCategories.En
 	case models.LanguageEs:
-		langData = config.GetConfig().Categories.Lang.Es
-	default:
-		s.logger.Warnf("неизвестный язык %s, используем дефолтный", lang)
-		langData = config.GetConfig().Categories.Lang.Es
+		langData = config.GetConfig().Categories.LangCategories.Es
 	}
 
 	// Распаковываем локализации
@@ -214,11 +211,8 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 		return listing.GetCharacteristicsForCategoryResponse{}, err
 	}
 
-	// Загружаем опции характеристик
-	characteristicOptions, err := s.loadCharacteristicOptions(ctx)
-	if err != nil {
-		return listing.GetCharacteristicsForCategoryResponse{}, err
-	}
+	// Получаем опции характеристик из конфига
+	characteristicOptions := config.GetConfig().Categories.CategoryCharacteristics
 
 	// Создаем массив характеристик в порядке их ключей
 	result := make(listing.CharacteristicParam, 0, len(characteristicKeys))
@@ -400,9 +394,9 @@ func (s *Listing) createParamForCharacteristic(characteristicKey string, options
 		// Для цвета просто возвращаем пустую структуру
 		return models.ColorParam{}
 
-	case models.StringParam:
+	case []models.DropdownOptionItem:
 		// Для строковых параметров (выпадающих списков) загружаем опции
-		paramOptions := []models.StringParamItem{}
+		paramOptions := []models.DropdownOptionItem{}
 
 		// Получаем опции для данной характеристики
 		if optionValues, ok := options[characteristicKey]; ok && len(optionValues) > 0 {
@@ -418,26 +412,24 @@ func (s *Listing) createParamForCharacteristic(characteristicKey string, options
 					}
 				}
 
-				paramOptions = append(paramOptions, models.StringParamItem{
+				paramOptions = append(paramOptions, models.DropdownOptionItem{
 					Value: value,
 					Label: label,
 				})
 			}
 		}
 
-		return models.StringParam{
-			Options: paramOptions,
-		}
+		return paramOptions
 
 	case models.CheckboxParam:
 		// Для чекбокса просто возвращаем пустую структуру
 		return models.CheckboxParam{}
 
 	case models.AmountParam:
-		// Для числовых параметров добавляем соответствующие единицы измерения
-		dimensions := s.getDimensionsForCharacteristic(characteristicKey)
+		// Для числовых параметров добавляем соответствующую единицу измерения
+		dimension := s.getDefaultDimensionForCharacteristic(characteristicKey)
 		return models.AmountParam{
-			DimensionOptions: dimensions,
+			DimensionOptions: dimension,
 		}
 
 	default:
@@ -446,45 +438,28 @@ func (s *Listing) createParamForCharacteristic(characteristicKey string, options
 	}
 }
 
-// getDimensionsForCharacteristic возвращает единицы измерения для числовой характеристики
-func (s *Listing) getDimensionsForCharacteristic(characteristicKey string) []models.Dimension {
+// getDefaultDimensionForCharacteristic возвращает дефолтную единицу измерения для числовой характеристики
+func (s *Listing) getDefaultDimensionForCharacteristic(characteristicKey string) models.Dimension {
 	switch characteristicKey {
 	case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH:
-		// Для линейных размеров
-		return []models.Dimension{models.Dimension(models.CM), models.Dimension(models.M), models.Dimension(models.KM)}
+		// Для линейных размеров (дефолт - сантиметры)
+		return models.Dimension(models.CM)
 
 	case models.CHAR_AREA:
-		// Для площади
-		return []models.Dimension{models.Dimension(models.CM2), models.Dimension(models.M2), models.Dimension(models.KM2)}
+		// Для площади (дефолт - квадратные метры)
+		return models.Dimension(models.M2)
 
 	case models.CHAR_VOLUME:
-		// Для объема
-		return []models.Dimension{models.Dimension(models.CM3), models.Dimension(models.M3), models.Dimension(models.ML), models.Dimension(models.L)}
+		// Для объема (дефолт - литры)
+		return models.Dimension(models.L)
 
 	case models.CHAR_WEIGHT:
-		// Для веса
-		return []models.Dimension{models.Dimension(models.G), models.Dimension(models.KG), models.Dimension(models.T)}
+		// Для веса (дефолт - килограммы)
+		return models.Dimension(models.KG)
 
 	default:
-		return []models.Dimension{}
+		return models.Dimension("")
 	}
-}
-
-// loadCharacteristicOptions загружает опции характеристик из конфига
-func (s *Listing) loadCharacteristicOptions(ctx context.Context) (map[string][]string, error) {
-	// Получаем опции характеристик из конфига
-	characteristicOptionsJson := config.GetConfig().Categories.CharacteristicOptions
-	if characteristicOptionsJson == "" {
-		return nil, errors.New("опции характеристик не найдены в конфиге")
-	}
-
-	// Парсим опции
-	var characteristicOptions map[string][]string
-	if err := json.Unmarshal([]byte(characteristicOptionsJson), &characteristicOptions); err != nil {
-		return nil, errors.New("ошибка при разборе опций характеристик: " + err.Error())
-	}
-
-	return characteristicOptions, nil
 }
 
 // convertCategoryNodeToAPI преобразует структуру категории из конфига в формат API

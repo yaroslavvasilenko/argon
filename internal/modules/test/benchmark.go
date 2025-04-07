@@ -410,10 +410,7 @@ func (app *BenchmarkApp) generateLocations(count int) ([]models.Location, error)
 			ID:   id.String(),
 			Name: name,
 			Area: models.Area{
-				Coordinates: struct {
-					Lat float64 `json:"lat" validate:"required"`
-					Lng float64 `json:"lng" validate:"required"`
-				}{
+				Coordinates: models.Coordinates{
 					Lat: app.rnd.Float64()*180 - 90,
 					Lng: app.rnd.Float64()*360 - 180,
 				},

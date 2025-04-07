@@ -1,11 +1,9 @@
 package controller
 
 import (
-	"context"
-
 	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
-	"github.com/yaroslavvasilenko/argon/internal/models"
+	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/service"
 )
@@ -26,15 +24,13 @@ func (h *Listing) Ping(c *fiber.Ctx) error {
 }
 
 func (h *Listing) CreateListing(c *fiber.Ctx) error {
-	r, err := listing.GetCreateListingRequest(c)
+	r := listing.CreateListingRequest{}
+	err := parser.BodyParser(c, &r)
 	if err != nil {
 		return err
 	}
 
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
-
-	listing, err := h.s.CreateListing(ctx, r)
+	listing, err := h.s.CreateListing(c.UserContext(), r)
 	if err != nil {
 		return err
 	}
@@ -45,10 +41,7 @@ func (h *Listing) CreateListing(c *fiber.Ctx) error {
 func (h *Listing) GetListing(c *fiber.Ctx) error {
 	listingID := c.Params("listing_id")
 
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
-
-	listing, err := h.s.GetListing(ctx, listingID)
+	listing, err := h.s.GetListing(c.UserContext(), listingID)
 	if err != nil {
 		return err
 	}
@@ -104,10 +97,7 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 		return err
 	}
 
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
-
-	listings, err := h.s.SearchListings(ctx, req)
+	listings, err := h.s.SearchListings(c.UserContext(), req)
 	if err != nil {
 		return err
 	}
@@ -116,13 +106,7 @@ func (h *Listing) SearchListings(c *fiber.Ctx) error {
 }
 
 func (h *Listing) GetCategories(c *fiber.Ctx) error {
-	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
-	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
-
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
-
-	resp, err := h.s.GetCategories(ctx)
+	resp, err := h.s.GetCategories(c.UserContext())
 	if err != nil {
 		return err
 	}
@@ -136,10 +120,7 @@ func (h *Listing) SearchListingsParams(c *fiber.Ctx) error {
 		return fiber.NewError(fiber.StatusBadRequest, "qid parameter is required")
 	}
 
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, c.Get(models.HeaderLanguage, models.LanguageDefault))
-
-	listings, err := h.s.GetSearchParams(ctx, qID)
+	listings, err := h.s.GetSearchParams(c.UserContext(), qID)
 	if err != nil {
 		return err
 	}
@@ -158,14 +139,7 @@ func (h *Listing) GetCharacteristicsForCategory(c *fiber.Ctx) error {
 		return err
 	}
 
-	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
-	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
-
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
-
-	// Вызываем сервис с новым форматом данных
-	characteristics, err := h.s.GetCharacteristicsForCategory(ctx, req.CategoryIds)
+	characteristics, err := h.s.GetCharacteristicsForCategory(c.UserContext(), req.CategoryIds)
 	if err != nil {
 		return err
 	}
@@ -183,14 +157,8 @@ func (h *Listing) GetFiltersForCategory(c *fiber.Ctx) error {
 		})
 	}
 
-	// Получаем язык из заголовка Accept-Language, по умолчанию используем "en"
-	lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
-
-	// Создаем контекст с информацией о языке
-	ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
-
 	// Вызываем сервис для получения фильтров
-	filters, err := h.s.GetFiltersForCategory(ctx, categoryId)
+	filters, err := h.s.GetFiltersForCategory(c.UserContext(), categoryId)
 	if err != nil {
 		return err
 	}

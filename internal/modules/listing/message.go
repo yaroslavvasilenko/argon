@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"errors"
 
-	"github.com/gofiber/fiber/v2"
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/internal/models"
@@ -29,31 +28,14 @@ type Category struct {
 }
 
 type CreateListingRequest struct {
-	Title           string                `json:"title"`
+	Title           string                `json:"title" validate:"required"`
 	Description     string                `json:"description,omitempty"`
-	Price           float64               `json:"price,omitempty"`
-	Currency        models.Currency       `json:"currency,omitempty"`
-	Location        models.Location       `json:"location,omitempty"`
-	Categories      []string              `json:"categories,omitempty"`
-	Characteristics models.Characteristic `json:"characteristics,omitempty"`
+	Price           float64               `json:"price,omitempty" validate:"gte=0"`
+	Currency        models.Currency       `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB ARS"`
+	Location        *models.Location      `json:"location,omitempty"`
+	Categories      []string              `json:"categories,omitempty" validate:"required,categories_validation"`
+	Characteristics models.Characteristic `json:"characteristics,omitempty" validate:"characteristics_validation"`
 	Images          []string              `json:"images"`
-}
-
-func GetCreateListingRequest(c *fiber.Ctx) (CreateListingRequest, error) {
-	req := CreateListingRequest{}
-	err := c.BodyParser(&req)
-	if err != nil {
-		return CreateListingRequest{}, err
-	}
-
-	validCategoryIds := config.GetConfig().Categories.CategoryIds
-	for _, categoryId := range req.Categories {
-		if !validCategoryIds[categoryId] {
-			return CreateListingRequest{}, errors.New("invalid category ID: " + categoryId)
-		}
-	}
-
-	return req, nil
 }
 
 type CreateListingResponse struct {
@@ -81,8 +63,8 @@ type UpdateListingRequest struct {
 	Price           float64                `json:"price,omitempty" validate:"gte=0"`
 	Currency        models.Currency        `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
 	Location        models.Location        `json:"location,omitempty"`
-	Categories      []string               `json:"categories,omitempty" validate:"required"`
-	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Categories      []string               `json:"categories,omitempty" validate:"categories_validation"`
+	Characteristics map[string]interface{} `json:"characteristics,omitempty" validate:"characteristics_validation"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
 	Images          []string               `json:"images"`
 }
@@ -101,8 +83,8 @@ type FullListingResponse struct {
 	Categories          []Category            `json:"categories"`
 	Characteristics     models.Characteristic `json:"characteristics"`
 	Images              []string              `json:"images"`
-	CreatedAt           int64                `json:"created_at"`
-	UpdatedAt           int64                `json:"updated_at"`
+	CreatedAt           int64                 `json:"created_at"`
+	UpdatedAt           int64                 `json:"updated_at"`
 	Boosts              []BoostResp           `json:"boosts,omitempty"`
 	IsEditable          bool                  `json:"is_editable"`
 	IsBuyable           bool                  `json:"is_buyable"`
@@ -127,11 +109,11 @@ func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) 
 
 	switch lang {
 	case models.LanguageRu:
-		langData = config.GetConfig().Categories.Lang.Ru
+		langData = config.GetConfig().Categories.LangCategories.Ru
 	case models.LanguageEn:
-		langData = config.GetConfig().Categories.Lang.En
+		langData = config.GetConfig().Categories.LangCategories.En
 	case models.LanguageEs:
-		langData = config.GetConfig().Categories.Lang.Es
+		langData = config.GetConfig().Categories.LangCategories.Es
 	default:
 		return nil, errors.New("не поддерживаемый язык: " + string(lang))
 	}
@@ -153,8 +135,6 @@ func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) 
 			Name: name,
 		})
 	}
-
-
 
 	return categories, nil
 }
@@ -178,14 +158,11 @@ func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) 
 // }
 
 type CharacteristicParamItem struct {
-	Role  string `json:"role"`
+	Role  string      `json:"role"`
 	Param interface{} `json:"param"`
 }
 
-
 type CharacteristicParam []CharacteristicParamItem
-
-	
 
 type GetCharacteristicsForCategoryResponse struct {
 	CharacteristicParams CharacteristicParam `json:"characteristic_params"`

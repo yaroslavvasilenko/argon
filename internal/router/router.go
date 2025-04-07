@@ -3,6 +3,7 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/yaroslavvasilenko/argon/internal/middleware"
 	"github.com/yaroslavvasilenko/argon/internal/modules"
 )
 
@@ -28,6 +29,9 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 		AllowCredentials: false,
 		ExposeHeaders:    "Content-Length, Content-Type",
 	}))
+
+	// Добавляем middleware для обработки языка
+	r.Use(middleware.Language())
 
 	r.Get("/ping", controllers.Listing.Ping)
 

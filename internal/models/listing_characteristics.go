@@ -19,10 +19,10 @@ const (
 	CHAR_STOCKED = "stocked"
 
 	CHAR_HEIGHT = "height"
-	CHAR_WIDTH = "width"
-	CHAR_DEPTH = "depth"
+	CHAR_WIDTH  = "width"
+	CHAR_DEPTH  = "depth"
 	CHAR_WEIGHT = "weight"
-	CHAR_AREA = "area"
+	CHAR_AREA   = "area"
 	CHAR_VOLUME = "volume"
 )
 
@@ -58,20 +58,15 @@ const (
 	OM = "om" // ом
 )
 
-
 // ColorParam представляет параметр цвета
 type ColorParam struct {
 	// Пустая структура, так как ограничения нужны только для фильтров
 }
 
 // StringParam представляет параметр выпадающего списка
-type StringParam struct {
-	Options []StringParamItem `json:"options"`
-}
-
-type StringParamItem struct {
+type DropdownOptionItem struct {
 	Value string `json:"value"`
-	Label string `json:"label"`
+	Label string `json:"label,omitempty"`
 }
 
 // Dimension представляет единицу измерения
@@ -79,7 +74,8 @@ type Dimension string
 
 // AmountParam представляет параметр с числовым значением и единицей измерения
 type AmountParam struct {
-	DimensionOptions []Dimension `json:"dimension_options"`
+	Value            float64    `json:"value" validate:"required"`
+	DimensionOptions Dimension `json:"dimension_options" validate:"required"`
 }
 
 // CheckboxParam представляет параметр чекбокса
@@ -94,15 +90,15 @@ type CharacteristicParam interface{}
 var CharacteristicParamMap = map[string]interface{}{
 	// Цвет
 	CHAR_COLOR: ColorParam{},
-	
+
 	// Выпадающие списки
-	CHAR_CONDITION: StringParam{},
-	CHAR_SEASON:    StringParam{},
-	CHAR_BRAND:     StringParam{},
-	
+	CHAR_CONDITION: DropdownOptionItem{},
+	CHAR_SEASON:    DropdownOptionItem{},
+	CHAR_BRAND:     DropdownOptionItem{},
+
 	// Чекбоксы
 	CHAR_STOCKED: CheckboxParam{},
-	
+
 	// Размеры и измерения
 	CHAR_HEIGHT: AmountParam{},
 	CHAR_WIDTH:  AmountParam{},
@@ -167,10 +163,66 @@ func (c *Characteristic) UnmarshalJSON(data []byte) error {
 	}
 
 	for _, item := range charItems {
-		(*c)[item.Role] = item.Value
+		// Определяем тип параметра для данной характеристики
+		paramType, ok := CharacteristicParamMap[item.Role]
+		if !ok {
+			continue
+		}
+
+		// Обрабатываем значение в зависимости от типа характеристики
+		switch paramType.(type) {
+		case ColorParam:
+			// Для цвета ожидаем строку
+			if strValue, ok := item.Value.(string); ok {
+				(*c)[item.Role] = strValue
+			}
+
+		case DropdownOptionItem:
+			// Для выпадающих списков ожидаем объект {value, label}
+			switch v := item.Value.(type) {
+			case map[string]interface{}:
+				// Если это объект, преобразуем его в DropdownOptionItem
+				option := DropdownOptionItem{}
+				if value, ok := v["value"].(string); ok {
+					option.Value = value
+				}
+				if label, ok := v["label"].(string); ok {
+					option.Label = label
+				}
+				(*c)[item.Role] = option
+			}
+
+		case CheckboxParam:
+			// Для чекбокса ожидаем булево значение
+			if boolValue, ok := item.Value.(bool); ok {
+				(*c)[item.Role] = boolValue
+			}
+
+		case AmountParam:
+			// Для AmountParam ожидаем объект {value, dimension}
+			switch v := item.Value.(type) {
+			case map[string]interface{}:
+				amountParam := AmountParam{}
+				
+				// Обрабатываем поле value
+				if valueField, ok := v["value"]; ok {
+					switch vf := valueField.(type) {
+					case float64:
+						amountParam.Value = vf
+					}
+				}
+				
+				// Обрабатываем поле dimension
+				if dimensionField, ok := v["dimension"]; ok {
+					if dimension, ok := dimensionField.(string); ok {
+						amountParam.DimensionOptions = Dimension(dimension)
+					}
+				}
+				
+				(*c)[item.Role] = amountParam
+			}
+		}
 	}
 
 	return nil
 }
-
-

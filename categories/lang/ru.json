@@ -1,10 +1,10 @@
 {
   "electronics": "Электроника",
   "smartphones": "Смартфоны",
-  "iphone": "Айфон",
-  "google pixel": "Гугл Пиксель",
+  "iphone": "iPhone",
+  "google_pixel": "Google Pixel",
   "clothing": "Одежда",
-  "men's clothing": "Мужская одежда",
-  "women's clothing": "Женская одежда",
+  "mens_clothing": "Мужская одежда",
+  "womens_clothing": "Женская одежда",
   "furniture": "Мебель"
 }

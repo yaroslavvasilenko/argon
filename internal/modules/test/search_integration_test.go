@@ -125,7 +125,7 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, iphone2.Title, resp.Results[1].Title)
 		assert.Equal(t, iphone3.Title, resp.Results[2].Title)
 
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", 3, *resp.CursorAfter, "price_asc", resp.SearchID)
 
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 3)
@@ -133,7 +133,7 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
 		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
 
-		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "price_asc", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", -3, *resp.CursorAfter, "price_asc", resp.SearchID)
 
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 3)
@@ -141,7 +141,7 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
 		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
 
-		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "price_asc", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", -3, *resp.CursorAfter, "price_asc", resp.SearchID)
 
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 3)
@@ -149,7 +149,7 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, iphone5.Title, resp.Results[1].Title)
 		assert.Equal(t, iphone6.Title, resp.Results[2].Title)
 
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", 3, *resp.CursorAfter, "price_asc", resp.SearchID)
 
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 3)
@@ -157,7 +157,7 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, iphone8.Title, resp.Results[1].Title)
 		assert.Equal(t, iphone9.Title, resp.Results[2].Title)
 
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "price_asc", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", 3, *resp.CursorAfter, "price_asc", resp.SearchID)
 
 		resp = user.searchListings(t, req)
 		assert.Empty(t, resp.Results)
@@ -185,7 +185,7 @@ func TestSearchListings(t *testing.T) {
 
 		// Продолжаем пагинацию дальше
 		firstPageLastTitle := resp.Results[2].Title
-		req = getSearchListingsRequest("iPhone", 3, resp.CursorAfter, "relevance", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", 3, *resp.CursorAfter, "relevance", resp.SearchID)
 
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 3)
@@ -195,7 +195,7 @@ func TestSearchListings(t *testing.T) {
 		assert.NotEqual(t, firstPageLastTitle, secondPageFirstTitle, "Дубликаты в результатах поиска по релевантности")
 
 		// Пагинация в обратном направлении
-		req = getSearchListingsRequest("iPhone", -3, resp.CursorAfter, "relevance", resp.SearchID)
+		req = getSearchListingsRequest("iPhone", -3, *resp.CursorAfter, "relevance", resp.SearchID)
 		resp = user.searchListings(t, req)
 		require.Len(t, resp.Results, 3)
 
@@ -259,19 +259,22 @@ func TestSearchListings(t *testing.T) {
 		req := getSearchListingsRequest("ноутбук", 5, "", "relevance", "")
 		// Добавляем фильтры в запрос поиска
 		// Фильтры для поиска
-		filters := models.Filters{
-			models.PRICE_TYPE: models.PriceFilter{
-				Min: 90000,
-				Max: 150000,
+		filters := models.FilterParams{
+			models.PRICE_TYPE: models.FilterItem{
+				Role:  models.PRICE_TYPE,
+				Param: models.PriceFilter{
+					Min: 90000,
+					Max: 150000,
+				},
 			},
-			models.COLOR_TYPE:   models.ColorFilter{Options: []string{"black", "silver"}},
-			models.CHAR_BRAND:   models.DropdownFilter{"Samsung"},
-			models.CHAR_STOCKED: func() models.CheckboxFilter { trueValue := true; return &trueValue }(),
-			models.CHAR_WEIGHT: models.DimensionFilter{
+			models.COLOR_TYPE:   models.FilterItem{Role: models.COLOR_TYPE, Param: models.ColorFilter{Options: []string{"black", "silver"}}},
+			models.CHAR_BRAND:   models.FilterItem{Role: models.CHAR_BRAND, Param: models.DropdownFilter{"Samsung"}},
+			models.CHAR_STOCKED: models.FilterItem{Role: models.CHAR_STOCKED, Param: func() models.CheckboxFilter { trueValue := true; return &trueValue }()},
+			models.CHAR_WEIGHT: models.FilterItem{Role: models.CHAR_WEIGHT, Param: models.DimensionFilter{
 				Min:       14,
 				Max:       16,
 				Dimension: "",
-			},
+			}},
 		}
 		req.Filters = filters
 
@@ -282,11 +285,14 @@ func TestSearchListings(t *testing.T) {
 		assert.Equal(t, "ноутбук с характеристиками", resp.Results[0].Title, "Найдено неверное объявление")
 
 		// Тест фильтра по цене
-		filtersEdit := make(models.Filters)
+		filtersEdit := make(models.FilterParams)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[models.PRICE_TYPE] = models.PriceFilter{
-			Min: 130000,
-			Max: 150000,
+		filtersEdit[models.PRICE_TYPE] = models.FilterItem{
+			Role:  models.PRICE_TYPE,
+			Param: models.PriceFilter{
+				Min: 130000,
+				Max: 150000,
+			},
 		}
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
@@ -295,9 +301,12 @@ func TestSearchListings(t *testing.T) {
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящей ценой")
 
 		// Тест фильтра по цвету
-		filtersEdit = make(models.Filters)
+		filtersEdit = make(models.FilterParams)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[models.COLOR_TYPE] = models.ColorFilter{Options: []string{"red", "green"}}
+		filtersEdit[models.COLOR_TYPE] = models.FilterItem{
+			Role:  models.COLOR_TYPE,
+			Param: models.ColorFilter{Options: []string{"red", "green"}},
+		}
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
 
@@ -305,9 +314,12 @@ func TestSearchListings(t *testing.T) {
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим цветом")
 
 		// Тест фильтра по бренду
-		filtersEdit = make(models.Filters)
+		filtersEdit = make(models.FilterParams)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[models.CHAR_BRAND] = models.DropdownFilter{"Apple", "Lenovo"}
+		filtersEdit[models.CHAR_BRAND] = models.FilterItem{
+			Role:  models.CHAR_BRAND,
+			Param: models.DropdownFilter{"Apple", "Lenovo"},
+		}
 		// Отладочный вывод фильтров
 		fmt.Printf("\n\nDEBUG TEST FILTERS: %v\n\n", filtersEdit)
 		req.Filters = filtersEdit
@@ -317,10 +329,13 @@ func TestSearchListings(t *testing.T) {
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим брендом")
 
 		// Тест фильтра по наличию на складе
-		filtersEdit = make(models.Filters)
+		filtersEdit = make(models.FilterParams)
 		maps.Copy(filtersEdit, filters)
 		falseValue := false
-		filtersEdit[models.CHAR_STOCKED] = &falseValue
+		filtersEdit[models.CHAR_STOCKED] = models.FilterItem{
+			Role:  models.CHAR_STOCKED,
+			Param: &falseValue,
+		}
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
 
@@ -328,12 +343,15 @@ func TestSearchListings(t *testing.T) {
 		require.Empty(t, resp.Results, "Найдено объявление при поиске с неподходящим состоянием")
 
 		// Тест фильтра по размеру экрана
-		filtersEdit = make(models.Filters)
+		filtersEdit = make(models.FilterParams)
 		maps.Copy(filtersEdit, filters)
-		filtersEdit[models.CHAR_HEIGHT] = models.DimensionFilter{
-			Min:       17,
-			Max:       19,
-			Dimension: "", // Дюймы по умолчанию
+		filtersEdit[models.CHAR_HEIGHT] = models.FilterItem{
+			Role:  models.CHAR_HEIGHT,
+			Param: models.DimensionFilter{
+				Min:       17,
+				Max:       19,
+				Dimension: "", // Дюймы по умолчанию
+			},
 		}
 		req.Filters = filtersEdit
 		resp = user.searchListings(t, req)
@@ -367,8 +385,11 @@ func TestSearchListings(t *testing.T) {
 		// Проверяем каждый тип фильтра
 
 		// Тест пустого фильтра цены
-		filters := models.Filters{
-			models.PRICE_TYPE: models.PriceFilter{}, // Пустой фильтр цены
+		filters := models.FilterParams{
+			models.PRICE_TYPE: models.FilterItem{
+				Role:  models.PRICE_TYPE,
+				Param: models.PriceFilter{},
+			},
 		}
 		req.Filters = filters
 		resp := user.searchListings(t, req)
@@ -377,8 +398,11 @@ func TestSearchListings(t *testing.T) {
 		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром цены")
 
 		// Тест пустого фильтра цвета
-		filters = models.Filters{
-			models.COLOR_TYPE: models.ColorFilter{Options: []string{}}, // Пустой фильтр цвета
+		filters = models.FilterParams{
+			models.COLOR_TYPE: models.FilterItem{
+				Role:  models.COLOR_TYPE,
+				Param: models.ColorFilter{Options: []string{}},
+			},
 		}
 		req.Filters = filters
 		resp = user.searchListings(t, req)
@@ -387,8 +411,11 @@ func TestSearchListings(t *testing.T) {
 		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром цвета")
 
 		// Тест пустого фильтра бренда
-		filters = models.Filters{
-			models.CHAR_BRAND: models.DropdownFilter{}, // Пустой фильтр бренда
+		filters = models.FilterParams{
+			models.CHAR_BRAND: models.FilterItem{
+				Role:  models.CHAR_BRAND,
+				Param: models.DropdownFilter{},
+			},
 		}
 		req.Filters = filters
 		resp = user.searchListings(t, req)
@@ -397,12 +424,15 @@ func TestSearchListings(t *testing.T) {
 		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром бренда")
 
 		// Тест пустого фильтра размеров
-		filters = models.Filters{
-			models.CHAR_WEIGHT: models.DimensionFilter{
-				Min:       0,
-				Max:       0,
-				Dimension: "kg", // Указываем размерность, так как она обязательна
-			}, // Пустой фильтр веса
+		filters = models.FilterParams{
+			models.CHAR_WEIGHT: models.FilterItem{
+				Role:  models.CHAR_WEIGHT,
+				Param: models.DimensionFilter{
+					Min:       0,
+					Max:       0,
+					Dimension: "kg", // Указываем размерность, так как она обязательна
+				},
+			},
 		}
 		req.Filters = filters
 		resp = user.searchListings(t, req)
@@ -411,8 +441,11 @@ func TestSearchListings(t *testing.T) {
 		require.NotEmpty(t, resp.Results, "Ничего не найдено при поиске с пустым фильтром веса")
 
 		// Тест фильтра с nil значением
-		filters = models.Filters{
-			models.CHAR_STOCKED: nil, // Nil значение для булевого фильтра
+		filters = models.FilterParams{
+			models.CHAR_STOCKED: models.FilterItem{
+				Role:  models.CHAR_STOCKED,
+				Param: nil, // Nil значение для булевого фильтра
+			},
 		}
 		req.Filters = filters
 		resp = user.searchListings(t, req)
@@ -459,8 +492,11 @@ func TestSearchListings(t *testing.T) {
 		require.True(t, found, "Тестовый товар не найден при поиске с пустым запросом")
 
 		// Проверяем поиск с пустым запросом и фильтром
-		filters := models.Filters{
-			models.CHAR_BRAND: models.DropdownFilter{"TestBrand"},
+		filters := models.FilterParams{
+			models.CHAR_BRAND: models.FilterItem{
+				Role:  models.CHAR_BRAND,
+				Param: models.DropdownFilter{"TestBrand"},
+			},
 		}
 		req.Filters = filters
 		resp = user.searchListings(t, req)
@@ -617,14 +653,11 @@ func TestSearchListingsByLocation(t *testing.T) {
 		Description: "Уютная квартира рядом с Красной площадью",
 		Price:       150000,
 		Currency:    models.Currency("RUB"),
-		Location: models.Location{
+		Location: &models.Location{
 			ID:   "moscow_center",
 			Name: "Красная площадь",
 			Area: models.Area{
-				Coordinates: struct {
-					Lat float64 `json:"lat" validate:"required"`
-					Lng float64 `json:"lng" validate:"required"`
-				}{
+				Coordinates: models.Coordinates{
 					Lat: 55.753930, // Координаты Красной площади
 					Lng: 37.620795,
 				},
@@ -643,10 +676,7 @@ func TestSearchListingsByLocation(t *testing.T) {
 		// Добавляем локацию в запрос поиска
 		req.Location = models.Location{
 			Area: models.Area{
-				Coordinates: struct {
-					Lat float64 `json:"lat" validate:"required"`
-					Lng float64 `json:"lng" validate:"required"`
-				}{
+				Coordinates: models.Coordinates{
 					Lat: 55.753930, // Те же координаты
 					Lng: 37.620795,
 				},
@@ -671,10 +701,7 @@ func TestSearchListingsByLocation(t *testing.T) {
 		// Добавляем локацию в запрос поиска с другими координатами
 		req.Location = models.Location{
 			Area: models.Area{
-				Coordinates: struct {
-					Lat float64 `json:"lat" validate:"required"`
-					Lng float64 `json:"lng" validate:"required"`
-				}{
+				Coordinates: models.Coordinates{
 					Lat: 59.939095, // Координаты Санкт-Петербурга (Дворцовая площадь)
 					Lng: 30.315868,
 				},
@@ -696,10 +723,7 @@ func TestSearchListingsByLocation(t *testing.T) {
 		// Добавляем локацию в запрос поиска с немного смещенными координатами и маленьким радиусом
 		req.Location = models.Location{
 			Area: models.Area{
-				Coordinates: struct {
-					Lat float64 `json:"lat" validate:"required"`
-					Lng float64 `json:"lng" validate:"required"`
-				}{
+				Coordinates: models.Coordinates{
 					Lat: 55.753930 + 0.001, // Смещаем координаты примерно на 100 метров
 					Lng: 37.620795 + 0.001,
 				},

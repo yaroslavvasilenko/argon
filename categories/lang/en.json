@@ -2,9 +2,9 @@
   "electronics": "Electronics",
   "smartphones": "Smartphones",
   "iphone": "iPhone",
-  "google pixel": "Google Pixel",
+  "google_pixel": "Google Pixel",
   "clothing": "Clothing",
-  "men's clothing": "Men's Clothing",
-  "women's clothing": "Women's Clothing",
+  "mens_clothing": "Men's Clothing",
+  "womens_clothing": "Women's Clothing",
   "furniture": "Furniture"
 }
