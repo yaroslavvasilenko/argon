@@ -9,6 +9,7 @@ import (
 
 	"github.com/pkg/errors"
 	"github.com/yaroslavvasilenko/argon/internal/core/parser"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
 type LocationResponse struct {
@@ -54,11 +55,7 @@ func (l *Location) GetLocation(ctx context.Context, lat, lng float64, zoom int) 
 		return nil, errors.Wrap(err, "creating request")
 	}
 
-	language := parser.GetLang(ctx)
-
-	if language != "" {
-		req.Header.Set("Accept-Language", language)
-	}
+	req.Header.Set(models.HeaderLanguage, string(parser.GetLang(ctx)))
 
 	resp, err := http.DefaultClient.Do(req)
 	if err != nil {
