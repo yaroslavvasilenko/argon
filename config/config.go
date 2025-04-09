@@ -21,10 +21,15 @@ type Config struct {
 	DB   struct {
 		Url string `koanf:"url"`
 	}
+	Minio struct {
+		Endpoint string
+		User     string
+		Password string
+		Bucket   string
+	}
 	Logger struct {
 		Level string
 	}
-
 	Categories struct {
 		// Toml содержит данные категорий в формате TOML
 		Toml string
