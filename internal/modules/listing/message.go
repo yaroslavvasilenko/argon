@@ -7,6 +7,7 @@ import (
 
 	"github.com/google/uuid"
 	"github.com/yaroslavvasilenko/argon/config"
+	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
@@ -98,10 +99,7 @@ type GetFiltersForCategoryResponse struct {
 // getCategoriesWithLocalizedNames получает локализованные названия категорий
 func GetCategoriesWithLocalizedNames(ctx context.Context, categoryIDs []string) ([]Category, error) {
 	// Получаем язык из контекста
-	lang := models.Localization(ctx.Value(models.KeyLanguage).(string))
-	if lang == "" {
-		lang = models.LanguageDefault
-	}
+	lang := parser.GetLang(ctx)
 
 	// Загружаем локализации
 	var translations map[string]string

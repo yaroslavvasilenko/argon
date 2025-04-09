@@ -14,6 +14,7 @@ import (
 
 	"github.com/gofiber/fiber/v2"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
+	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
@@ -162,11 +163,7 @@ func (s *Listing) GetCategories(ctx context.Context) (listing.ResponseGetCategor
 	}
 
 	// Получаем язык из контекста
-	lang := models.Localization(ctx.Value(models.KeyLanguage).(string))
-	if lang == "" {
-		lang = models.LanguageDefault
-	}
-
+	lang := parser.GetLang(ctx)
 	// Загружаем локализации
 	var translations map[string]string
 	var langData string
@@ -296,7 +293,7 @@ func (s *Listing) filterEmptyValues(filters models.Filters) models.Filters {
 // getCategoryCharacteristics получает характеристики для указанных категорий
 func (s *Listing) getCategoryCharacteristics(ctx context.Context, categoryIds []string) (map[string][]string, []string, map[string]string, error) {
 	// Получаем язык из контекста
-	lang := ctx.Value(models.KeyLanguage).(string)
+	lang := string(parser.GetLang(ctx))
 
 	// Собираем характеристики категорий из структуры категорий в конфиге
 	categoryCharacteristics := make(map[string][]string)

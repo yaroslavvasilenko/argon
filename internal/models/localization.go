@@ -5,8 +5,8 @@ type Localization string
 
 const (
 	HeaderLanguage  = "Accept-Language"
-	KeyLanguage  = "lang"
-	LanguageDefault  = "es"
+	KeyLanguage  Localization = "lang"
+	LanguageDefault Localization = "es"
 	LanguageRu Localization = "ru"
 	LanguageEn Localization = "en"
 	LanguageEs Localization = "es"

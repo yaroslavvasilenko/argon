@@ -1,28 +1,28 @@
 package middleware
 
 import (
+	"context"
+	"log/slog"
+
 	"github.com/gofiber/fiber/v2"
 	"github.com/yaroslavvasilenko/argon/internal/models"
 )
 
 // Language middleware добавляет информацию о языке в контекст запроса
 func Language() fiber.Handler {
-	return func(c *fiber.Ctx) error {	
-		// Получаем язык из заголовка
-		lang := c.Get(models.HeaderLanguage, models.LanguageDefault)
+	return func(c *fiber.Ctx) error {
+		lang := models.Localization(c.Get(models.HeaderLanguage, string(models.LanguageDefault)))
 
-		// Проверяем, что язык поддерживается
-		_, ok := models.LocalMap[models.Localization(lang)]
+		_, ok := models.LocalMap[lang]
 		if !ok {
-			return c.Status(fiber.StatusNotAcceptable).JSON(fiber.Map{
-				"error": "don't support language: " + string(lang),
-			})
+			slog.WarnContext(c.UserContext(), "don't support language: "+string(lang))
+			lang = models.LanguageDefault
 		}
-		
-		// Устанавливаем язык в контекст
-		c.Locals(models.KeyLanguage, lang)
-		
-		// Продолжаем обработку запроса
+
+		// Устанавливаем язык в Go-контекст
+		ctx := context.WithValue(c.UserContext(), models.KeyLanguage, lang)
+		c.SetUserContext(ctx)
+
 		return c.Next()
 	}
 }

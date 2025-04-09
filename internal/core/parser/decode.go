@@ -50,6 +50,6 @@ func QueryParser(c *fiber.Ctx, out interface{}) error {
 	return nil
 }
 
-func GetLang(ctx context.Context) string {
-	return ctx.Value(models.KeyLanguage).(string)
+func GetLang(ctx context.Context) models.Localization {
+	return ctx.Value(models.KeyLanguage).(models.Localization)
 }
