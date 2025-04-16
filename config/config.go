@@ -17,8 +17,12 @@ import (
 )
 
 type Config struct {
-	Port string
-	DB   struct {
+	App struct {
+		Name      string
+		ServerUrl string
+		Port      string
+	}
+	DB struct {
 		Url string `koanf:"url"`
 	}
 	Minio struct {

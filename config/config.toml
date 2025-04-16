@@ -1,4 +1,7 @@
 # Порт приложения
+[app]
+name = "Argon"
+serveruUrl = "http://127.0.0.1"
 port = 8080
 
 # Настройки базы данных
@@ -7,7 +10,7 @@ url = "postgresql://postgres:postgres@127.0.0.1:5435/postgres"
 
 # Настройки MinIO
 [minio]
-endpoint = "minio:9000"
+endpoint = "localhost:9000"
 user = "minioadmin"
 password = "minioadmin"
 bucket = "images"
