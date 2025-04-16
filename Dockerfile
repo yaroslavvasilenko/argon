@@ -1,5 +1,5 @@
 # Шаг сборки
-FROM golang:1.24.2 AS builder
+FROM --platform=linux/amd64 golang:1.24.2 AS builder
 
 # Устанавливаем полный набор зависимостей для libvips
 RUN apt-get update && apt-get install -y \
@@ -31,7 +31,7 @@ WORKDIR /app/cmd
 RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 PKG_CONFIG_PATH=/usr/lib/pkgconfig go build -o /go/bin/app
 
 # Шаг запуска - используем базовый образ с поддержкой glibc
-FROM debian:bookworm-slim
+FROM --platform=linux/amd64 debian:bookworm-slim
 WORKDIR /root/
 
 # Устанавливаем libvips и необходимые зависимости с ограничением памяти
