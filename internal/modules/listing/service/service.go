@@ -208,15 +208,13 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 		return listing.GetCharacteristicsForCategoryResponse{}, err
 	}
 
-	// Получаем опции характеристик из конфига
-	characteristicOptions := config.GetConfig().Categories.CategoryCharacteristics
 
 	// Создаем массив характеристик в порядке их ключей
 	result := make(listing.CharacteristicParam, 0, len(characteristicKeys))
 
 	for _, key := range characteristicKeys {
 		// Создаем параметр в зависимости от типа характеристики
-		param := s.createParamForCharacteristic(key, characteristicOptions, translations)
+		param := s.createParamForCharacteristic(ctx, key, translations)
 
 		// Добавляем новый элемент напрямую в массив
 		result = append(result, listing.CharacteristicParamItem{
@@ -361,7 +359,7 @@ func extractCharacteristicRoles(category config.CategoryNode) []string {
 }
 
 // createParamForCharacteristic создает параметр нужного типа для характеристики
-func (s *Listing) createParamForCharacteristic(characteristicKey string, options map[string][]string, translations map[string]string) interface{} {
+func (s *Listing) createParamForCharacteristic(ctx context.Context, characteristicKey string, translations map[string]string) interface{} {
 	// Получаем тип параметра из мапы
 	paramType, exists := models.CharacteristicParamMap[characteristicKey]
 	if !exists {
@@ -370,19 +368,20 @@ func (s *Listing) createParamForCharacteristic(characteristicKey string, options
 	}
 
 	// Получаем язык из контекста
-	lang := context.Background().Value(models.KeyLanguage)
+	lang := ctx.Value(models.KeyLanguage)
 
 	// Выбираем карту переводов в зависимости от языка
 	var langOptions map[string]map[string]string
+	config := config.GetConfig()
 	switch lang {
-	case string(models.LanguageRu):
-		langOptions = config.GetConfig().Categories.OptionsTranslations.Ru
-	case string(models.LanguageEn):
-		langOptions = config.GetConfig().Categories.OptionsTranslations.En
-	case string(models.LanguageEs):
-		langOptions = config.GetConfig().Categories.OptionsTranslations.Es
+	case models.LanguageRu:
+		langOptions = config.Categories.OptionsTranslations.Ru
+	case models.LanguageEn:
+		langOptions = config.Categories.OptionsTranslations.En
+	case models.LanguageEs:
+		langOptions = config.Categories.OptionsTranslations.Es
 	default:
-		langOptions = config.GetConfig().Categories.OptionsTranslations.En
+		langOptions = config.Categories.OptionsTranslations.En
 	}
 
 	// В зависимости от типа параметра создаем соответствующую структуру
@@ -396,7 +395,7 @@ func (s *Listing) createParamForCharacteristic(characteristicKey string, options
 		paramOptions := []models.DropdownOptionItem{}
 
 		// Получаем опции для данной характеристики
-		if optionValues, ok := options[characteristicKey]; ok && len(optionValues) > 0 {
+		if optionValues, ok := config.Categories.CategoryOptions[characteristicKey]; ok && len(optionValues) > 0 {
 			for _, value := range optionValues {
 				// По умолчанию используем значение как метку
 				label := value
@@ -436,26 +435,26 @@ func (s *Listing) createParamForCharacteristic(characteristicKey string, options
 }
 
 // getDefaultDimensionForCharacteristic возвращает дефолтную единицу измерения для числовой характеристики
-func (s *Listing) getDefaultDimensionForCharacteristic(characteristicKey string) models.Dimension {
+func (s *Listing) getDefaultDimensionForCharacteristic(characteristicKey string) []models.Dimension {
 	switch characteristicKey {
 	case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH:
 		// Для линейных размеров (дефолт - сантиметры)
-		return models.Dimension(models.CM)
+		return []models.Dimension{models.Dimension(models.CM)}
 
 	case models.CHAR_AREA:
 		// Для площади (дефолт - квадратные метры)
-		return models.Dimension(models.M2)
+		return []models.Dimension{models.Dimension(models.M2)}
 
 	case models.CHAR_VOLUME:
 		// Для объема (дефолт - литры)
-		return models.Dimension(models.L)
+		return []models.Dimension{models.Dimension(models.L)}
 
 	case models.CHAR_WEIGHT:
 		// Для веса (дефолт - килограммы)
-		return models.Dimension(models.KG)
+		return []models.Dimension{models.Dimension(models.KG)}
 
 	default:
-		return models.Dimension("")
+		return []models.Dimension{models.Dimension("")}
 	}
 }
 

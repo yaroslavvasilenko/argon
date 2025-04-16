@@ -193,54 +193,108 @@ func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
 		switch paramType.(type) {
 		case models.ColorParam:
 			typedParam = &models.ColorParam{}
-		case models.DropdownOptionItem:
+		case []models.DropdownOptionItem:
 			// Для выпадающего списка нужно преобразовать options
-			if options, ok := param.(map[string]interface{}); ok {
-				if optionsArray, ok := options["options"].([]interface{}); ok {
-					dropdownOptions := make([]models.DropdownOptionItem, 0, len(optionsArray))
-					for _, opt := range optionsArray {
-						if optMap, ok := opt.(map[string]interface{}); ok {
-							option := models.DropdownOptionItem{}
-							if value, ok := optMap["value"].(string); ok {
-								option.Value = value
+			dropdownOptions := make([]models.DropdownOptionItem, 0)
+
+			// Пытаемся получить опции из разных типов параметров
+			switch p := param.(type) {
+			case map[string]interface{}:
+				// Если это карта, пытаемся получить поле options
+				if optionsField, ok := p["options"]; ok {
+					switch opts := optionsField.(type) {
+					case []interface{}:
+						// Обрабатываем массив интерфейсов
+						for _, opt := range opts {
+							switch o := opt.(type) {
+							case map[string]interface{}:
+								// Если это объект, извлекаем value и label
+								option := models.DropdownOptionItem{}
+								if value, ok := o["value"].(string); ok {
+									option.Value = value
+								}
+								if label, ok := o["label"].(string); ok {
+									option.Label = label
+								}
+								dropdownOptions = append(dropdownOptions, option)
+							case string:
+								// Если это строка, используем её как value
+								dropdownOptions = append(dropdownOptions, models.DropdownOptionItem{Value: o})
 							}
-							if label, ok := optMap["label"].(string); ok {
-								option.Label = label
-							}
-							dropdownOptions = append(dropdownOptions, option)
+						}
+					case []string:
+						// Если это массив строк, преобразуем каждую в опцию
+						for _, value := range opts {
+							dropdownOptions = append(dropdownOptions, models.DropdownOptionItem{Value: value})
 						}
 					}
-					typedParam = dropdownOptions
-				} else {
-					typedParam = []models.DropdownOptionItem{}
 				}
-			} else {
-				typedParam = []models.DropdownOptionItem{}
+			case []models.DropdownOptionItem:
+				// Если это уже массив опций, используем его напрямую
+				dropdownOptions = p
+			case []interface{}:
+				// Если это массив интерфейсов, преобразуем каждый элемент
+				for _, item := range p {
+					switch i := item.(type) {
+					case map[string]interface{}:
+						option := models.DropdownOptionItem{}
+						if value, ok := i["value"].(string); ok {
+							option.Value = value
+						}
+						if label, ok := i["label"].(string); ok {
+							option.Label = label
+						}
+						dropdownOptions = append(dropdownOptions, option)
+					case string:
+						dropdownOptions = append(dropdownOptions, models.DropdownOptionItem{Value: i})
+					}
+				}
 			}
+
+			typedParam = dropdownOptions
 		case models.CheckboxParam:
 			typedParam = &models.CheckboxParam{}
 		case models.AmountParam:
 			// Для размерных параметров нужно преобразовать dimension_options
-			if dimensions, ok := param.(map[string]interface{}); ok {
-				amountParam := models.AmountParam{}
-				
+			// Инициализируем AmountParam с пустым массивом DimensionOptions
+			amountParam := models.AmountParam{
+				DimensionOptions: make([]models.Dimension, 0),
+			}
+
+			// Пытаемся получить значение и dimension_options из параметра
+			if mapParam, ok := param.(map[string]interface{}); ok {
 				// Обрабатываем поле value
-				if valueField, ok := dimensions["value"]; ok {
+				if valueField, ok := mapParam["value"]; ok {
 					switch vf := valueField.(type) {
 					case float64:
 						amountParam.Value = vf
 					}
 				}
-				
+
 				// Обрабатываем поле dimension_options
-				if dimensionField, ok := dimensions["dimension_options"].(string); ok {
-					amountParam.DimensionOptions = models.Dimension(dimensionField)
+				if dimensionField, ok := mapParam["dimension_options"]; ok {
+					switch df := dimensionField.(type) {
+					case []interface{}:
+						for _, dim := range df {
+							if strDim, ok := dim.(string); ok {
+								amountParam.DimensionOptions = append(amountParam.DimensionOptions, models.Dimension(strDim))
+							}
+						}
+					case []string:
+						for _, dim := range df {
+							amountParam.DimensionOptions = append(amountParam.DimensionOptions, models.Dimension(dim))
+						}
+					case string:
+						// Если пришла одиночная строка, добавляем её как единственный элемент массива
+						amountParam.DimensionOptions = append(amountParam.DimensionOptions, models.Dimension(df))
+					}
 				}
-				
-				typedParam = amountParam
-			} else {
-				typedParam = models.AmountParam{}
+			} else if amountP, ok := param.(models.AmountParam); ok {
+				// Если параметр уже имеет нужный тип, просто используем его
+				amountParam = amountP
 			}
+
+			typedParam = amountParam
 		default:
 			// Если тип не распознан, используем параметр как есть
 			typedParam = param

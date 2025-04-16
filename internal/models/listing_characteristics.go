@@ -75,7 +75,7 @@ type Dimension string
 // AmountParam представляет параметр с числовым значением и единицей измерения
 type AmountParam struct {
 	Value            float64    `json:"value" validate:"required"`
-	DimensionOptions Dimension `json:"dimension_options" validate:"required"`
+	DimensionOptions []Dimension `json:"dimension_options" validate:"required"`
 }
 
 // CheckboxParam представляет параметр чекбокса
@@ -92,9 +92,9 @@ var CharacteristicParamMap = map[string]interface{}{
 	CHAR_COLOR: ColorParam{},
 
 	// Выпадающие списки
-	CHAR_CONDITION: DropdownOptionItem{},
-	CHAR_SEASON:    DropdownOptionItem{},
-	CHAR_BRAND:     DropdownOptionItem{},
+	CHAR_CONDITION: []DropdownOptionItem{},
+	CHAR_SEASON:    []DropdownOptionItem{},
+	CHAR_BRAND:     []DropdownOptionItem{},
 
 	// Чекбоксы
 	CHAR_STOCKED: CheckboxParam{},
@@ -214,8 +214,10 @@ func (c *Characteristic) UnmarshalJSON(data []byte) error {
 				
 				// Обрабатываем поле dimension
 				if dimensionField, ok := v["dimension"]; ok {
-					if dimension, ok := dimensionField.(string); ok {
-						amountParam.DimensionOptions = Dimension(dimension)
+					if dimension, ok := dimensionField.([]string); ok {
+						for _, dim := range dimension {
+							amountParam.DimensionOptions = append(amountParam.DimensionOptions, Dimension(dim))
+						}
 					}
 				}
 				

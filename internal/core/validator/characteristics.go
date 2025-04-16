@@ -98,7 +98,7 @@ func validateCharacteristicType(characteristicName string, interfaceValue reflec
 			return false
 		}
 		
-		if !isValidDimension(characteristicName, string(amountParam.DimensionOptions)) {
+		if !isValidDimension(characteristicName, amountParam.DimensionOptions) {
 			return false
 		}
 		if amountParam.Value <= 0 {
@@ -133,7 +133,7 @@ func isValidColor(color string) bool {
 }
 
 // isValidDimension проверяет, что единица измерения допустима для данной характеристики
-func isValidDimension(characteristicName, dimension string) bool {
+func isValidDimension(characteristicName string, dimensions []models.Dimension) bool {
 	// Определяем допустимые единицы измерения в зависимости от типа характеристики
 	var validDimensions []string
 
@@ -158,8 +158,10 @@ func isValidDimension(characteristicName, dimension string) bool {
 
 	// Проверяем наличие единицы измерения в списке допустимых
 	for _, validDimension := range validDimensions {
-		if validDimension == dimension {
-			return true
+		for _, dimension := range dimensions {
+			if validDimension == string(dimension) {
+				return true
+			}
 		}
 	}
 
