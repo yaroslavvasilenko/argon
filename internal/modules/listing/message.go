@@ -167,75 +167,90 @@ type GetCharacteristicsForCategoryResponse struct {
 }
 
 // MarshalJSON реализует интерфейс json.Marshaler для типа CharacteristicParam
-// func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
-// 	if c == nil {
-// 		return []byte("null"), nil
-// 	}
+func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
+	if c == nil {
+		return []byte("null"), nil
+	}
 
-// 	charItems := make([]CharacteristicParamItem, 0, len(c))
-// 	for role, param := range c {
-// 		// Определяем тип параметра на основе роли характеристики
-// 		paramType, exists := models.CharacteristicParamMap[role]
-// 		if !exists {
-// 			// Если тип не определен, используем параметр как есть
-// 			charItems = append(charItems, CharacteristicParamItem{
-// 				Role:  role,
-// 				Param: param,
-// 			})
-// 			continue
-// 		}
+	charItems := make([]CharacteristicParamItem, 0, len(c))
+	for _, item := range c {
+		role := item.Role
+		param := item.Param
 
-// 		// Преобразуем параметр в соответствующий тип
-// 		var typedParam interface{}
-// 		switch paramType {
-// 		case models.COLOR_TYPE:
-// 			typedParam = &models.ColorParam{}
-// 		case models.DROPDOWN_TYPE:
-// 			// Для выпадающего списка нужно преобразовать options
-// 			if options, ok := param.(map[string]interface{}); ok {
-// 				if optionsArray, ok := options["options"].([]interface{}); ok {
-// 					stringOptions := make([]string, 0, len(optionsArray))
-// 					for _, opt := range optionsArray {
-// 						if strOpt, ok := opt.(string); ok {
-// 							stringOptions = append(stringOptions, strOpt)
-// 						}
-// 					}
-// 					typedParam = &models.DropdownParam{Options: stringOptions}
-// 				} else {
-// 					typedParam = &models.DropdownParam{}
-// 				}
-// 			} else {
-// 				typedParam = &models.DropdownParam{}
-// 			}
-// 		case models.CHECKBOX_TYPE:
-// 			typedParam = &models.CheckboxParam{}
-// 		case models.DIMENSION_TYPE:
-// 			// Для размерных параметров нужно преобразовать dimension_options
-// 			if dimensions, ok := param.(map[string]interface{}); ok {
-// 				if dimOptions, ok := dimensions["dimension_options"].([]interface{}); ok {
-// 					dimensionOptions := make([]models.Dimension, 0, len(dimOptions))
-// 					for _, dim := range dimOptions {
-// 						if strDim, ok := dim.(string); ok {
-// 							dimensionOptions = append(dimensionOptions, models.Dimension(strDim))
-// 						}
-// 					}
-// 					typedParam = &models.DimensionParam{DimensionOptions: dimensionOptions}
-// 				} else {
-// 					typedParam = &models.DimensionParam{}
-// 				}
-// 			} else {
-// 				typedParam = &models.DimensionParam{}
-// 			}
-// 		default:
-// 			// Если тип не распознан, используем параметр как есть
-// 			typedParam = param
-// 		}
+		// Определяем тип параметра на основе роли характеристики
+		paramType, exists := models.CharacteristicParamMap[role]
+		if !exists {
+			// Если тип не определен, используем параметр как есть
+			charItems = append(charItems, CharacteristicParamItem{
+				Role:  role,
+				Param: param,
+			})
+			continue
+		}
 
-// 		charItems = append(charItems, CharacteristicParamItem{
-// 			Role:  role,
-// 			Param: typedParam,
-// 		})
-// 	}
+		// Преобразуем параметр в соответствующий тип
+		var typedParam interface{}
+		switch paramType.(type) {
+		case models.ColorParam:
+			typedParam = &models.ColorParam{}
+		case models.DropdownOptionItem:
+			// Для выпадающего списка нужно преобразовать options
+			if options, ok := param.(map[string]interface{}); ok {
+				if optionsArray, ok := options["options"].([]interface{}); ok {
+					dropdownOptions := make([]models.DropdownOptionItem, 0, len(optionsArray))
+					for _, opt := range optionsArray {
+						if optMap, ok := opt.(map[string]interface{}); ok {
+							option := models.DropdownOptionItem{}
+							if value, ok := optMap["value"].(string); ok {
+								option.Value = value
+							}
+							if label, ok := optMap["label"].(string); ok {
+								option.Label = label
+							}
+							dropdownOptions = append(dropdownOptions, option)
+						}
+					}
+					typedParam = dropdownOptions
+				} else {
+					typedParam = []models.DropdownOptionItem{}
+				}
+			} else {
+				typedParam = []models.DropdownOptionItem{}
+			}
+		case models.CheckboxParam:
+			typedParam = &models.CheckboxParam{}
+		case models.AmountParam:
+			// Для размерных параметров нужно преобразовать dimension_options
+			if dimensions, ok := param.(map[string]interface{}); ok {
+				amountParam := models.AmountParam{}
+				
+				// Обрабатываем поле value
+				if valueField, ok := dimensions["value"]; ok {
+					switch vf := valueField.(type) {
+					case float64:
+						amountParam.Value = vf
+					}
+				}
+				
+				// Обрабатываем поле dimension_options
+				if dimensionField, ok := dimensions["dimension_options"].(string); ok {
+					amountParam.DimensionOptions = models.Dimension(dimensionField)
+				}
+				
+				typedParam = amountParam
+			} else {
+				typedParam = models.AmountParam{}
+			}
+		default:
+			// Если тип не распознан, используем параметр как есть
+			typedParam = param
+		}
 
-// 	return json.Marshal(charItems)
-// }
+		charItems = append(charItems, CharacteristicParamItem{
+			Role:  role,
+			Param: typedParam,
+		})
+	}
+
+	return json.Marshal(charItems)
+}
