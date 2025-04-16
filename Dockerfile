@@ -1,11 +1,14 @@
 # Шаг сборки
 FROM golang:1.24.2 AS builder
 
-# Устанавливаем зависимости для libvips
+# Устанавливаем полный набор зависимостей для libvips
 RUN apt-get update && apt-get install -y \
     build-essential \
     pkg-config \
     libvips-dev \
+    libmagickwand-dev \
+    libmagickcore-dev \
+    libvips-tools \
     && rm -rf /var/lib/apt/lists/*
 
 # Устанавливаем рабочую директорию
@@ -22,19 +25,19 @@ COPY . .
 RUN echo "=== Содержимое корня проекта ===" && ls -la
 RUN echo "=== Содержимое директории categories ===" && ls -la categories/
 
-# Переходим в директорию, где лежит main.go
-WORKDIR /app/cmd
-
 # Собираем бинарник (с поддержкой CGO для libvips)
-RUN CGO_ENABLED=1 GOOS=linux go build -o /go/bin/app
+# Явно указываем рабочую директорию и используем полный путь
+WORKDIR /app/cmd
+RUN CGO_ENABLED=1 GOOS=linux GOARCH=amd64 PKG_CONFIG_PATH=/usr/lib/pkgconfig go build -o /go/bin/app
 
 # Шаг запуска - используем базовый образ с поддержкой glibc
 FROM debian:bookworm-slim
 WORKDIR /root/
 
-# Устанавливаем libvips и необходимые зависимости
-RUN apt-get update && apt-get install -y \
-    libvips-dev \
+# Устанавливаем libvips и необходимые зависимости с ограничением памяти
+RUN apt-get update && \
+    apt-get install -y --no-install-recommends \
+    libvips42 \
     libvips-tools \
     ca-certificates \
     tzdata \
