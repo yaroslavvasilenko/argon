@@ -1,5 +1,5 @@
 # Шаг сборки
-FROM golang:1.24.1 AS builder
+FROM golang:1.24.2 AS builder
 
 # Устанавливаем зависимости для libvips
 RUN apt-get update && apt-get install -y \
