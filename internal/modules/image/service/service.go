@@ -187,7 +187,7 @@ func exportToWebP(img *vips.ImageRef, lossless bool) ([]byte, error) {
 }
 
 func createUrlForImage(imageName string) string {
-	return fmt.Sprintf("%v/api/v1/image/%v", config.GetConfig().App.ServerUrl, imageName) // fmt.Sprintf("%v/api/image/%v", config.GetConfig().App.ServerUrl, imageName)
+	return fmt.Sprintf("%v/api/v1/images/get/%v", config.GetConfig().App.ServerUrl, imageName) // fmt.Sprintf("%v/api/image/%v", config.GetConfig().App.ServerUrl, imageName)
 }
 
 func (s *Image) GetImage(ctx context.Context, id string) (io.ReadCloser, error) {

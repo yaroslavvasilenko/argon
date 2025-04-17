@@ -62,7 +62,7 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 
 	// images
 	r.Post("/api/v1/images/upload", controllers.Image.UploadImage)
-	r.Get("/api/v1/images/:image_id", controllers.Image.GetImage)
+	r.Get("/api/v1/images/get/:image_id", controllers.Image.GetImage)
 
 	return r
 }
