@@ -56,7 +56,7 @@ func createTestApp(t *testing.T) *TestApp {
 	err = database.Migrate(cfg.DB.Url)
 	require.NoError(t, err)
 
-	storages := modules.NewStorages(cfg, gorm, pool)
+	storages := modules.NewStorages(cfg, gorm, pool, nil)
 	services := modules.NewServices(storages, pool, lg)
 	controller := modules.NewControllers(services)
 	// init router

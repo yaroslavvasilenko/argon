@@ -160,20 +160,22 @@ type CharacteristicParamItem struct {
 	Param interface{} `json:"param"`
 }
 
-type CharacteristicParam []CharacteristicParamItem
-
-type GetCharacteristicsForCategoryResponse struct {
-	CharacteristicParams CharacteristicParam `json:"characteristic_params"`
+type Option struct {
+	Options []CharacteristicParamItem `json:"options"`
 }
 
-// MarshalJSON реализует интерфейс json.Marshaler для типа CharacteristicParam
-func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
-	if c == nil {
+type GetCharacteristicsForCategoryResponse struct {
+	Option Option `json:"characteristic_params"`
+}
+
+// MarshalJSON реализует интерфейс json.Marshaler для типа Option
+func (c Option) MarshalJSON() ([]byte, error) {
+	if c.Options == nil {
 		return []byte("null"), nil
 	}
 
-	charItems := make([]CharacteristicParamItem, 0, len(c))
-	for _, item := range c {
+	charItems := make([]CharacteristicParamItem, 0, len(c.Options))
+	for _, item := range c.Options {
 		role := item.Role
 		param := item.Param
 
@@ -193,9 +195,11 @@ func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
 		switch paramType.(type) {
 		case models.ColorParam:
 			typedParam = &models.ColorParam{}
-		case []models.DropdownOptionItem:
+		case models.StringParam:
 			// Для выпадающего списка нужно преобразовать options
-			dropdownOptions := make([]models.DropdownOptionItem, 0)
+			stringParam := models.StringParam{
+				Options: make([]models.DropdownOptionItem, 0),
+			}
 
 			// Пытаемся получить опции из разных типов параметров
 			switch p := param.(type) {
@@ -216,22 +220,25 @@ func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
 								if label, ok := o["label"].(string); ok {
 									option.Label = label
 								}
-								dropdownOptions = append(dropdownOptions, option)
+								stringParam.Options = append(stringParam.Options, option)
 							case string:
 								// Если это строка, используем её как value
-								dropdownOptions = append(dropdownOptions, models.DropdownOptionItem{Value: o})
+								stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{Value: o})
 							}
 						}
 					case []string:
 						// Если это массив строк, преобразуем каждую в опцию
 						for _, value := range opts {
-							dropdownOptions = append(dropdownOptions, models.DropdownOptionItem{Value: value})
+							stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{Value: value})
 						}
 					}
 				}
+			case models.StringParam:
+				// Если это уже StringParam, используем его напрямую
+				stringParam = p
 			case []models.DropdownOptionItem:
-				// Если это уже массив опций, используем его напрямую
-				dropdownOptions = p
+				// Если это массив опций, используем его как Options
+				stringParam.Options = p
 			case []interface{}:
 				// Если это массив интерфейсов, преобразуем каждый элемент
 				for _, item := range p {
@@ -244,14 +251,14 @@ func (c CharacteristicParam) MarshalJSON() ([]byte, error) {
 						if label, ok := i["label"].(string); ok {
 							option.Label = label
 						}
-						dropdownOptions = append(dropdownOptions, option)
+						stringParam.Options = append(stringParam.Options, option)
 					case string:
-						dropdownOptions = append(dropdownOptions, models.DropdownOptionItem{Value: i})
+						stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{Value: i})
 					}
 				}
 			}
 
-			typedParam = dropdownOptions
+			typedParam = stringParam
 		case models.CheckboxParam:
 			typedParam = &models.CheckboxParam{}
 		case models.AmountParam:

@@ -95,7 +95,7 @@ func NewBenchmarkApp() (*BenchmarkApp, error) {
 		return nil, fmt.Errorf("failed to migrate database: %w", err)
 	}
 
-	storages := modules.NewStorages(cfg, gorm, pool)
+	storages := modules.NewStorages(cfg, gorm, pool, nil)
 	services := modules.NewServices(storages, pool, lg)
 	controller := modules.NewControllers(services)
 	// init router

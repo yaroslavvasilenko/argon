@@ -64,6 +64,9 @@ type ColorParam struct {
 }
 
 // StringParam представляет параметр выпадающего списка
+type StringParam struct {
+	Options []DropdownOptionItem `json:"options"`
+}
 type DropdownOptionItem struct {
 	Value string `json:"value"`
 	Label string `json:"label,omitempty"`
@@ -92,9 +95,9 @@ var CharacteristicParamMap = map[string]interface{}{
 	CHAR_COLOR: ColorParam{},
 
 	// Выпадающие списки
-	CHAR_CONDITION: []DropdownOptionItem{},
-	CHAR_SEASON:    []DropdownOptionItem{},
-	CHAR_BRAND:     []DropdownOptionItem{},
+	CHAR_CONDITION: StringParam{},
+	CHAR_SEASON:    StringParam{},
+	CHAR_BRAND:     StringParam{},
 
 	// Чекбоксы
 	CHAR_STOCKED: CheckboxParam{},
@@ -177,19 +180,52 @@ func (c *Characteristic) UnmarshalJSON(data []byte) error {
 				(*c)[item.Role] = strValue
 			}
 
-		case DropdownOptionItem:
-			// Для выпадающих списков ожидаем объект {value, label}
+		case StringParam:
+			// Для выпадающих списков ожидаем объект с массивом options
 			switch v := item.Value.(type) {
 			case map[string]interface{}:
-				// Если это объект, преобразуем его в DropdownOptionItem
-				option := DropdownOptionItem{}
-				if value, ok := v["value"].(string); ok {
-					option.Value = value
+				// Если это объект, проверяем наличие поля options
+				if optionsField, ok := v["options"]; ok {
+					stringParam := StringParam{
+						Options: make([]DropdownOptionItem, 0),
+					}
+
+					switch opts := optionsField.(type) {
+					case []interface{}:
+						// Обрабатываем массив опций
+						for _, opt := range opts {
+							switch o := opt.(type) {
+							case map[string]interface{}:
+								// Если это объект, извлекаем value и label
+								option := DropdownOptionItem{}
+								if value, ok := o["value"].(string); ok {
+									option.Value = value
+								}
+								if label, ok := o["label"].(string); ok {
+									option.Label = label
+								}
+								stringParam.Options = append(stringParam.Options, option)
+							case string:
+								// Если это строка, используем её как value
+								stringParam.Options = append(stringParam.Options, DropdownOptionItem{Value: o})
+							}
+						}
+					}
+					(*c)[item.Role] = stringParam
+				} else {
+					// Если нет поля options, проверяем наличие полей value и label
+					// для обратной совместимости
+					option := DropdownOptionItem{}
+					if value, ok := v["value"].(string); ok {
+						option.Value = value
+					}
+					if label, ok := v["label"].(string); ok {
+						option.Label = label
+					}
+					(*c)[item.Role] = StringParam{
+						Options: []DropdownOptionItem{option},
+					}
 				}
-				if label, ok := v["label"].(string); ok {
-					option.Label = label
-				}
-				(*c)[item.Role] = option
 			}
 
 		case CheckboxParam:
@@ -213,10 +249,10 @@ func (c *Characteristic) UnmarshalJSON(data []byte) error {
 				}
 				
 				// Обрабатываем поле dimension
-				if dimensionField, ok := v["dimension"]; ok {
-					if dimension, ok := dimensionField.([]string); ok {
+				if dimensionField, ok := v["dimension_options"]; ok {
+					if dimension, ok := dimensionField.([]interface{}); ok {
 						for _, dim := range dimension {
-							amountParam.DimensionOptions = append(amountParam.DimensionOptions, Dimension(dim))
+							amountParam.DimensionOptions = append(amountParam.DimensionOptions, Dimension(dim.(string)))
 						}
 					}
 				}

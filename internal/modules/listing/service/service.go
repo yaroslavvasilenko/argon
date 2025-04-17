@@ -210,7 +210,7 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 
 
 	// Создаем массив характеристик в порядке их ключей
-	result := make(listing.CharacteristicParam, 0, len(characteristicKeys))
+	result := make([]listing.CharacteristicParamItem, 0, len(characteristicKeys))
 
 	for _, key := range characteristicKeys {
 		// Создаем параметр в зависимости от типа характеристики
@@ -224,7 +224,7 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 	}
 
 	return listing.GetCharacteristicsForCategoryResponse{
-		CharacteristicParams: result,
+		Option:  listing.Option{Options: result},
 	}, nil
 }
 
@@ -390,9 +390,11 @@ func (s *Listing) createParamForCharacteristic(ctx context.Context, characterist
 		// Для цвета просто возвращаем пустую структуру
 		return models.ColorParam{}
 
-	case []models.DropdownOptionItem:
+	case models.StringParam:
 		// Для строковых параметров (выпадающих списков) загружаем опции
-		paramOptions := []models.DropdownOptionItem{}
+		stringParam := models.StringParam{
+			Options: make([]models.DropdownOptionItem, 0),
+		}
 
 		// Получаем опции для данной характеристики
 		if optionValues, ok := config.Categories.CategoryOptions[characteristicKey]; ok && len(optionValues) > 0 {
@@ -408,14 +410,14 @@ func (s *Listing) createParamForCharacteristic(ctx context.Context, characterist
 					}
 				}
 
-				paramOptions = append(paramOptions, models.DropdownOptionItem{
+				stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{
 					Value: value,
 					Label: label,
 				})
 			}
 		}
 
-		return paramOptions
+		return stringParam
 
 	case models.CheckboxParam:
 		// Для чекбокса просто возвращаем пустую структуру

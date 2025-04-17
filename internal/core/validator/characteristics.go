@@ -75,15 +75,21 @@ func validateCharacteristicType(characteristicName string, interfaceValue reflec
 		}
 		return isValidColor(color)
 
-	case models.DropdownOptionItem:
+	case models.StringParam:
 		interfaceValue := characteristicValue.Interface()
 
-		option, ok := interfaceValue.(models.DropdownOptionItem)
+		stringParam, ok := interfaceValue.(models.StringParam)
 		if !ok {
 			return false
 		}
 		
-		if option.Value == "" {
+		// Проверяем, что есть хотя бы одна опция
+		if len(stringParam.Options) == 0 {
+			return false
+		}
+		
+		// Проверяем, что у первой опции есть значение
+		if stringParam.Options[0].Value == "" {
 			return false
 		}
 		return true
