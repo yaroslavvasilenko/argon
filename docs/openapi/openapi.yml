@@ -56,14 +56,21 @@ paths:
       tags:
         - Listing
       parameters:
-        - in: header
-          name: Accept-Language
+        - name: Accept-Language
+          in: header
           schema:
             type: string
             enum: [en, ru, es]
             default: es
           required: false
           description: Язык ответа (по умолчанию ИСПАНСКИЙ)
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
       requestBody:
         required: true
         content:
@@ -77,7 +84,11 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Listing'
-
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+      
   /api/v1/listing/{listing_id}:
     get:
       summary: Получить объявление по ID
@@ -92,6 +103,13 @@ paths:
             default: es
           required: false
           description: Язык ответа (по умолчанию ИСПАНСКИЙ)
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: false
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
         - name: listing_id
           in: path
           required: true
@@ -112,12 +130,19 @@ paths:
                 $ref: '#/components/schemas/Listing'
         '404':
           $ref: '#/components/responses/NotFound'
-
+      
     delete:
       summary: Удалить объявление по ID
       tags:
         - Listing
       parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
         - name: listing_id
           in: path
           required: true
@@ -126,6 +151,10 @@ paths:
       responses:
         '200':
           description: Объявление успешно удалено
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -142,6 +171,13 @@ paths:
             default: es
           required: false
           description: Язык ответа (по умолчанию ИСПАНСКИЙ)
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
         - name: listing_id
           in: path
           required: true
@@ -160,6 +196,12 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/Listing'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+        '403':
+          $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -272,6 +314,13 @@ paths:
             enum: [en, ru, es]
             default: es
           required: false
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: false
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
       requestBody:
         required: true
         content:
@@ -331,6 +380,8 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/SearchResponse'
+        '400':
+          $ref: '#/components/responses/InvalidRequest'
 
   /api/v1/search/params:
     get:
@@ -429,6 +480,13 @@ paths:
         schema:
           type: string
         description: Уникальный идентификатор объявления
+      - name: Authorization
+        in: header
+        schema:
+          type: string
+        required: true
+        example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+        description: Токен авторизации (JWT)
     get:
       summary: Получить доступные бусты для объявления
       tags:
@@ -441,8 +499,10 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/GetBoostsResponse'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Доступ запрещен. Возникает, если пользователь не является автором объявления.
+          $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
     post:
@@ -475,8 +535,10 @@ paths:
                 $ref: '#/components/schemas/GetBoostsResponse'
         '400':
           $ref: '#/components/responses/InvalidBoostSequence'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
         '403':
-          description: Доступ запрещен. Возникает, если пользователь не является автором объявления.
+          $ref: '#/components/responses/AccessDenied'
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -518,6 +580,13 @@ paths:
           schema:
             type: string
           description: ID продавца
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: false
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
       responses:
         '200':
           description: Успешный ответ со списком контактов
@@ -542,6 +611,13 @@ paths:
             enum: [en, ru, es]
             default: es
           required: false
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
         - name: cursor
           in: query
           required: false
@@ -566,13 +642,21 @@ paths:
             application/json:
               schema:
                 $ref: '#/components/schemas/FavoritesResponse'
-        '403':
-          description: Доступ запрещен. Возникает, если пользователь не авторизован.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
     post:
       summary: Добавить список листингов в избранное отправителя запроса
       tags:
         - Favorites
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
       requestBody:
         required: true
         content:
@@ -591,13 +675,21 @@ paths:
       responses:
         '200':
           description: Список успешно пополнен.
-        '403':
-          description: Доступ запрещен. Возникает, если пользователь не авторизован.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
     delete:
       summary: Удалить список листингов из избранных отправителя запроса.
       tags:
         - Favorites
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
       requestBody:
         required: true
         content:
@@ -614,8 +706,8 @@ paths:
       responses:
         '200':
           description: Объявление успешно удалено
-        '403':
-          description: Доступ запрещен. Возникает, если пользователь не авторизован.
+        '401':
+          $ref: '#/components/responses/Unauthorized'
 
 components:
   schemas:
@@ -1453,10 +1545,15 @@ components:
       properties:
         url:
           type: string
-          description: URL загруженного изображения
+          description: URL загруженного изображения, сжатый до 200px по высоте
+          example: "https://example.com/images/abc123.jpg"
+        url_full:
+          type: string
+          description: URL загруженного изображения, сжатый до 400px по высоте
           example: "https://example.com/images/abc123.jpg"
       required:
         - url
+        - url_full
 
     SellerContactType:
       type: string
@@ -1524,7 +1621,49 @@ components:
                 example: NotFound
               description:
                 type: string
-                example: Объект не найден
+                example: Object not found
+
+    Unauthorized:
+      description: Доступ запрещен. Возникает, если пользователь не авторизован.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: Unauthorized
+              description:
+                type: string
+                example: Access denied. User is not authenticated.
+    
+    AccessDenied:
+      description: Доступ запрещен. Возникает, если пользователь не имеет доступа к ресурсу.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: AccessDenied
+              description:
+                type: string
+                example: Access denied. User does not have access to the resource.
+
+    InvalidRequest:
+      description: Неверный запрос
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: InvalidRequest
+              description:
+                type: string
+                example: Invalid request. Please check the request parameters.
 
     InvalidBoostSequence:
       description: Неверная последовательность бустов
@@ -1538,4 +1677,4 @@ components:
                 example: InvalidBoostSequence
               description:
                 type: string
-                example: Последовательность бустов должна начинаться с base
+                example: Invalid boost sequence. The sequence must start with 'base'.
