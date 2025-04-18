@@ -1624,7 +1624,7 @@ components:
                 example: Object not found
 
     Unauthorized:
-      description: Доступ запрещен. Возникает, если пользователь не авторизован.
+      description: Неавторизованный доступ. Возникает, если пользователь не авторизован.
       content:
         application/json:
           schema:
@@ -1635,7 +1635,7 @@ components:
                 example: Unauthorized
               description:
                 type: string
-                example: Access denied. User is not authenticated.
+                example: Unauthorized. User is not authenticated.
     
     AccessDenied:
       description: Доступ запрещен. Возникает, если пользователь не имеет доступа к ресурсу.
