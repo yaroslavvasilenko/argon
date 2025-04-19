@@ -24,8 +24,8 @@ tags:
     description: Операции с локациями
   - name: Search
     description: Поиск объявлений
-  - name: Seller
-    description: Операции с продавцами
+  - name: User
+    description: Операции с пользователем
   - name: Favorites
     description: Операции со списком избранных
 
@@ -110,6 +110,13 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
+        - name: X-Guest-ID
+          in: header
+          schema:
+            type: string
+          required: false
+          example: 7b4e-92f1-ff13
+          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
         - name: listing_id
           in: path
           required: true
@@ -321,6 +328,13 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
+        - name: X-Guest-ID
+          in: header
+          schema:
+            type: string
+          required: false
+          example: 7b4e-92f1-ff13
+          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
       requestBody:
         required: true
         content:
@@ -568,18 +582,18 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadImageResponse'
 
-  /api/v1/seller/{seller_id}/contacts:
+  /api/v1/user/{user_id}/contacts:
     get:
-      summary: Получить контакты продавца
+      summary: Получить контакты пользователя
       tags:
-        - Seller
+        - User
       parameters:
-        - name: seller_id
+        - name: user_id
           in: path
           required: true
           schema:
             type: string
-          description: ID продавца
+          description: ID пользователя
         - name: Authorization
           in: header
           schema:
@@ -587,13 +601,279 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
+        - name: X-Guest-ID
+          in: header
+          schema:
+            type: string
+          required: false
+          example: 7b4e-92f1-ff13
+          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
       responses:
         '200':
           description: Успешный ответ со списком контактов
           content:
             application/json:
               schema:
-                $ref: '#/components/schemas/GetSellerContactsResponse'
+                $ref: '#/components/schemas/GetUserContactsResponse'
+        '402':
+          $ref: '#/components/responses/PaymentRequired'
+        '404':
+          $ref: '#/components/responses/NotFound'
+    post:
+      summary: Изменить контакты пользователя.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                contacts:
+                  type: array
+                  items:
+                    $ref: '#/components/schemas/UserContact'
+      responses:
+        '200':
+          description: Контакты пользователя успешно изменено.
+        '400':
+          $ref: "#/components/responses/InvalidRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/AccessDenied"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/user/{user_id}/info:
+    get:
+      summary: Получить полную информацию о пользователе.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Accept-Language
+          in: header
+          description: Язык локализации (по умолчанию ИСПАНСКИЙ)
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: false
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+        - name: X-Guest-ID
+          in: header
+          schema:
+            type: string
+          required: false
+          example: 7b4e-92f1-ff13
+          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
+      responses:
+        '200':
+          description: Успешный ответ с полной информацией о пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/GetUserInfoResponse'
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/user/{user_id}/name:
+    post:
+      summary: Изменить имя пользователя.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                name:
+                  type: string
+                  description: Новое имя пользователя
+                  example: "John Doe"
+                  maxLength: 50
+      responses:
+        '200':
+          description: Имя пользователя успешно изменено.
+        '400':
+          $ref: "#/components/responses/InvalidRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/AccessDenied"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/user/{user_id}/description:
+    post:
+      summary: Изменить описание пользователя.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                description:
+                  type: string
+                  description: Новое описание пользователя
+                  example: "John Doe"
+                  maxLength: 5000
+      responses:
+        '200':
+          description: Описание пользователя успешно изменено.
+        '400':
+          $ref: "#/components/responses/InvalidRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/AccessDenied"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/user/{user_id}/images:
+    post:
+      summary: Изменить список аватарок пользователя.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                images:
+                  type: array
+                  items:
+                    type: string
+                    format: uri
+                  description: Список URL-адресов аватарок
+                  example: ["https://example.com/avatar1.jpg", "https://example.com/avatar2.jpg"]
+      responses:
+        '200':
+          description: Список аватарок пользователя успешно изменен.
+        '400':
+          $ref: "#/components/responses/InvalidRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/AccessDenied"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
+  /api/v1/user/{user_id}/available:
+    post:
+      summary: Изменить доступность пользователя.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                available:
+                  type: boolean
+                  description: Новая доступность пользователя
+                  example: true
+      responses:
+        '200':
+          description: Доступность пользователя успешно изменена.
+        '400':
+          $ref: "#/components/responses/InvalidRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/AccessDenied"
         '404':
           $ref: '#/components/responses/NotFound'
 
@@ -757,7 +1037,7 @@ components:
           description: URL картинок объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
           items:
             type: string
-            description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
+            format: uri
             example: "https://example.com/image.png"
       required:
         - title
@@ -812,7 +1092,7 @@ components:
           description: URL картинок объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
           items:
             type: string
-            description: URL картинки объявления высотой не больше 400px, размерностью не больше 3к1 (идеально 1к1).
+            format: uri
             example: "https://example.com/image.png"
         created_at:
           type: integer
@@ -1313,7 +1593,7 @@ components:
           description: URL картинок объявления высотой не больше 200 пикселей, размерностью не выше 3к1 (идеально 1к1).
           items:
             type: string
-            description: URL картинки объявления высотой не больше 200 пикселей, размерностью не выше 3к1 (идеально 1к1).
+            format: uri
             example: "https://example.com/image.png"
         is_highlighted:
           type: boolean
@@ -1545,17 +1825,19 @@ components:
       properties:
         url:
           type: string
+          format: uri
           description: URL загруженного изображения, сжатый до 200px по высоте
           example: "https://example.com/images/abc123.jpg"
         url_full:
           type: string
+          format: uri
           description: URL загруженного изображения, сжатый до 400px по высоте
           example: "https://example.com/images/abc123.jpg"
       required:
         - url
         - url_full
 
-    SellerContactType:
+    UserContactType:
       type: string
       enum:
         - phone
@@ -1577,15 +1859,15 @@ components:
         * `msg` - Сообщения на сайте
         * `other` - Другое
 
-    SellerContact:
+    UserContact:
       type: object
-      description: Контактные данные продавца
+      description: Контактные данные пользователя
       properties:
         id:
           type: string
           description: Уникальный идентификатор контакта
         type:
-          $ref: '#/components/schemas/SellerContactType'
+          $ref: '#/components/schemas/UserContactType'
         text:
           type: string
           description: Текст контакта (номер телефона, имя пользователя и т.д.)
@@ -1597,16 +1879,82 @@ components:
         - type
         - text
 
-    GetSellerContactsResponse:
+    GetUserContactsResponse:
       type: object
       properties:
         contacts:
           type: array
-          description: Список контактов продавца
+          description: Список контактов пользователя
           items:
-            $ref: '#/components/schemas/SellerContact'
+            $ref: '#/components/schemas/UserContact'
       required:
         - contacts
+
+    GetUserInfoResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          description: Уникальный идентификатор пользователя
+          example: "123e4567-e89b-12d3-a456-426614174000"
+        name:
+          type: string
+          description: Имя пользователя, в том виде в котором он его указал. При создании пользователя имя устанавливается как в JWT токене.
+          maxLength: 50
+          example: "John Doe"
+        description:
+          type: string
+          description: Локализованное описание пользователя, может отсутствовать если оно пустое и запрос идет не от владельца карточки.
+          nullable: true
+          maxLength: 5000
+          example: "Джон До - продавец"
+        original_description:
+          type: string
+          description: Описание пользователя на языке оригинала, может отсутствовать если оно пустое и запрос идет не от владельца карточки.
+          nullable: true
+          maxLength: 5000
+          example: "John Doe is a seller"
+        location:
+          $ref: "#/components/schemas/Location"
+        rating:
+          type: number
+          description: Рейтинг пользователя по пятибальной шкале, может отсутствовать если автор запроса не является этим продавцом и голосов меньше 10.
+          minimum: 0
+          maximum: 5
+          nullable: true
+          example: 4.5
+        votes:
+          type: integer
+          description: Количество голосов пользователя, может отсутствовать если автор запроса не является этим продавцом и голосов меньше 100.
+          nullable: true
+          example: 42
+        available:
+          type: boolean
+          description: Не запретил ли пользователь связываться с ним до продажи (True если не запретил). Null если запретил и запрос идет не от владельца карточки. False если запретил, но запрос идет от владельца карточки.
+          nullable: true
+          example: true
+        images:
+          type: array
+          description: URL картинок аватаров пользователя высотой не больше 400 пикселей, размерностью не выше 3к1 (идеально 1к1).
+          items:
+            type: string
+            format: uri
+            example: "https://example.com/avatar.png"
+        editable:
+          type: boolean
+          description: Можно ли редактировать информацию о пользователе. True если карточка принадлежит авторизовавшемуся пользователю.
+          nullable: true
+          example: true
+        contacts:
+          type: array
+          description: Список контактов пользователя
+          nullable: true
+          items:
+            $ref: '#/components/schemas/UserContact'
+      required:
+        - id
+        - name
+        - images
 
   responses:
     NotFound:
@@ -1636,7 +1984,21 @@ components:
               description:
                 type: string
                 example: Unauthorized. User is not authenticated.
-    
+
+    PaymentRequired:
+      description: Требуется оплата. Возникает, если пользователь должен провести оплату для получения доступа к функционалу.
+      content:
+        application/json:
+          schema:
+            type: object
+            properties:
+              code:
+                type: string
+                example: PaymentRequired
+              description:
+                type: string
+                example: PaymentRequired. User need to finish payment to get access.
+
     AccessDenied:
       description: Доступ запрещен. Возникает, если пользователь не имеет доступа к ресурсу.
       content:
