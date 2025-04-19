@@ -52,23 +52,25 @@ func (s *Listing) BatchCreateListingsWithDetails(ctx context.Context, listingsDe
 				id, 
 				title, 
 				original_description, 
-				created_at, 
-				updated_at, 
-				deleted_at,
+				images,
 				price,
 				views_count,
-				currency
-			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+				currency,
+				created_at, 
+				updated_at, 
+				deleted_at
+			) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 		`,
 			details.Listing.ID,
 			details.Listing.Title,
 			details.Listing.Description,
-			details.Listing.CreatedAt,
-			details.Listing.UpdatedAt,
-			details.Listing.DeletedAt,
+			details.Listing.Images,
 			details.Listing.Price,
 			details.Listing.ViewsCount,
 			details.Listing.Currency,
+			details.Listing.CreatedAt,
+			details.Listing.UpdatedAt,
+			details.Listing.DeletedAt,
 		)
 		if err != nil {
 			return err
@@ -171,23 +173,25 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 			id, 
 			title, 
 			original_description, 
-			created_at, 
-			updated_at, 
-			deleted_at,
+			images,
 			price,
 			views_count,
-			currency
-		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9)
+			currency,
+			created_at, 
+			updated_at, 
+			deleted_at
+		) VALUES ($1, $2, $3, $4, $5, $6, $7, $8, $9, $10)
 	`,
 		listing.ID,
 		listing.Title,
 		listing.Description,
-		listing.CreatedAt,
-		listing.UpdatedAt,
-		listing.DeletedAt,
+		listing.Images,
 		listing.Price,
 		listing.ViewsCount,
 		listing.Currency,
+		listing.CreatedAt,
+		listing.UpdatedAt,
+		listing.DeletedAt,
 	)
 	if err != nil {
 		return err
@@ -354,6 +358,7 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 			l.id, 
 			l.title, 
 			l.original_description, 
+			l.images,
 			l.created_at, 
 			l.updated_at, 
 			l.deleted_at,
@@ -389,6 +394,7 @@ func (s *Listing) GetFullListing(ctx context.Context, pID string) (FullListing, 
 		&listing.ID,
 		&listing.Title,
 		&listing.Description,
+		&listing.Images,
 		&listing.CreatedAt,
 		&listing.UpdatedAt,
 		&deletedAt,
@@ -479,13 +485,15 @@ func (s *Listing) UpdateFullListing(ctx context.Context, listing models.Listing,
 		SET 
 			title = $1, 
 			original_description = $2, 
-			updated_at = $3, 
-			price = $4,
-			currency = $5
-		WHERE id = $6 AND deleted_at IS NULL
+			images = $3,
+			updated_at = $4, 
+			price = $5,
+			currency = $6
+		WHERE id = $7 AND deleted_at IS NULL
 	`,
 		listing.Title,
 		listing.Description,
+		listing.Images,
 		listing.UpdatedAt,
 		listing.Price,
 		listing.Currency,

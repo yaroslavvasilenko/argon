@@ -36,7 +36,7 @@ type CreateListingRequest struct {
 	Location        *models.Location      `json:"location,omitempty"`
 	Categories      []string              `json:"categories,omitempty" validate:"required,categories_validation"`
 	Characteristics models.Characteristic `json:"characteristics,omitempty" validate:"characteristics_validation"`
-	Images          []string              `json:"images"`
+	Images          []string              `json:"images" validate:"omitempty"`
 }
 
 type CreateListingResponse struct {

@@ -1,7 +1,7 @@
 # Порт приложения
 [app]
 name = "Argon"
-serverUrl = "http://127.0.0.1"
+serverUrl = "http://127.0.0.1:8080"
 port = 8080
 
 # Настройки базы данных

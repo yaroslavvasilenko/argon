@@ -55,6 +55,7 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 		Description: p.Description,
 		Price:       p.Price,
 		Currency:    p.Currency,
+		Images:      p.Images,
 		CreatedAt:   timeNow,
 		UpdatedAt:   timeNow,
 	}, p.Categories, *p.Location, p.Characteristics)
@@ -105,7 +106,7 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		Location:         fullListing.Location,
 		Categories:       categories,
 		Characteristics:  make(map[string]interface{}),
-		Images:           []string{},
+		Images:           fullListing.Listing.Images,
 		Boosts:           boosts,
 		CreatedAt:        fullListing.Listing.CreatedAt.UnixMilli(),
 		UpdatedAt:        fullListing.Listing.UpdatedAt.UnixMilli(),
@@ -142,6 +143,7 @@ func (s *Listing) UpdateListing(ctx context.Context, p listing.UpdateListingRequ
 		Description: p.Description,
 		Price:       p.Price,
 		Currency:    p.Currency,
+		Images:      p.Images,
 		UpdatedAt:   time.Now(),
 	}, p.Categories, p.Location, p.Characteristics)
 	if err != nil {
