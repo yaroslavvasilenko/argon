@@ -35,8 +35,8 @@ type CreateListingRequest struct {
 	Currency        models.Currency       `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB ARS"`
 	Location        *models.Location      `json:"location,omitempty"`
 	Categories      []string              `json:"categories,omitempty" validate:"required,categories_validation"`
-	Characteristics models.Characteristic `json:"characteristics,omitempty" validate:"characteristics_validation"`
-	Images          []string              `json:"images"`
+	Characteristics models.CharacteristicValue `json:"characteristics,omitempty" validate:"characteristics_value"`
+	Images          []string              `json:"images" validate:"omitempty"`
 }
 
 type CreateListingResponse struct {
@@ -47,7 +47,7 @@ type CreateListingResponse struct {
 	Currency        models.Currency        `json:"currency,omitempty"`
 	Location        models.Location        `json:"location,omitempty"`
 	Categories      []Category             `json:"categories"`
-	Characteristics map[string]interface{} `json:"characteristics,omitempty"`
+	Characteristics models.CharacteristicValue `json:"characteristics,omitempty"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
 	Images          []string               `json:"images"`
 }
@@ -65,7 +65,7 @@ type UpdateListingRequest struct {
 	Currency        models.Currency        `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
 	Location        models.Location        `json:"location,omitempty"`
 	Categories      []string               `json:"categories,omitempty" validate:"categories_validation"`
-	Characteristics map[string]interface{} `json:"characteristics,omitempty" validate:"characteristics_validation"`
+	Characteristics models.CharacteristicValue `json:"characteristics,omitempty" validate:"characteristics_value"`
 	Boosts          []BoostResp            `json:"boosts,omitempty"`
 	Images          []string               `json:"images"`
 }
@@ -82,7 +82,7 @@ type FullListingResponse struct {
 	Location            models.Location       `json:"location"`
 	Seller              models.Seller         `json:"seller"`
 	Categories          []Category            `json:"categories"`
-	Characteristics     models.Characteristic `json:"characteristics"`
+	Characteristics     models.CharacteristicValue `json:"characteristics"`
 	Images              []string              `json:"images"`
 	CreatedAt           int64                 `json:"created_at"`
 	UpdatedAt           int64                 `json:"updated_at"`
@@ -165,153 +165,5 @@ type Option struct {
 }
 
 type GetCharacteristicsForCategoryResponse struct {
-	Option Option `json:"characteristic_params"`
-}
-
-// MarshalJSON реализует интерфейс json.Marshaler для типа Option
-func (c Option) MarshalJSON() ([]byte, error) {
-	if c.Options == nil {
-		return []byte("null"), nil
-	}
-
-	charItems := make([]CharacteristicParamItem, 0, len(c.Options))
-	for _, item := range c.Options {
-		role := item.Role
-		param := item.Param
-
-		// Определяем тип параметра на основе роли характеристики
-		paramType, exists := models.CharacteristicParamMap[role]
-		if !exists {
-			// Если тип не определен, используем параметр как есть
-			charItems = append(charItems, CharacteristicParamItem{
-				Role:  role,
-				Param: param,
-			})
-			continue
-		}
-
-		// Преобразуем параметр в соответствующий тип
-		var typedParam interface{}
-		switch paramType.(type) {
-		case models.ColorParam:
-			typedParam = &models.ColorParam{}
-		case models.StringParam:
-			// Для выпадающего списка нужно преобразовать options
-			stringParam := models.StringParam{
-				Options: make([]models.DropdownOptionItem, 0),
-			}
-
-			// Пытаемся получить опции из разных типов параметров
-			switch p := param.(type) {
-			case map[string]interface{}:
-				// Если это карта, пытаемся получить поле options
-				if optionsField, ok := p["options"]; ok {
-					switch opts := optionsField.(type) {
-					case []interface{}:
-						// Обрабатываем массив интерфейсов
-						for _, opt := range opts {
-							switch o := opt.(type) {
-							case map[string]interface{}:
-								// Если это объект, извлекаем value и label
-								option := models.DropdownOptionItem{}
-								if value, ok := o["value"].(string); ok {
-									option.Value = value
-								}
-								if label, ok := o["label"].(string); ok {
-									option.Label = label
-								}
-								stringParam.Options = append(stringParam.Options, option)
-							case string:
-								// Если это строка, используем её как value
-								stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{Value: o})
-							}
-						}
-					case []string:
-						// Если это массив строк, преобразуем каждую в опцию
-						for _, value := range opts {
-							stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{Value: value})
-						}
-					}
-				}
-			case models.StringParam:
-				// Если это уже StringParam, используем его напрямую
-				stringParam = p
-			case []models.DropdownOptionItem:
-				// Если это массив опций, используем его как Options
-				stringParam.Options = p
-			case []interface{}:
-				// Если это массив интерфейсов, преобразуем каждый элемент
-				for _, item := range p {
-					switch i := item.(type) {
-					case map[string]interface{}:
-						option := models.DropdownOptionItem{}
-						if value, ok := i["value"].(string); ok {
-							option.Value = value
-						}
-						if label, ok := i["label"].(string); ok {
-							option.Label = label
-						}
-						stringParam.Options = append(stringParam.Options, option)
-					case string:
-						stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{Value: i})
-					}
-				}
-			}
-
-			typedParam = stringParam
-		case models.CheckboxParam:
-			typedParam = &models.CheckboxParam{}
-		case models.AmountParam:
-			// Для размерных параметров нужно преобразовать dimension_options
-			// Инициализируем AmountParam с пустым массивом DimensionOptions
-			amountParam := models.AmountParam{
-				DimensionOptions: make([]models.Dimension, 0),
-			}
-
-			// Пытаемся получить значение и dimension_options из параметра
-			if mapParam, ok := param.(map[string]interface{}); ok {
-				// Обрабатываем поле value
-				if valueField, ok := mapParam["value"]; ok {
-					switch vf := valueField.(type) {
-					case float64:
-						amountParam.Value = vf
-					}
-				}
-
-				// Обрабатываем поле dimension_options
-				if dimensionField, ok := mapParam["dimension_options"]; ok {
-					switch df := dimensionField.(type) {
-					case []interface{}:
-						for _, dim := range df {
-							if strDim, ok := dim.(string); ok {
-								amountParam.DimensionOptions = append(amountParam.DimensionOptions, models.Dimension(strDim))
-							}
-						}
-					case []string:
-						for _, dim := range df {
-							amountParam.DimensionOptions = append(amountParam.DimensionOptions, models.Dimension(dim))
-						}
-					case string:
-						// Если пришла одиночная строка, добавляем её как единственный элемент массива
-						amountParam.DimensionOptions = append(amountParam.DimensionOptions, models.Dimension(df))
-					}
-				}
-			} else if amountP, ok := param.(models.AmountParam); ok {
-				// Если параметр уже имеет нужный тип, просто используем его
-				amountParam = amountP
-			}
-
-			typedParam = amountParam
-		default:
-			// Если тип не распознан, используем параметр как есть
-			typedParam = param
-		}
-
-		charItems = append(charItems, CharacteristicParamItem{
-			Role:  role,
-			Param: typedParam,
-		})
-	}
-
-	return json.Marshal(charItems)
+	Option models.CharacteristicParam `json:"characteristic_params"`
 }

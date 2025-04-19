@@ -14,6 +14,7 @@ type Listing struct {
 	Price      float64   `json:"price,omitempty"`
 	Currency   Currency  `json:"currency,omitempty"`
 	ViewsCount int       `json:"views_count,omitempty"`
+	Images     []string  `json:"images,omitempty"`
 
 	CreatedAt time.Time  `json:"created_at"`
 	UpdatedAt time.Time  `json:"updated_at"`

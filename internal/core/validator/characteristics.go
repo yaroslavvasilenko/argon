@@ -9,7 +9,7 @@ import (
 )
 
 // ValidateCharacteristics проверяет, что характеристики соответствуют категориям
-func ValidateCharacteristics(fl validator.FieldLevel) bool {
+func ValidateCharacteristicsValue(fl validator.FieldLevel) bool {
 	// Получаем значение поля характеристик
 	characteristicsValue := fl.Field()
 	if characteristicsValue.Kind() != reflect.Map {
@@ -48,7 +48,7 @@ func ValidateCharacteristics(fl validator.FieldLevel) bool {
 			return false
 		}
 
-		if !validateCharacteristicType(characteristicName, characteristicValue) {
+		if !validateCharacteristicValue(characteristicName, characteristicValue) {
 			return false
 		}
 	}
@@ -56,8 +56,8 @@ func ValidateCharacteristics(fl validator.FieldLevel) bool {
 	return true
 }
 
-// validateCharacteristicType проверяет, что значение характеристики соответствует ожидаемому типу
-func validateCharacteristicType(characteristicName string, interfaceValue reflect.Value) bool {
+// validateCharacteristicValue проверяет, что значение характеристики соответствует ожидаемому типу
+func validateCharacteristicValue(characteristicName string, interfaceValue reflect.Value) bool {
 	paramType, ok := models.CharacteristicParamMap[characteristicName]
 	if !ok {
 		return false
@@ -76,20 +76,18 @@ func validateCharacteristicType(characteristicName string, interfaceValue reflec
 		return isValidColor(color)
 
 	case models.StringParam:
-		interfaceValue := characteristicValue.Interface()
-
-		stringParam, ok := interfaceValue.(models.StringParam)
+		stringParam, ok := characteristicValue.Interface().(models.DropdownOption)
 		if !ok {
 			return false
 		}
 		
 		// Проверяем, что есть хотя бы одна опция
-		if len(stringParam.Options) == 0 {
+		if stringParam.Value == "" {
 			return false
 		}
 		
 		// Проверяем, что у первой опции есть значение
-		if stringParam.Options[0].Value == "" {
+		if stringParam.Label == "" {
 			return false
 		}
 		return true
@@ -104,12 +102,10 @@ func validateCharacteristicType(characteristicName string, interfaceValue reflec
 			return false
 		}
 		
-		if !isValidDimension(characteristicName, amountParam.DimensionOptions) {
+		if !isValidDimension(characteristicName, []models.Dimension{amountParam.Dimension}) {
 			return false
 		}
-		if amountParam.Value <= 0 {
-			return false
-		}
+
 		return true
 
 	case models.CheckboxParam:

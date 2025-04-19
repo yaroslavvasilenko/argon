@@ -48,7 +48,7 @@ func Validate(s interface{}) *Validator {
 	_ = val.RegisterValidation("categories_validation", ValidateCategories)
 	
 	// Регистрация кастомной валидации для характеристик
-	_ = val.RegisterValidation("characteristics_validation", ValidateCharacteristics)
+	_ = val.RegisterValidation("characteristics_value", ValidateCharacteristicsValue)
 
 	if err := val.StructExcept(s); err != nil {
 		for _, e := range err.(validator.ValidationErrors) {
