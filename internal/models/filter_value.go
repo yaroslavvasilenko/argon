@@ -49,8 +49,6 @@ type FilterItem struct {
 	Value interface{} `json:"value"`
 }
 
-
-
 // ListingFilters представляет характеристики объявления в базе данных
 type ListingFilters struct {
 	ListingID uuid.UUID `json:"listing_id"`
@@ -86,7 +84,7 @@ func (f Filters) Validate() error {
 		if key == "" {
 			return fmt.Errorf("filter key cannot be empty")
 		}
-		
+
 		switch key {
 		case CHAR_PRICE:
 			_, ok := value.(PriceFilter)
@@ -149,12 +147,12 @@ func (f Filters) Validate() error {
 				if dimFilter.Max < dimFilter.Min && dimFilter.Max != 0 {
 					return fmt.Errorf("фильтр '%s': максимальное значение не может быть меньше минимального", key)
 				}
-				
+
 				// Проверяем единицу измерения
 				if dimFilter.Dimension == "" {
 					return fmt.Errorf("фильтр '%s': единица измерения не может быть пустой", key)
 				}
-				
+
 				// Проверяем, что единица измерения допустима для данного типа характеристики
 				if !isValidDimensionUnit(key, dimFilter.Dimension) {
 					return fmt.Errorf("фильтр '%s': недопустимая единица измерения '%s'", key, dimFilter.Dimension)
@@ -162,7 +160,7 @@ func (f Filters) Validate() error {
 			}
 		}
 	}
-	
+
 	return nil
 }
 
@@ -185,7 +183,6 @@ func isValidDimensionUnit(characteristicType string, unit string) bool {
 		return false
 	}
 }
-
 
 func (c Filters) GetPriceFilter(key string) (PriceFilter, bool) {
 	var priceFilter PriceFilter
@@ -261,7 +258,7 @@ func (c Filters) GetDimensionFilter(key string) (DimensionFilter, bool) {
 		if !ok {
 			return dimensionFilter, false
 		}
-		
+
 		if min, ok := mapValue["min"].(float64); ok {
 			dimensionFilter.Min = int(min)
 		}
@@ -271,7 +268,7 @@ func (c Filters) GetDimensionFilter(key string) (DimensionFilter, bool) {
 		if dimension, ok := mapValue["dimension"].(string); ok {
 			dimensionFilter.Dimension = dimension
 		}
-		
+
 		return dimensionFilter, true
 	}
 
@@ -305,13 +302,13 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 				(*c)[filter.Role] = priceFilter
 				continue
 			}
-			
+
 			// Если не получилось, пробуем разобрать как число
 			var price float64
 			if err := json.Unmarshal(filter.Param, &price); err != nil {
 				return fmt.Errorf("failed to parse price filter: %v", err)
 			}
-			
+
 			// Создаем фильтр цены с одинаковыми min и max
 			(*c)[filter.Role] = PriceFilter{Min: int(price), Max: int(price)}
 		case CHAR_COLOR:
@@ -321,20 +318,20 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 				(*c)[filter.Role] = colorFilter
 				continue
 			}
-			
+
 			// Пробуем разобрать как массив строк
 			var strArray []string
 			if err := json.Unmarshal(filter.Param, &strArray); err == nil {
 				(*c)[filter.Role] = ColorFilter{Options: strArray}
 				continue
 			}
-			
+
 			// Если не получилось, пробуем разобрать как строку
 			var str string
 			if err := json.Unmarshal(filter.Param, &str); err != nil {
 				return fmt.Errorf("failed to parse color filter: %v", err)
 			}
-			
+
 			// Преобразуем строку в массив из одного элемента
 			(*c)[filter.Role] = ColorFilter{Options: []string{str}}
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
@@ -344,13 +341,13 @@ func (c *Filters) UnmarshalJSON(data []byte) error {
 				(*c)[filter.Role] = DropdownFilter(strArray)
 				continue
 			}
-			
+
 			// Если не получилось, пробуем разобрать как строку
 			var str string
 			if err := json.Unmarshal(filter.Param, &str); err != nil {
 				return fmt.Errorf("failed to parse dropdown filter: %v", err)
 			}
-			
+
 			// Преобразуем строку в массив из одного элемента
 			(*c)[filter.Role] = DropdownFilter([]string{str})
 		case CHAR_STOCKED:
@@ -418,17 +415,17 @@ func (fp *FilterParams) UnmarshalJSON(data []byte) error {
 		if !ok {
 			return fmt.Errorf("missing 'role' field in filter item")
 		}
-		
+
 		var role string
 		if err := json.Unmarshal(roleRaw, &role); err != nil {
 			return fmt.Errorf("failed to unmarshal role: %v", err)
 		}
-		
+
 		// Создаем новый элемент фильтра
 		item := FilterItem{
 			Role: role,
 		}
-		
+
 		// Проверяем наличие поля param
 		if paramRaw, ok := itemMap["param"]; ok {
 			var param interface{}
@@ -437,7 +434,7 @@ func (fp *FilterParams) UnmarshalJSON(data []byte) error {
 			}
 			item.Param = param
 		}
-		
+
 		// Проверяем наличие поля value
 		if valueRaw, ok := itemMap["value"]; ok {
 			var value interface{}
@@ -446,7 +443,7 @@ func (fp *FilterParams) UnmarshalJSON(data []byte) error {
 			}
 			item.Value = value
 		}
-		
+
 		// Добавляем элемент в карту
 		(*fp)[role] = item
 	}
@@ -465,22 +462,22 @@ func (fp FilterParams) MarshalJSON() ([]byte, error) {
 		if item.Role == "" {
 			item.Role = key
 		}
-		
+
 		// Создаем объект для сериализации
 		itemMap := map[string]interface{}{
 			"role": item.Role,
 		}
-		
+
 		// Добавляем поле param, если оно есть
 		if item.Param != nil {
 			itemMap["param"] = item.Param
 		}
-		
+
 		// Добавляем поле value, если оно есть
 		if item.Value != nil {
 			itemMap["value"] = item.Value
 		}
-		
+
 		items = append(items, itemMap)
 	}
 
@@ -507,7 +504,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 		if value == nil {
 			continue
 		}
-		
+
 		switch filter.Role {
 		case CHAR_PRICE:
 			// Обрабатываем фильтр цены
@@ -515,7 +512,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			if ok {
 				// Создаем объект PriceFilter
 				priceFilter := PriceFilter{}
-				
+
 				// Получаем значения min и max
 				if min, ok := priceMap["min"]; ok {
 					switch v := min.(type) {
@@ -525,7 +522,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 						priceFilter.Min = v
 					}
 				}
-				
+
 				if max, ok := priceMap["max"]; ok {
 					switch v := max.(type) {
 					case float64:
@@ -534,7 +531,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 						priceFilter.Max = v
 					}
 				}
-				
+
 				filters[filter.Role] = priceFilter
 			} else {
 				// Если значение не объект, пробуем обработать как число
@@ -548,7 +545,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 					return nil, fmt.Errorf("invalid price filter value: %v", filter.Value)
 				}
 			}
-			
+
 		case CHAR_COLOR:
 			// Обрабатываем фильтр цвета
 			switch v := value.(type) {
@@ -569,7 +566,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			default:
 				return nil, fmt.Errorf("invalid color filter value: %v", filter.Value)
 			}
-			
+
 		case CHAR_BRAND, CHAR_CONDITION, CHAR_SEASON:
 			// Обрабатываем фильтры выпадающих списков
 			switch v := value.(type) {
@@ -590,7 +587,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			default:
 				return nil, fmt.Errorf("invalid dropdown filter value: %v", filter.Value)
 			}
-			
+
 		case CHAR_STOCKED:
 			// Обрабатываем фильтр чекбокса
 			switch v := value.(type) {
@@ -600,17 +597,17 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 			default:
 				return nil, fmt.Errorf("invalid checkbox filter value: %v", filter.Value)
 			}
-			
+
 		case CHAR_HEIGHT, CHAR_WIDTH, CHAR_DEPTH, CHAR_WEIGHT, CHAR_AREA, CHAR_VOLUME:
 			// Обрабатываем фильтры размеров
 			dimMap, ok := value.(map[string]interface{})
 			if !ok {
 				return nil, fmt.Errorf("invalid dimension filter value: %v", filter.Value)
 			}
-			
+
 			// Создаем объект DimensionFilter
 			dimFilter := DimensionFilter{}
-			
+
 			// Получаем значения min, max и dimension
 			if min, ok := dimMap["min"]; ok {
 				switch v := min.(type) {
@@ -620,7 +617,7 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 					dimFilter.Min = v
 				}
 			}
-			
+
 			if max, ok := dimMap["max"]; ok {
 				switch v := max.(type) {
 				case float64:
@@ -629,13 +626,13 @@ func (fp FilterParams) ToFilters() (Filters, error) {
 					dimFilter.Max = v
 				}
 			}
-			
+
 			if dim, ok := dimMap["dimension"]; ok {
 				if s, ok := dim.(string); ok {
 					dimFilter.Dimension = s
 				}
 			}
-			
+
 			filters[filter.Role] = dimFilter
 		}
 	}

@@ -105,17 +105,11 @@ func (s *Listing) GetListing(ctx context.Context, pID string) (listing.FullListi
 		OriginalCurrency: fullListing.Listing.Currency,
 		Location:         fullListing.Location,
 		Categories:       categories,
-		Characteristics:  make(map[string]interface{}),
+		Characteristics:  fullListing.Characteristics,
 		Images:           fullListing.Listing.Images,
 		Boosts:           boosts,
 		CreatedAt:        fullListing.Listing.CreatedAt.UnixMilli(),
 		UpdatedAt:        fullListing.Listing.UpdatedAt.UnixMilli(),
-	}
-
-	for key, value := range fullListing.Characteristics {
-		if value != nil {
-			resp.Characteristics[key] = value
-		}
 	}
 
 	return resp, nil
@@ -212,21 +206,14 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 
 
 	// Создаем массив характеристик в порядке их ключей
-	result := make([]listing.CharacteristicParamItem, 0, len(characteristicKeys))
-
+	result := make(models.CharacteristicParam)
 	for _, key := range characteristicKeys {
 		// Создаем параметр в зависимости от типа характеристики
-		param := s.createParamForCharacteristic(ctx, key, translations)
-
-		// Добавляем новый элемент напрямую в массив
-		result = append(result, listing.CharacteristicParamItem{
-			Role:  key,
-			Param: param,
-		})
+		result[key] = s.createParamForCharacteristic(ctx, key, translations)
 	}
 
 	return listing.GetCharacteristicsForCategoryResponse{
-		Option:  listing.Option{Options: result},
+		Option:  result,
 	}, nil
 }
 
@@ -395,7 +382,7 @@ func (s *Listing) createParamForCharacteristic(ctx context.Context, characterist
 	case models.StringParam:
 		// Для строковых параметров (выпадающих списков) загружаем опции
 		stringParam := models.StringParam{
-			Options: make([]models.DropdownOptionItem, 0),
+			Options: make([]models.DropdownOption, 0),
 		}
 
 		// Получаем опции для данной характеристики
@@ -412,7 +399,7 @@ func (s *Listing) createParamForCharacteristic(ctx context.Context, characterist
 					}
 				}
 
-				stringParam.Options = append(stringParam.Options, models.DropdownOptionItem{
+				stringParam.Options = append(stringParam.Options, models.DropdownOption{
 					Value: value,
 					Label: label,
 				})
@@ -429,7 +416,7 @@ func (s *Listing) createParamForCharacteristic(ctx context.Context, characterist
 		// Для числовых параметров добавляем соответствующую единицу измерения
 		dimension := s.getDefaultDimensionForCharacteristic(characteristicKey)
 		return models.AmountParam{
-			DimensionOptions: dimension,
+			Dimension: dimension[0],
 		}
 
 	default:

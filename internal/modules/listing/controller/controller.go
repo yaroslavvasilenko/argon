@@ -27,12 +27,12 @@ func (h *Listing) CreateListing(c *fiber.Ctx) error {
 	r := listing.CreateListingRequest{}
 	err := parser.BodyParser(c, &r)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusBadRequest, "error parsing request body: "+err.Error())
 	}
 
 	listing, err := h.s.CreateListing(c.UserContext(), r)
 	if err != nil {
-		return err
+		return fiber.NewError(fiber.StatusInternalServerError, "error creating listing: "+err.Error())
 	}
 
 	return c.JSON(listing)

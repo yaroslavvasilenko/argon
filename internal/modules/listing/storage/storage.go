@@ -331,7 +331,7 @@ type FullListing struct {
 	Listing         models.Listing
 	Categories      models.Category
 	Location        models.Location
-	Characteristics map[string]interface{}
+	Characteristics models.CharacteristicValue
 	Boosts          []models.Boost
 }
 
