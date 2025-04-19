@@ -790,6 +790,46 @@ paths:
         '404':
           $ref: '#/components/responses/NotFound'
 
+  /api/v1/user/{user_id}/location:
+    post:
+      summary: Изменить локацию пользователя.
+      tags:
+        - User
+      parameters:
+        - name: user_id
+          in: path
+          required: true
+          schema:
+            type: string
+          description: ID пользователя
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                location:
+                  $ref: '#/components/schemas/Location'
+      responses:
+        '200':
+          description: Локация пользователя успешно изменена.
+        '400':
+          $ref: "#/components/responses/InvalidRequest"
+        '401':
+          $ref: "#/components/responses/Unauthorized"
+        '403':
+          $ref: "#/components/responses/AccessDenied"
+        '404':
+          $ref: '#/components/responses/NotFound'
+
   /api/v1/user/{user_id}/images:
     post:
       summary: Изменить список аватарок пользователя.
