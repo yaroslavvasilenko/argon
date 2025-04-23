@@ -22,6 +22,6 @@ func NewControllers(services *Services) *Controllers {
 		Currency: ccontroller.NewCurrency(services.currency),
 		Location: loccontroller.NewLocation(services.location),
 		Boost:    bcontroller.NewBoost(services.boost),
-		Image:    icontroller.NewImage(services.image),
+		Image:    icontroller.NewImage(services.Image),
 	}
 }

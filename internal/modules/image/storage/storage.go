@@ -2,15 +2,16 @@ package storage
 
 import (
 	"context"
-	"io"
 	"log/slog"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jackc/pgx/v5/pgxpool"
 	"github.com/minio/minio-go/v7"
 	"github.com/minio/minio-go/v7/pkg/credentials"
 	"github.com/rotisserie/eris"
 	"github.com/yaroslavvasilenko/argon/config"
+	"github.com/yaroslavvasilenko/argon/internal/models"
 	"gorm.io/gorm"
 )
 
@@ -51,50 +52,6 @@ func NewMinio(ctx context.Context, cfg config.Config) (*Minio, error) {
 	}, nil
 }
 
-// UploadImage загружает изображение в MinIO
-func (m *Image) UploadImage(ctx context.Context, fileName, contentType string, file io.Reader) (string, error) {
-	// Загружаем файл в MinIO
-	_, err := m.minio.client.PutObject(ctx, m.minio.bucketName, fileName, file, -1, minio.PutObjectOptions{
-		ContentType: contentType,
-	})
-	if err != nil {
-		return "", eris.Wrapf(err, "uploading file %s failed", fileName)
-	}
-
-	return fileName, nil
-}
-
-// GetFileURL возвращает URL для доступа к файлу
-func (m *Image) GetImageURL(ctx context.Context, objectName string) (string, error) {
-	// Получаем URL для доступа к объекту
-	url, err := m.minio.client.PresignedGetObject(ctx, m.minio.bucketName, objectName, time.Hour*24, nil)
-	if err != nil {
-		return "", eris.Wrapf(err, "get url for object %s failed, in bucket %s", objectName, m.minio.bucketName)
-	}
-
-	return url.String(), nil
-}
-
-// DeleteFile удаляет файл из MinIO
-func (m *Image) DeleteFile(ctx context.Context, objectName string) error {
-	err := m.minio.client.RemoveObject(ctx, m.minio.bucketName, objectName, minio.RemoveObjectOptions{})
-	if err != nil {
-		return eris.Wrapf(err, "object %s not found, in bucket %s", objectName, m.minio.bucketName)
-	}
-
-	return nil
-}
-
-// GetFile получает файл из MinIO
-func (m *Image) GetFile(ctx context.Context, objectName string) (io.ReadCloser, error) {
-	obj, err := m.minio.client.GetObject(ctx, m.minio.bucketName, objectName, minio.GetObjectOptions{})
-	if err != nil {
-		return nil, eris.Wrapf(err, "object %s not found, in bucket %s", objectName, m.minio.bucketName)
-	}
-
-	return obj, nil
-}
-
 type Image struct {
 	gorm  *gorm.DB
 	pool  *pgxpool.Pool
@@ -103,4 +60,72 @@ type Image struct {
 
 func NewImage(db *gorm.DB, pool *pgxpool.Pool, minio *Minio) *Image {
 	return &Image{gorm: db, pool: pool, minio: minio}
+}
+
+// LinkImageToListing создает запись о связи изображения с объявлением
+func (m *Image) LinkImageToListing(ctx context.Context, imageName string, listingID string) error {
+	// Преобразуем строковый ID в UUID
+	listingUUID, err := uuid.Parse(listingID)
+	if err != nil {
+		return eris.Wrapf(err, "invalid listing ID: %s", listingID)
+	}
+
+	// Создаем запись о связи
+	imageLink := models.ImageLink{
+		ListingID: listingUUID,
+		NameImage:  imageName,
+		Linked:    true,
+		UpdatedAt: time.Now(),
+	}
+
+	// Сохраняем в базу данных
+	result := m.gorm.WithContext(ctx).Create(&imageLink)
+	if result.Error != nil {
+		return eris.Wrapf(result.Error, "failed to create image link for %s", imageName)
+	}
+
+	return nil
+}
+
+// UnlinkImageFromListing помечает изображение как не связанное с объявлением
+func (m *Image) UnlinkImageFromListing(ctx context.Context, imageName string, listingID string) error {
+	// Преобразуем строковый ID в UUID
+	listingUUID, err := uuid.Parse(listingID)
+	if err != nil {
+		return eris.Wrapf(err, "invalid listing ID: %s", listingID)
+	}
+
+	// Обновляем запись о связи
+	result := m.gorm.WithContext(ctx).Model(&models.ImageLink{}).Where(
+		"listing_id = ? AND name_image = ?", listingUUID, imageName,
+	).Updates(map[string]interface{}{
+		"linked":     false,
+		"updated_at": time.Now(),
+	})
+
+	if result.Error != nil {
+		return eris.Wrapf(result.Error, "failed to unlink image %s", imageName)
+	}
+
+	return nil
+}
+
+// GetUnlinkedImages возвращает список изображений, которые не связаны с объявлениями и старше указанного времени
+func (m *Image) GetUnlinkedImages(ctx context.Context, olderThan time.Time) ([]string, error) {
+	var imageLinks []models.ImageLink
+	result := m.gorm.WithContext(ctx).Model(&models.ImageLink{}).Where(
+		"linked = false AND updated_at < ?", olderThan,
+	).Select("name_image").Find(&imageLinks)
+
+	if result.Error != nil {
+		return nil, eris.Wrapf(result.Error, "failed to get unlinked images")
+	}
+
+	// Преобразуем результат в список имен файлов
+	imageNames := make([]string, len(imageLinks))
+	for i, link := range imageLinks {
+		imageNames[i] = link.NameImage
+	}
+
+	return imageNames, nil
 }

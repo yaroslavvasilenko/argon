@@ -29,27 +29,27 @@ type Category struct {
 }
 
 type CreateListingRequest struct {
-	Title           string                `json:"title" validate:"required"`
-	Description     string                `json:"description,omitempty"`
-	Price           float64               `json:"price,omitempty" validate:"gte=0"`
-	Currency        models.Currency       `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB ARS"`
-	Location        *models.Location      `json:"location,omitempty"`
-	Categories      []string              `json:"categories,omitempty" validate:"required,categories_validation"`
+	Title           string                     `json:"title" validate:"required"`
+	Description     string                     `json:"description,omitempty"`
+	Price           float64                    `json:"price,omitempty" validate:"gte=0"`
+	Currency        models.Currency            `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB ARS"`
+	Location        *models.Location           `json:"location,omitempty"`
+	Categories      []string                   `json:"categories,omitempty" validate:"required,categories_validation"`
 	Characteristics models.CharacteristicValue `json:"characteristics,omitempty" validate:"characteristics_value"`
-	Images          []string              `json:"images" validate:"omitempty"`
+	Images          []string                   `json:"images" validate:"omitempty"`
 }
 
 type CreateListingResponse struct {
-	ID              uuid.UUID              `json:"id"`
-	Title           string                 `json:"title"`
-	Description     string                 `json:"description,omitempty"`
-	Price           float64                `json:"price,omitempty"`
-	Currency        models.Currency        `json:"currency,omitempty"`
-	Location        models.Location        `json:"location,omitempty"`
-	Categories      []Category             `json:"categories"`
+	ID              uuid.UUID                  `json:"id"`
+	Title           string                     `json:"title"`
+	Description     string                     `json:"description,omitempty"`
+	Price           float64                    `json:"price,omitempty"`
+	Currency        models.Currency            `json:"currency,omitempty"`
+	Location        models.Location            `json:"location,omitempty"`
+	Categories      []Category                 `json:"categories"`
 	Characteristics models.CharacteristicValue `json:"characteristics,omitempty"`
-	Boosts          []BoostResp            `json:"boosts,omitempty"`
-	Images          []string               `json:"images"`
+	Boosts          []BoostResp                `json:"boosts,omitempty"`
+	Images          []string                   `json:"images"`
 }
 
 type BoostResp struct {
@@ -58,38 +58,38 @@ type BoostResp struct {
 }
 
 type UpdateListingRequest struct {
-	ID              uuid.UUID              `json:"id" validate:"required"`
-	Title           string                 `json:"title" validate:"required"`
-	Description     string                 `json:"description,omitempty"`
-	Price           float64                `json:"price,omitempty" validate:"gte=0"`
-	Currency        models.Currency        `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
-	Location        models.Location        `json:"location,omitempty"`
-	Categories      []string               `json:"categories,omitempty" validate:"categories_validation"`
+	ID              uuid.UUID                  `json:"id" validate:"required"`
+	Title           string                     `json:"title" validate:"required"`
+	Description     string                     `json:"description,omitempty"`
+	Price           float64                    `json:"price,omitempty" validate:"gte=0"`
+	Currency        models.Currency            `json:"currency,omitempty" validate:"required,oneof=USD EUR RUB"`
+	Location        models.Location            `json:"location,omitempty"`
+	Categories      []string                   `json:"categories,omitempty" validate:"categories_validation"`
 	Characteristics models.CharacteristicValue `json:"characteristics,omitempty" validate:"characteristics_value"`
-	Boosts          []BoostResp            `json:"boosts,omitempty"`
-	Images          []string               `json:"images"`
+	Boosts          []BoostResp                `json:"boosts,omitempty"`
+	Images          []string                   `json:"images"`
 }
 
 type FullListingResponse struct {
-	ID                  uuid.UUID             `json:"id"`
-	Title               string                `json:"title"`
-	Description         string                `json:"description"`
-	OriginalDescription string                `json:"original_description"`
-	Price               float64               `json:"price"`
-	Currency            models.Currency       `json:"currency"`
-	OriginalPrice       float64               `json:"original_price"`
-	OriginalCurrency    models.Currency       `json:"original_currency"`
-	Location            models.Location       `json:"location"`
-	Seller              models.Seller         `json:"seller"`
-	Categories          []Category            `json:"categories"`
+	ID                  uuid.UUID                  `json:"id"`
+	Title               string                     `json:"title"`
+	Description         string                     `json:"description"`
+	OriginalDescription string                     `json:"original_description"`
+	Price               float64                    `json:"price"`
+	Currency            models.Currency            `json:"currency"`
+	OriginalPrice       float64                    `json:"original_price"`
+	OriginalCurrency    models.Currency            `json:"original_currency"`
+	Location            models.Location            `json:"location"`
+	Seller              models.Seller              `json:"seller"`
+	Categories          []Category                 `json:"categories"`
 	Characteristics     models.CharacteristicValue `json:"characteristics"`
-	Images              []string              `json:"images"`
-	CreatedAt           int64                 `json:"created_at"`
-	UpdatedAt           int64                 `json:"updated_at"`
-	Boosts              []BoostResp           `json:"boosts,omitempty"`
-	IsEditable          bool                  `json:"is_editable"`
-	IsBuyable           bool                  `json:"is_buyable"`
-	IsNSFW              bool                  `json:"is_nsfw"`
+	Images              []string                   `json:"images"`
+	CreatedAt           int64                      `json:"created_at"`
+	UpdatedAt           int64                      `json:"updated_at"`
+	Boosts              []BoostResp                `json:"boosts,omitempty"`
+	IsEditable          bool                       `json:"is_editable"`
+	IsBuyable           bool                       `json:"is_buyable"`
+	IsNSFW              bool                       `json:"is_nsfw"`
 }
 
 type GetFiltersForCategoryResponse struct {
