@@ -16,6 +16,8 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
 	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 	"github.com/yaroslavvasilenko/argon/internal/models"
+	iservice "github.com/yaroslavvasilenko/argon/internal/modules/image/service"
+	istorage "github.com/yaroslavvasilenko/argon/internal/modules/image/storage"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing"
 	"github.com/yaroslavvasilenko/argon/internal/modules/listing/storage"
 	"github.com/yaroslavvasilenko/argon/internal/modules/location/service"
@@ -23,17 +25,21 @@ import (
 )
 
 type Listing struct {
-	s      *storage.Listing
-	logger *logger.Glog
-	cache  *storage.Cache
+	s  *storage.Listing
+	is *istorage.Image
+	ss *iservice.Image
+
+	logger   *logger.Glog
+	cache    *storage.Cache
 	location *service.Location
 }
 
-func NewListing(s *storage.Listing, pool *pgxpool.Pool, logger *logger.Glog, locationService *service.Location) *Listing {
+func NewListing(s *storage.Listing, i *istorage.Image, pool *pgxpool.Pool, logger *logger.Glog, locationService *service.Location) *Listing {
 	srv := &Listing{
-		s:      s,
-		cache:  storage.NewCache(pool),
-		logger: logger,
+		s:        s,
+		is:       i,
+		cache:    storage.NewCache(pool),
+		logger:   logger,
 		location: locationService,
 	}
 
@@ -61,6 +67,19 @@ func (s *Listing) CreateListing(ctx context.Context, p listing.CreateListingRequ
 	}, p.Categories, *p.Location, p.Characteristics)
 	if err != nil {
 		return listing.FullListingResponse{}, err
+	}
+
+	// Привязываем изображения к объявлению
+	for _, imageURL := range p.Images {
+		imageID, err := s.ss.GetImageFileName(ctx, imageURL)
+		if err != nil {
+			return listing.FullListingResponse{}, err
+		}
+
+		err = s.is.LinkImageToListing(ctx, ID.String(), imageID)
+		if err != nil {
+			return listing.FullListingResponse{}, err
+		}
 	}
 
 	resp, err := s.GetListing(ctx, ID.String())
@@ -204,7 +223,6 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 		return listing.GetCharacteristicsForCategoryResponse{}, err
 	}
 
-
 	// Создаем массив характеристик в порядке их ключей
 	result := make(models.CharacteristicParam)
 	for _, key := range characteristicKeys {
@@ -213,7 +231,7 @@ func (s *Listing) GetCharacteristicsForCategory(ctx context.Context, categoryIds
 	}
 
 	return listing.GetCharacteristicsForCategoryResponse{
-		Option:  result,
+		Option: result,
 	}, nil
 }
 

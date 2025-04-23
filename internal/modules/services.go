@@ -15,17 +15,17 @@ type Services struct {
 	currency *cservice.Currency
 	location *locservice.Location
 	boost    *bservice.Boost
-	image    *iservice.Image
+	Image    *iservice.Image
 }
 
 func NewServices(storages *Storages, pool *pgxpool.Pool, lg *logger.Glog) *Services {
 	locationService := locservice.NewLocation(storages.Location, lg)
 
 	return &Services{
-		listing:  lservice.NewListing(storages.Listing, pool, lg, locationService),
+		listing:  lservice.NewListing(storages.Listing, storages.image, pool, lg, locationService),
 		currency: cservice.NewCurrency(storages.Currency, storages.CurrencyBinance, lg),
 		location: locationService,
 		boost:    bservice.NewBoost(storages.Boost, lg),
-		image:    iservice.NewImage(storages.image, lg),
+		Image:    iservice.NewImage(storages.image, lg),
 	}
 }

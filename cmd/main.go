@@ -3,8 +3,9 @@ package main
 import (
 	"context"
 	"fmt"
-	"github.com/yaroslavvasilenko/argon/internal/modules/image/storage"
 	"os"
+	"os/signal"
+	"syscall"
 
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/database"
@@ -12,6 +13,7 @@ import (
 	"github.com/yaroslavvasilenko/argon/internal/core/image"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
 	"github.com/yaroslavvasilenko/argon/internal/modules"
+	"github.com/yaroslavvasilenko/argon/internal/modules/image/storage"
 	"github.com/yaroslavvasilenko/argon/internal/router"
 )
 
@@ -53,14 +55,30 @@ func main() {
 
 	storages := modules.NewStorages(cfg, gorm, pool, minio)
 	services := modules.NewServices(storages, pool, lg)
+
+	sigChan := make(chan os.Signal, 1)
+	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
+
+	// cron
+	stopChan := make(chan struct{})
+
+	go services.Image.DeleteImageSync(stopChan)
+
 	controller := modules.NewControllers(services)
 	// init router
 	r := router.NewApiRouter(controller)
 
-	err = r.Listen(":" + cfg.App.Port)
-	if err != nil {
-		exit(fmt.Sprintf("starting server on port %s", cfg.App.Port), err)
-	}
+	go func() {
+		err = r.Listen(":" + cfg.App.Port)
+		if err != nil {
+			exit(fmt.Sprintf("starting server on port %s", cfg.App.Port), err)
+		}
+	}()
+
+	sig := <-sigChan
+	lg.Infof("Received signal %v, shutting down...", sig)
+
+	close(stopChan)
 
 	return
 }

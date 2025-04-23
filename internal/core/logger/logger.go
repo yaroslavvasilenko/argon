@@ -9,7 +9,7 @@ import (
 )
 
 type Glog struct {
-	Logger log.Logger
+	log.Logger
 }
 
 func (l *Glog) Infof(fmt string, a ...any) { l.Logger.Info().Msgf(fmt, a...) }

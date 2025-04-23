@@ -4,9 +4,11 @@ import (
 	"bytes"
 	"context"
 	"fmt"
-	"github.com/yaroslavvasilenko/argon/config"
 	"io"
 	"mime/multipart"
+
+	"github.com/gofiber/fiber/v2"
+	"github.com/yaroslavvasilenko/argon/config"
 
 	"github.com/davidbyttow/govips/v2/vips"
 	"github.com/google/uuid"
@@ -16,14 +18,14 @@ import (
 )
 
 type Image struct {
-	s      *storage.Image
-	logger *logger.Glog
+	s        *storage.Image
+	log      *logger.Glog
 }
 
 func NewImage(s *storage.Image, logger *logger.Glog) *Image {
 	srv := &Image{
-		s:      s,
-		logger: logger,
+		s:        s,
+		log:      logger,
 	}
 
 	return srv
@@ -31,10 +33,17 @@ func NewImage(s *storage.Image, logger *logger.Glog) *Image {
 
 // SaveImage сохраняет изображение в MinIO и возвращает имя файла
 func (s *Image) SaveImage(ctx context.Context, file multipart.File, name, contentType string) ([]string, error) {
+	const maxFileSize = 10 * 1024 * 1024 // 10 МБ в байтах
+
 	// Читаем файл в память
 	fileBytes, err := io.ReadAll(file)
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to read file")
+	}
+
+	// Проверяем размер файла
+	if len(fileBytes) > maxFileSize {
+		return nil, fiber.NewError(fiber.StatusBadRequest, "size of file is too large (10MB)")
 	}
 
 	// Создаем копию для изображения 400px
@@ -71,10 +80,6 @@ func (s *Image) SaveImage(ctx context.Context, file multipart.File, name, conten
 		return nil, eris.Wrap(err, "failed to resize image to 200px")
 	}
 
-	// Генерируем уникальное имя файла
-	uuidImage := uuid.New().String()
-	format := "%v-%v.webp"
-
 	// Экспортируем и загружаем изображение 400px
 	webpBytes400, err := exportToWebP(im400, true) // Используем сжатие с потерями для 400px
 	if err != nil {
@@ -82,7 +87,7 @@ func (s *Image) SaveImage(ctx context.Context, file multipart.File, name, conten
 	}
 
 	// Upload image MinIO 400px
-	_, err = s.s.UploadImage(ctx, fmt.Sprintf(format, uuidImage, "400px"), "image/webp", bytes.NewReader(webpBytes400))
+	imageName400px, err := s.s.UploadImage(ctx, s.getFileName(ctx, uuid.New().String(), "400px"), bytes.NewReader(webpBytes400))
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to upload 400px image")
 	}
@@ -93,15 +98,13 @@ func (s *Image) SaveImage(ctx context.Context, file multipart.File, name, conten
 		return nil, eris.Wrap(err, "failed to export 200px image to WebP")
 	}
 
-	imageName200px := fmt.Sprintf(format, uuidImage, "200px")
-
 	// Upload image MinIO 200px
-	_, err = s.s.UploadImage(ctx, imageName200px, "image/webp", bytes.NewReader(webpBytes200))
+	imageName200px, err := s.s.UploadImage(ctx, s.getFileName(ctx, uuid.New().String(), "200px"), bytes.NewReader(webpBytes200))
 	if err != nil {
 		return nil, eris.Wrap(err, "failed to upload 200px image")
 	}
 
-	return []string{createUrlForImage(fmt.Sprintf(format, uuidImage, "400px")), createUrlForImage(imageName200px)}, nil
+	return []string{createUrlForImage(imageName400px), createUrlForImage(imageName200px)}, nil
 }
 
 // cropImage обрезает изображение до нужных пропорций
