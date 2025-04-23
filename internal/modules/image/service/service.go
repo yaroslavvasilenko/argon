@@ -20,14 +20,12 @@ import (
 type Image struct {
 	s        *storage.Image
 	log      *logger.Glog
-	stopChan chan struct{} // Канал для остановки cron-задачи
 }
 
 func NewImage(s *storage.Image, logger *logger.Glog) *Image {
 	srv := &Image{
 		s:        s,
 		log:      logger,
-		stopChan: make(chan struct{}),
 	}
 
 	return srv

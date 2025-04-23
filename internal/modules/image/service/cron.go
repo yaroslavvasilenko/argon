@@ -9,7 +9,7 @@ import (
 	"github.com/rotisserie/eris"
 )
 
-func (s *Image) DeleteImageSync() {
+func (s *Image) DeleteImageSync(stopChan chan struct{}) {
     // Добавляем обработку паники для всей горутины
     defer func() {
         if r := recover(); r != nil {
@@ -21,7 +21,7 @@ func (s *Image) DeleteImageSync() {
     
     for {
         select {
-        case <-s.stopChan:
+        case <-stopChan:
             s.log.Infof("Image cleanup cron task received stop signal")
             return
             
@@ -45,7 +45,7 @@ func (s *Image) DeleteImageSync() {
             }()
          
             select {
-            case <-s.stopChan:
+            case <-stopChan:
                 s.log.Infof("Image cleanup cron task received stop signal during sleep")
                 return
             case <-time.After(100 * time.Second):
@@ -92,7 +92,3 @@ func (s *Image) DeleteImage(ctx context.Context) (string, error) {
 }
 
 
-func (s *Image) StopCron() {
-	close(s.stopChan)
-	s.log.Infof("Image cleanup cron task stopped")
-}

@@ -60,7 +60,9 @@ func main() {
 	signal.Notify(sigChan, syscall.SIGINT, syscall.SIGTERM)
 
 	// cron
-	go services.Image.DeleteImageSync()
+	stopChan := make(chan struct{})
+
+	go services.Image.DeleteImageSync(stopChan)
 
 	controller := modules.NewControllers(services)
 	// init router
@@ -76,7 +78,7 @@ func main() {
 	sig := <-sigChan
 	lg.Infof("Received signal %v, shutting down...", sig)
 
-	services.Image.StopCron()
+	close(stopChan)
 
 	return
 }
