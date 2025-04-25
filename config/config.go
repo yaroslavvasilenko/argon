@@ -31,6 +31,10 @@ type Config struct {
 		Password string
 		Bucket   string
 	}
+	Zitadel struct {
+		Domain  string
+		KeyPath string
+	}
 	Logger struct {
 		Level string
 	}
@@ -134,7 +138,6 @@ func LoadConfig() {
 	if err := k.Unmarshal("", &cfg); err != nil {
 		log.Fatalf("Ошибка при разборе конфигурации: %v", err)
 	}
-	
 	// Удаляем протокол из endpoint MinIO, если он присутствует
 	if strings.HasPrefix(cfg.Minio.Endpoint, "http://") {
 		cfg.Minio.Endpoint = strings.TrimPrefix(cfg.Minio.Endpoint, "http://")

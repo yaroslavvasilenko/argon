@@ -1,13 +1,12 @@
 package service
 
 import (
-
-	"github.com/yaroslavvasilenko/argon/internal/core/logger"
-	"github.com/yaroslavvasilenko/argon/internal/modules/currency/storage"
-	"github.com/yaroslavvasilenko/argon/internal/modules/currency"
-	"github.com/yaroslavvasilenko/argon/internal/models"
 	"context"
 
+	"github.com/yaroslavvasilenko/argon/internal/core/logger"
+	"github.com/yaroslavvasilenko/argon/internal/models"
+	"github.com/yaroslavvasilenko/argon/internal/modules/currency"
+	"github.com/yaroslavvasilenko/argon/internal/modules/currency/storage"
 )
 
 type Currency struct {
@@ -36,7 +35,7 @@ func (c *Currency) GetCurrency(ctx context.Context, req currency.GetCurrencyRequ
 		return nil, nil
 	}
 
-	currencyInst, err := c.s.GetCurrency(ctx, from + to)
+	currencyInst, err := c.s.GetCurrency(ctx, from+to)
 	if err != nil {
 		return nil, err
 	}
@@ -45,4 +44,3 @@ func (c *Currency) GetCurrency(ctx context.Context, req currency.GetCurrencyRequ
 		Rate: currencyInst.ExchangeRate,
 	}, nil
 }
-
