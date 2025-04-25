@@ -2,8 +2,6 @@ package middleware
 
 import (
 	"context"
-	"log/slog"
-
 	"github.com/gofiber/fiber/v2"
 
 	"github.com/yaroslavvasilenko/argon/internal/models"
@@ -16,8 +14,6 @@ func Language() fiber.Handler {
 
 		_, ok := models.LocalMap[lang]
 		if !ok {
-			// ToDo: почему используем slog, вместо glog?
-			slog.WarnContext(c.UserContext(), "language not supported: "+string(lang))
 			lang = models.LanguageDefault
 		}
 

@@ -32,8 +32,8 @@ type Config struct {
 		Bucket   string
 	}
 	Zitadel struct {
-		Domain  string `env:"ZITADEL_DOMAIN"`
-		KeyPath string `env:"ZITADEL_KEY_PATH"`
+		Domain  string
+		KeyPath string
 	}
 	Logger struct {
 		Level string
@@ -137,13 +137,6 @@ func LoadConfig() {
 	// Unmarshal config into struct
 	if err := k.Unmarshal("", &cfg); err != nil {
 		log.Fatalf("Ошибка при разборе конфигурации: %v", err)
-	}
-	// ToDo: bad, rewrite later
-	if d := os.Getenv("ZITADEL_DOMAIN"); d != "" {
-		cfg.Zitadel.Domain = d
-	}
-	if p := os.Getenv("ZITADEL_KEY_PATH"); p != "" {
-		cfg.Zitadel.KeyPath = p
 	}
 	// Удаляем протокол из endpoint MinIO, если он присутствует
 	if strings.HasPrefix(cfg.Minio.Endpoint, "http://") {

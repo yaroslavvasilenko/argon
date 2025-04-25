@@ -8,6 +8,10 @@ port = 8080
 [db]
 url = "postgresql://postgres:postgres@127.0.0.1:5435/postgres"
 
+[zitadel]
+domain = "zitadel-railway-dev.up.railway.app"
+keyPath = "key.json"
+
 # Настройки MinIO
 [minio]
 endpoint = "localhost:9000"

@@ -4,6 +4,7 @@ import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
 	"github.com/yaroslavvasilenko/argon/internal/auth"
+	authmw "github.com/yaroslavvasilenko/argon/internal/auth/middleware"
 	"github.com/yaroslavvasilenko/argon/internal/middleware"
 	"github.com/yaroslavvasilenko/argon/internal/modules"
 )
@@ -32,12 +33,14 @@ func NewApiRouter(
 		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
 	r.Use(middleware.Language())
+	// introspect users everywhere
+	r.Use(authmw.AuthenticationMiddleware(authSvc))
 
 	// health‑check, open to all
 	r.Get("/ping", controllers.Listing.Ping)
 
-	// group all /api/v1 routes under the JWT‐middleware
-	protected := r.Group("", middleware.AuthMiddleware(authSvc))
+	// JWT auth middleware
+	protected := r.Group("", authmw.RequireAuth())
 
 	//  ── Listing ─────────────────────────────────────────
 	r.Get("/listing/:listing_id", controllers.Listing.GetListing)
@@ -58,9 +61,11 @@ func NewApiRouter(
 	r.Get("/currency", controllers.Currency.GetCurrency)
 	r.Post("/location", controllers.Location.GetLocation)
 
-	//  ── Boost & Images ──────────────────────────────────
+	//  ── Boost ───────────────────────────────────────────
 	protected.Post("/boost/:listing_id", controllers.Boost.UpdateBoost)
-	r.Get("/boost/:listing_id", controllers.Boost.GetBoost)
+	protected.Get("/boost/:listing_id", controllers.Boost.GetBoost)
+
+	//  ── Images ──────────────────────────────────────────
 	protected.Post("/images/upload", controllers.Image.UploadImage)
 	r.Get("/images/get/:image_id", controllers.Image.GetImage)
 

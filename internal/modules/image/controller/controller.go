@@ -1,6 +1,7 @@
 package controller
 
 import (
+	"fmt"
 	"github.com/yaroslavvasilenko/argon/internal/core/parser"
 	"net/http"
 	"strings"
@@ -40,34 +41,40 @@ func (h *Image) UploadImage(c *fiber.Ctx) error {
 			"details": err.Error(),
 		})
 	}
+	// ToDo: unhandled error
 	defer file.Close()
 
 	// Читаем первые 512 байт для определения типа файла
 	buffer := make([]byte, 512)
 	_, err = file.Read(buffer)
 	if err != nil {
-		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Не удалось прочитать содержимое файла",
+		return c.Status(fiber.StatusUnsupportedMediaType).JSON(fiber.Map{
+			"error":   "unsupported_image_format",
 			"details": err.Error(),
 		})
 	}
+	// ToDo: unhandled error
 	file.Seek(0, 0)
 
-	// Определяем MIME-тип
+	// MIME type detection
 	contentType := http.DetectContentType(buffer)
 
-	// Проверяем, что это изображение
+	// Check if this file is a real image
 	if !isImageContentType(contentType) {
-		return c.Status(fiber.StatusBadRequest).JSON(fiber.Map{
-			"error": "Загруженный файл не является изображением",
+		return c.Status(fiber.StatusUnsupportedMediaType).JSON(fiber.Map{
+			"error": "unsupported_image_format",
+			"message": fmt.Sprintf(
+				"Unsupported image format %q. Only JPEG, PNG, and GIF are allowed.",
+				contentType,
+			),
 		})
 	}
 
-	// Сохраняем изображение через сервисный слой
 	fileURL, err := h.s.SaveImage(c.UserContext(), file, fileHeader.Filename, contentType)
 	if err != nil {
 		return c.Status(fiber.StatusInternalServerError).JSON(fiber.Map{
-			"error":   "Не удалось сохранить изображение",
+			"error":   "image_save_failed",
+			"message": "An error occurred while saving the image. Please try again later.",
 			"details": err.Error(),
 		})
 	}
