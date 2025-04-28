@@ -1,3 +1,4 @@
+-- +goose Up
 -- Создание таблицы для связи изображений с объявлениями
 CREATE TABLE IF NOT EXISTS image_links (
     listing_id UUID REFERENCES listings(id),
@@ -5,3 +6,6 @@ CREATE TABLE IF NOT EXISTS image_links (
     linked BOOLEAN DEFAULT TRUE,
     updated_at TIMESTAMP NOT NULL DEFAULT NOW()
 );
+
+-- +goose Down
+DROP TABLE IF EXISTS image_links;
