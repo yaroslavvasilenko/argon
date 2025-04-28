@@ -70,8 +70,6 @@ func createTestApp(t *testing.T) *TestApp {
 	return app
 }
 
-
-
 func getSearchListingsRequest(query string, limit int, cursor string, sortOrder string, searchID string) listing.SearchListingsRequest {
 	return listing.SearchListingsRequest{
 		Query:     query,
@@ -113,7 +111,7 @@ func (user *user) createListing(t *testing.T, l listing.CreateListingRequest) *h
 	return resp
 }
 
-func (user *user) getCharacteristicsForCategory(t *testing.T, categoryIds []string, lang string) ([]models.CharacteristicItem, error) {
+func (user *user) getCharacteristicsForCategory(t *testing.T, categoryIds []string, lang string) ([]models.CharacteristicParamItem, error) {
 	req := struct {
 		CategoryIds []string `json:"category_ids"`
 	}{
@@ -135,9 +133,27 @@ func (user *user) getCharacteristicsForCategory(t *testing.T, categoryIds []stri
 	require.NoError(t, err)
 	require.Equal(t, http.StatusOK, resp.StatusCode)
 
-	var characteristics []models.CharacteristicItem
-	err = json.NewDecoder(resp.Body).Decode(&characteristics)
-	return characteristics, err
+	// Декодируем ответ API
+	var response struct {
+		CharacteristicParams []struct {
+			Role  string      `json:"role"`
+			Param interface{} `json:"param"`
+		} `json:"characteristic_params"`
+	}
+
+	err = json.NewDecoder(resp.Body).Decode(&response)
+	require.NoError(t, err)
+
+	// Преобразуем в массив CharacteristicParamItem
+	result := make([]models.CharacteristicParamItem, 0, len(response.CharacteristicParams))
+	for _, item := range response.CharacteristicParams {
+		result = append(result, models.CharacteristicParamItem{
+			Role:  item.Role,
+			Param: item.Param,
+		})
+	}
+
+	return result, nil
 }
 
 // getFiltersForCategory выполняет запрос к API для получения фильтров для указанной категории

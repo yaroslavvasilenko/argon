@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"testing"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yaroslavvasilenko/argon/internal/models"
@@ -21,6 +22,35 @@ func TestCreateListing(t *testing.T) {
 			Description: "Просторная квартира в центре",
 			Price:       1000000,
 			Currency:    models.RUB,
+			Location: &models.Location{
+				ID:   uuid.New().String(),
+				Name: "Москва, Россия",
+				Area: models.Area{
+					Coordinates: models.Coordinates{
+						Lat: 55.7558,
+						Lng: 37.6173,
+					},
+					Radius: 10000,
+				},
+			},
+			Categories: []string{"electronics", "smartphones"},
+			Characteristics: models.CharacteristicValue{
+				"height": models.Amount{
+					Value:     100,
+					Dimension: models.Dimension("cm"),
+				},
+				"brand": models.DropdownOption{
+					Value: "apple",
+					Label: "Apple",
+				},
+				"condition": models.DropdownOption{
+					Value: "new",
+					Label: "Новый",
+				},
+				"stocked": models.CheckboxValue{
+					CheckboxValue: true,
+				},
+			},
 		}
 
 		resp := user.createListing(t, listingInput)

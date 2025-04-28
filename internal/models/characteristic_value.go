@@ -82,7 +82,7 @@ var CharacteristicValueMap = map[string]interface{}{
 }
 
 type Color struct {
-	// Пустая структура, так как ограничения нужны только для фильтров
+	Color string `json:"color"`
 }
 
 type DropdownOption struct {
@@ -91,16 +91,68 @@ type DropdownOption struct {
 }
 
 type CheckboxValue struct {
-	// Пустая структура, так как для чекбокса не требуются ограничительные параметры
+	CheckboxValue bool `json:"checkbox_value"`
 }
 
 type Amount struct {
-	Value            float64     `json:"value" validate:"required"`
-	DimensionOptions []Dimension `json:"dimension_options" validate:"required"`
+	Value     float64   `json:"value" validate:"required"`
+	Dimension Dimension `json:"dimension" validate:"required"`
 }
 
 // CharacteristicValue представляет собой карту характеристик, где ключ - это роль, а значение - это значение характеристики
 type CharacteristicValue map[string]interface{}
+
+// SetColor устанавливает значение цвета для указанной роли
+func (c CharacteristicValue) SetColor(role string, value Color) {
+    c[role] = value
+}
+
+// SetDropdownOption устанавливает значение выпадающего списка для указанной роли
+func (c CharacteristicValue) SetDropdownOption(role string, value DropdownOption) {
+    c[role] = value
+}
+
+// SetCheckboxValue устанавливает значение чекбокса для указанной роли
+func (c CharacteristicValue) SetCheckboxValue(role string, value bool) {
+    c[role] = value
+}
+
+// SetAmount устанавливает числовое значение с единицей измерения для указанной роли
+func (c CharacteristicValue) SetAmount(role string, value Amount) {
+    c[role] = value
+}
+
+// GetColor возвращает значение цвета для указанной роли
+func (c CharacteristicValue) GetColor(role string) (Color, bool) {
+    if v, ok := c[role].(Color); ok {
+        return v, true
+    }
+    return Color{}, false
+}
+
+// GetDropdownOption возвращает значение выпадающего списка для указанной роли
+func (c CharacteristicValue) GetDropdownOption(role string) (DropdownOption, bool) {
+    if v, ok := c[role].(DropdownOption); ok {
+        return v, true
+    }
+    return DropdownOption{}, false
+}
+
+// GetCheckboxValue возвращает значение чекбокса для указанной роли
+func (c CharacteristicValue) GetCheckboxValue(role string) (bool, bool) {
+    if v, ok := c[role].(bool); ok {
+        return v, true
+    }
+    return false, false
+}
+
+// GetAmount возвращает числовое значение с единицей измерения для указанной роли
+func (c CharacteristicValue) GetAmount(role string) (Amount, bool) {
+    if v, ok := c[role].(Amount); ok {
+        return v, true
+    }
+    return Amount{}, false
+}
 
 // Dimension представляет единицу измерения
 type Dimension string
@@ -140,7 +192,7 @@ func (c *CharacteristicValue) UnmarshalJSON(data []byte) error {
 
 	for _, item := range charItems {
 		// Определяем тип параметра для данной характеристики
-		paramType, ok := CharacteristicParamMap[item.Role]
+		paramTypeObj, ok := CharacteristicValueMap[item.Role]
 		if !ok {
 			continue
 		}
@@ -149,43 +201,88 @@ func (c *CharacteristicValue) UnmarshalJSON(data []byte) error {
 		var processedValue interface{}
 
 		// Обрабатываем значение в зависимости от типа характеристики
-		switch paramType.(type) {
-		case ColorParam:
-			// Для цвета ожидаем строку
-			if strValue, ok := item.Value.(string); ok {
-				processedValue = strValue
+		switch paramTypeObj.(type) {
+		case Color:
+			// Для цвета ожидаем строку с кодом цвета или объект с полем color
+			switch v := item.Value.(type) {
+			case string:
+				processedValue = Color{Color: v}
+			case map[string]interface{}:
+				if colorStr, ok := v["color"].(string); ok {
+					processedValue = Color{Color: colorStr}
+				}
 			}
 
-		case StringParam:
+		case DropdownOption:
 			// Для выпадающих списков ожидаем объект с массивом options
-			v := item.Value.(map[string]interface{})
-
-			DropdownOption := DropdownOption{}
-			if value, ok := v["value"].(string); ok {
-				DropdownOption.Value = value
+			switch v := item.Value.(type) {
+			case map[string]interface{}:
+				// Если получили объект, проверяем наличие полей value и label
+				option := DropdownOption{}
+				if value, ok := v["value"].(string); ok {
+					option.Value = value
+				}
+				if label, ok := v["label"].(string); ok {
+					option.Label = label
+				}
+				processedValue = option
+			case []interface{}:
+				// Если получили массив, обрабатываем его как массив опций
+				options := make([]DropdownOption, 0, len(v))
+				for _, opt := range v {
+					if optMap, ok := opt.(map[string]interface{}); ok {
+						option := DropdownOption{}
+						if value, ok := optMap["value"].(string); ok {
+							option.Value = value
+						}
+						if label, ok := optMap["label"].(string); ok {
+							option.Label = label
+						}
+						options = append(options, option)
+					} else if strVal, ok := opt.(string); ok {
+						// Если получили строку, используем её как value
+						options = append(options, DropdownOption{Value: strVal})
+					}
+				}
+				// Создаем DropdownOption из первой опции, если она есть
+				if len(options) > 0 {
+					processedValue = options[0]
+				} else {
+					processedValue = DropdownOption{}
+				}
 			}
-			if label, ok := v["label"].(string); ok {
-				DropdownOption.Label = label
-			}
-			processedValue = DropdownOption
 
-		case CheckboxParam:
+
+
+		case CheckboxValue:
 			// Для чекбокса ожидаем булево значение
-			if boolValue, ok := item.Value.(bool); ok {
-				processedValue = boolValue
+			if checkboxValue, ok := item.Value.(map[string]interface{}); ok {
+				checkboxValueParam := CheckboxValue{}
+				if checkboxValue["checkbox_value"].(bool) {
+					checkboxValueParam.CheckboxValue = true
+				}
+				processedValue = checkboxValueParam
 			}
 
-		case AmountParam:
+		case Amount:
 			// Для AmountParam ожидаем объект {value, dimension}
 			switch v := item.Value.(type) {
 			case map[string]interface{}:
-				amountParam := AmountParam{}
+				amountParam := Amount{}
 
 				// Обрабатываем поле value
 				if valueField, ok := v["value"]; ok {
 					switch vf := valueField.(type) {
 					case float64:
 						amountParam.Value = vf
+					case int:
+						amountParam.Value = float64(vf)
+					case int64:
+						amountParam.Value = float64(vf)
+					case json.Number:
+						if floatVal, err := vf.Float64(); err == nil {
+							amountParam.Value = floatVal
+						}
 					case string:
 						// Пробуем преобразовать строку в float64
 						if floatVal, err := strconv.ParseFloat(vf, 64); err == nil {
@@ -201,6 +298,24 @@ func (c *CharacteristicValue) UnmarshalJSON(data []byte) error {
 					}
 				}
 
+				processedValue = amountParam
+			case float64:
+				// Если получили просто число, создаем AmountParam с дефолтной единицей измерения
+				amountParam := Amount{Value: v}
+				
+				processedValue = amountParam
+			case int, int64:
+				// Если получили целое число, преобразуем в float64
+				var floatVal float64
+				switch val := v.(type) {
+				case int:
+					floatVal = float64(val)
+				case int64:
+					floatVal = float64(val)
+				}
+				
+				amountParam := Amount{Value: floatVal}
+				
 				processedValue = amountParam
 			}
 		}

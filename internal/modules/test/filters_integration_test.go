@@ -1,8 +1,12 @@
 package modules
 
 import (
+	"encoding/json"
+	"net/http"
 	"testing"
+	"time"
 
+	"github.com/google/uuid"
 	"github.com/stretchr/testify/assert"
 	"github.com/stretchr/testify/require"
 	"github.com/yaroslavvasilenko/argon/internal/models"
@@ -62,15 +66,43 @@ func TestGetFiltersForCategory(t *testing.T) {
 			Description: "Test description 1",
 			Price:       1000,
 			Currency:    models.RUB,
-			Categories:  []string{"electronics"},
-			Characteristics: map[string]interface{}{
-				models.CHAR_BRAND:     []string{"Brand1"},
-				models.CHAR_CONDITION: []string{"new"},
-				models.CHAR_STOCKED:   true,
-				models.CHAR_WEIGHT:    2.5,
+			Location: &models.Location{
+				ID:   uuid.New().String(),
+				Name: "Москва, Россия",
+				Area: models.Area{
+					Coordinates: models.Coordinates{
+						Lat: 55.7558,
+						Lng: 37.6173,
+					},
+					Radius: 10000,
+				},
+			},
+			Categories: []string{"electronics"},
+			Characteristics: models.CharacteristicValue{
+				models.CHAR_BRAND: models.DropdownOption{
+					Value: "Brand1",
+					Label: "Brand1",
+				},
+				models.CHAR_CONDITION: models.DropdownOption{
+					Value: "new",
+					Label: "Новый",
+				},
+				models.CHAR_STOCKED: models.CheckboxValue{
+					CheckboxValue: true,
+				},
+				models.CHAR_WEIGHT: models.Amount{
+					Value:     2.5,
+					Dimension: models.Dimension("kg"),
+				},
 			},
 		}
-		user.createListing(t, electronicsListing1)
+		resp1 := user.createListing(t, electronicsListing1)
+		require.Equal(t, http.StatusOK, resp1.StatusCode, "Объявление 1 должно быть успешно создано")
+
+		// Проверяем, что категория была привязана к объявлению
+		var listing1 models.Listing
+		json.NewDecoder(resp1.Body).Decode(&listing1)
+		t.Logf("Создано объявление 1 с ID: %s", listing1.ID)
 
 		// Создаем еще один товар с другими значениями
 		electronicsListing2 := listing.CreateListingRequest{
@@ -78,15 +110,43 @@ func TestGetFiltersForCategory(t *testing.T) {
 			Description: "Test description 2",
 			Price:       2000,
 			Currency:    models.RUB,
-			Categories:  []string{"electronics"},
-			Characteristics: map[string]interface{}{
-				models.CHAR_BRAND:     []string{"Brand2"},
-				models.CHAR_CONDITION: []string{"used"},
-				models.CHAR_STOCKED:   false,
-				models.CHAR_WEIGHT:    1.5,
+			Location: &models.Location{
+				ID:   uuid.New().String(),
+				Name: "Санкт-Петербург, Россия",
+				Area: models.Area{
+					Coordinates: models.Coordinates{
+						Lat: 59.9343,
+						Lng: 30.3351,
+					},
+					Radius: 10000,
+				},
+			},
+			Categories: []string{"electronics"},
+			Characteristics: models.CharacteristicValue{
+				models.CHAR_BRAND: models.DropdownOption{
+					Value: "Brand2",
+					Label: "Brand2",
+				},
+				models.CHAR_CONDITION: models.DropdownOption{
+					Value: "used",
+					Label: "Б/у",
+				},
+				models.CHAR_STOCKED: models.CheckboxValue{
+					CheckboxValue: true,
+				},
+				models.CHAR_WEIGHT: models.Amount{
+					Value:     5.0,
+					Dimension: models.Dimension("kg"),
+				},
 			},
 		}
-		user.createListing(t, electronicsListing2)
+		resp2 := user.createListing(t, electronicsListing2)
+		require.Equal(t, http.StatusOK, resp2.StatusCode, "Объявление 2 должно быть успешно создано")
+
+		// Проверяем, что категория была привязана к объявлению
+		var listing2 models.Listing
+		json.NewDecoder(resp2.Body).Decode(&listing2)
+		t.Logf("Создано объявление 2 с ID: %s", listing2.ID)
 
 		// Создаем товар для категории смартфонов с цветом
 		smartphoneListing := listing.CreateListingRequest{
@@ -94,15 +154,47 @@ func TestGetFiltersForCategory(t *testing.T) {
 			Description: "Test smartphone description",
 			Price:       3000,
 			Currency:    models.RUB,
-			Categories:  []string{"smartphones"},
-			Characteristics: map[string]interface{}{
-				models.CHAR_BRAND:     []string{"Brand3"},
-				models.CHAR_COLOR:     []string{"red"},
-				models.CHAR_CONDITION: []string{"new"},
-				models.CHAR_STOCKED:   true,
+			Location: &models.Location{
+				ID:   uuid.New().String(),
+				Name: "Казань, Россия",
+				Area: models.Area{
+					Coordinates: models.Coordinates{
+						Lat: 55.7887,
+						Lng: 49.1221,
+					},
+					Radius: 10000,
+				},
+			},
+			Categories: []string{"electronics", "smartphones"},
+			Characteristics: models.CharacteristicValue{
+				models.CHAR_BRAND: models.DropdownOption{
+							Value: "Brand3",
+							Label: "Brand3",
+						},
+				// Цвет должен быть структурой ColorParam
+				models.CHAR_COLOR: models.Color{
+					Color: "red",
+				},
+				models.CHAR_CONDITION: models.DropdownOption{
+							Value: "new",
+							Label: "Новый",
+						},
+
+				models.CHAR_STOCKED: models.CheckboxValue{
+					CheckboxValue: true,
+				},
 			},
 		}
-		user.createListing(t, smartphoneListing)
+		resp3 := user.createListing(t, smartphoneListing)
+		require.Equal(t, http.StatusOK, resp3.StatusCode, "Объявление 3 (смартфон) должно быть успешно создано")
+
+		// Проверяем, что категория была привязана к объявлению
+		var listing3 models.Listing
+		json.NewDecoder(resp3.Body).Decode(&listing3)
+		t.Logf("Создано объявление 3 (смартфон) с ID: %s", listing3.ID)
+
+		// Добавляем небольшую задержку, чтобы дать время на обработку данных
+		time.Sleep(100 * time.Millisecond)
 
 		// Вызываем API для получения фильтров
 		response, err := user.getFiltersForCategory(t, "electronics", "ru")

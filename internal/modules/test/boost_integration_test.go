@@ -74,6 +74,7 @@ func TestBoostController(t *testing.T) {
 		Price:       1000.0,
 		Currency:    models.RUB,
 		Location: &models.Location{
+			ID:   uuid.New().String(),
 			Name: "Москва, Россия",
 			Area: models.Area{
 				Coordinates: models.Coordinates{

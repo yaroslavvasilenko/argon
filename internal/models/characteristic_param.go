@@ -6,7 +6,7 @@ import (
 
 // ColorParam представляет параметр цвета
 type ColorParam struct {
-	Color Color `json:"color"`
+	// Пустая структура, так как для чекбокса не требуются ограничительные параметры
 }
 
 // StringParam представляет параметр выпадающего списка
@@ -33,6 +33,7 @@ type CharacteristicParamItem struct {
 }
 
 // CharacteristicParam представляет собой карту параметров характеристик
+// для запроса GetCharacteristicsForCategory
 type CharacteristicParam map[string]interface{}
 
 

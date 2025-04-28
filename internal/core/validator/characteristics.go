@@ -58,71 +58,102 @@ func ValidateCharacteristicsValue(fl validator.FieldLevel) bool {
 
 // validateCharacteristicValue проверяет, что значение характеристики соответствует ожидаемому типу
 func validateCharacteristicValue(characteristicName string, interfaceValue reflect.Value) bool {
-	paramType, ok := models.CharacteristicParamMap[characteristicName]
+	paramType, ok := models.CharacteristicValueMap[characteristicName]
 	if !ok {
 		return false
 	}
 	characteristicValue := interfaceValue.Elem()
 
 	switch paramType.(type) {
-	case models.ColorParam:
-		if characteristicValue.Kind() != reflect.String {
-			return false
-		}
-		color := characteristicValue.String()
-		if color == "" {
-			return false
-		}
-		return isValidColor(color)
+	case models.Color:
 
-	case models.StringParam:
-		stringParam, ok := characteristicValue.Interface().(models.DropdownOption)
+		// Проверяем, что значение является Color
+		colorValue, ok := characteristicValue.Interface().(models.Color)
+		if ok {
+			return isValidColor(colorValue.Color)
+		}
+
+		// Проверяем, что значение является ColorParam
+		_, ok = characteristicValue.Interface().(models.ColorParam)
+		if ok {
+			return true
+		}
+
+		// Проверяем, что значение является строкой
+		if characteristicValue.Kind() == reflect.String {
+			color := characteristicValue.String()
+			if color == "" {
+				return false
+			}
+			return isValidColor(color)
+		}
+
+		return false
+
+	case models.DropdownOption:
+		// Проверяем, что значение является DropdownOption
+		dropdownOption, ok := characteristicValue.Interface().(models.DropdownOption)
+		if ok {
+			// Проверяем, что есть хотя бы одна опция
+			if dropdownOption.Value == "" {
+				return false
+			}
+
+			// Проверяем, что у первой опции есть значение
+			if dropdownOption.Label == "" {
+				return false
+			}
+			return true
+		}
+
+		// Проверяем, что значение является StringParam
+		stringParam, ok := characteristicValue.Interface().(models.StringParam)
+		if ok {
+			// Проверяем, что есть хотя бы одна опция
+			if len(stringParam.Options) == 0 {
+				return false
+			}
+			return true
+		}
+
+		return false
+	case models.Amount:
+		amountParam, ok := characteristicValue.Interface().(models.Amount)
 		if !ok {
 			return false
 		}
-		
-		// Проверяем, что есть хотя бы одна опция
-		if stringParam.Value == "" {
-			return false
-		}
-		
-		// Проверяем, что у первой опции есть значение
-		if stringParam.Label == "" {
-			return false
-		}
-		return true
-	case models.AmountParam:
-		interfaceValue := characteristicValue.Interface()
-		if interfaceValue == nil {
-			return false
-		}
 
-		amountParam, ok := interfaceValue.(models.AmountParam)
-		if !ok {
-			return false
-		}
-		
 		if !isValidDimension(characteristicName, []models.Dimension{amountParam.Dimension}) {
 			return false
 		}
 
 		return true
 
-	case models.CheckboxParam:
-		return true
-	}
+	case models.CheckboxValue:
+		// Проверяем, что значение является CheckboxValue
+		_, ok := characteristicValue.Interface().(models.CheckboxValue)
+		if ok {
+			return true
+		}
 
-	return false
+		// Проверяем, что значение является bool
+		_, ok = characteristicValue.Interface().(bool)
+		if ok {
+			return true
+		}
+
+		return false
+	default:
+		return false
+	}
 }
 
 // isValidColor проверяет, что цвет входит в список допустимых
 func isValidColor(color string) bool {
 	// Получаем список допустимых цветов из конфига
 	cfg := config.GetConfig()
-	
+
 	validColors := cfg.Categories.CategoryOptions[models.CHAR_COLOR]
-
-
 
 	// Проверяем наличие цвета в списке
 	for _, validColor := range validColors {

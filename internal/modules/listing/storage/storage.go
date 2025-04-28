@@ -279,17 +279,12 @@ func (s *Listing) CreateListing(ctx context.Context, listing models.Listing, cat
 
 	// Вставляем характеристики, если они предоставлены
 	if characteristics != nil && len(characteristics) > 0 {
-		// Логируем характеристики для отладки
-		fmt.Printf("Характеристики для сохранения: %+v\n", characteristics)
 
 		// Преобразуем map в JSON
 		characteristicsJSON, err := json.Marshal(characteristics)
 		if err != nil {
 			return err
 		}
-
-		// Логируем JSON для отладки
-		fmt.Printf("JSON характеристик: %s\n", string(characteristicsJSON))
 
 		// Вставляем характеристики в таблицу
 		_, err = tx.Exec(ctx, `
@@ -801,7 +796,7 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 					)
 					-- Для булевых значений (например, "в наличии")
 					WHEN key = 'stocked' THEN (
-						SELECT jsonb_agg(DISTINCT (lch.characteristics->>'stocked')::boolean)
+						SELECT jsonb_agg(DISTINCT (lch.characteristics->'stocked'->>'checkbox_value')::boolean)
 						FROM listing_characteristics lch
 						JOIN listing_categories lc ON lch.listing_id = lc.listing_id
 						WHERE lc.category_id = $1
@@ -810,25 +805,14 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 					-- Для размерных характеристик (высота, ширина и т.д.)
 					WHEN key IN ('height', 'width', 'depth', 'weight', 'area', 'volume') THEN (
 						SELECT jsonb_build_object(
-							'min', MIN(
-								CASE 
-									WHEN jsonb_typeof(lch.characteristics->key) = 'number' THEN (lch.characteristics->>key)::numeric
-									ELSE NULL
-								END
-							),
-							'max', MAX(
-								CASE 
-									WHEN jsonb_typeof(lch.characteristics->key) = 'number' THEN (lch.characteristics->>key)::numeric
-									ELSE NULL
-								END
-							),
-							'dimension', CASE
-								WHEN key = 'height' OR key = 'width' OR key = 'depth' THEN 'cm'
-								WHEN key = 'weight' THEN 'kg'
-								WHEN key = 'area' THEN 'm2'
-								WHEN key = 'volume' THEN 'l'
-								ELSE ''
-							END
+							'min', MIN((lch.characteristics->key->>'value')::float),
+							'max', MAX((lch.characteristics->key->>'value')::float),
+							'dimension', (SELECT DISTINCT lch.characteristics->key->>'dimension'
+								FROM listing_characteristics lch
+								JOIN listing_categories lc ON lch.listing_id = lc.listing_id
+								WHERE lc.category_id = $1
+								AND lch.characteristics ? key
+								LIMIT 1)
 						)
 						FROM listing_characteristics lch
 						JOIN listing_categories lc ON lch.listing_id = lc.listing_id
@@ -890,7 +874,7 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 				// Для цвета
 				var colors []string
 				if err := json.Unmarshal(value, &colors); err != nil {
-					continue // Пропускаем некорректные данные
+					continue
 				}
 				if colors != nil && len(colors) > 0 {
 					result[key] = models.ColorFilter{Options: colors}
@@ -900,7 +884,7 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 				// Для выпадающих списков
 				var options []string
 				if err := json.Unmarshal(value, &options); err != nil {
-					continue // Пропускаем некорректные данные
+					continue
 				}
 				if options != nil && len(options) > 0 {
 					result[key] = models.DropdownFilter(options)
@@ -910,14 +894,14 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 				// Для булевых значений
 				var boolValues []bool
 				if err := json.Unmarshal(value, &boolValues); err != nil {
-					continue // Пропускаем некорректные данные
+					continue
 				}
 				if boolValues != nil && len(boolValues) > 0 {
 					boolValue := boolValues[0]
 					result[key] = models.CheckboxFilter(&boolValue)
 				}
 
-			case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_DEPTH, models.CHAR_WEIGHT, models.CHAR_AREA, models.CHAR_VOLUME:
+			case models.CHAR_HEIGHT, models.CHAR_WIDTH, models.CHAR_WEIGHT, models.CHAR_DEPTH, models.CHAR_AREA, models.CHAR_VOLUME:
 				// Для размерных характеристик
 				var dimensionFilter struct {
 					Min       float64 `json:"min"`
@@ -925,9 +909,8 @@ func (s *Listing) GetCategoryFilters(ctx context.Context, categoryID string) (mo
 					Dimension string  `json:"dimension"`
 				}
 				if err := json.Unmarshal(value, &dimensionFilter); err != nil {
-					continue // Пропускаем некорректные данные
+					continue
 				}
-				
 				result[key] = models.DimensionFilter{
 					Min:       int(dimensionFilter.Min),
 					Max:       int(dimensionFilter.Max),
