@@ -110,13 +110,6 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
-        - name: X-Guest-ID
-          in: header
-          schema:
-            type: string
-          required: false
-          example: 7b4e-92f1-ff13
-          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
         - name: listing_id
           in: path
           required: true
@@ -328,13 +321,6 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
-        - name: X-Guest-ID
-          in: header
-          schema:
-            type: string
-          required: false
-          example: 7b4e-92f1-ff13
-          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
       requestBody:
         required: true
         content:
@@ -582,6 +568,29 @@ paths:
               schema:
                 $ref: '#/components/schemas/UploadImageResponse'
 
+  /api/v1/user:
+    get:
+      summary: Получить краткую информацию о текущем пользователе
+      tags:
+        - User
+      parameters:
+        - name: Authorization
+          in: header
+          schema:
+            type: string
+          required: true
+          example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
+          description: Токен авторизации (JWT)
+      responses:
+        '200':
+          description: Успешный ответ с информацией о текущем пользователе
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/Seller'
+        '401':
+          $ref: '#/components/responses/Unauthorized'
+
   /api/v1/user/{user_id}/contacts:
     get:
       summary: Получить контакты пользователя
@@ -601,13 +610,6 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
-        - name: X-Guest-ID
-          in: header
-          schema:
-            type: string
-          required: false
-          example: 7b4e-92f1-ff13
-          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
       responses:
         '200':
           description: Успешный ответ со списком контактов
@@ -687,13 +689,6 @@ paths:
           required: false
           example: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJzdWIiOiIxMjM0NTY3ODkwIiwibmFtZSI6IkpvaG4gRG9lIiwiaWF0IjoxNTE2MjM5MDIyfQ.SflKxwRJSMeKKF2QT4fwpMeJf36POk6yJV_adQssw5c
           description: Токен авторизации (JWT)
-        - name: X-Guest-ID
-          in: header
-          schema:
-            type: string
-          required: false
-          example: 7b4e-92f1-ff13
-          description: uuid гостевого пользователя. Используется, для сверки трека покупок, если нет авторизации.
       responses:
         '200':
           description: Успешный ответ с полной информацией о пользователе
