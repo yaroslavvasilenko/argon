@@ -1932,6 +1932,10 @@ components:
           type: string
           description: Уникальный идентификатор пользователя
           example: "123e4567-e89b-12d3-a456-426614174000"
+        created_at:
+          type: integer
+          description: Дата и время создания пользователя в миллисекундах
+          example: 1708297118000
         name:
           type: string
           description: Имя пользователя, в том виде в котором он его указал. При создании пользователя имя устанавливается как в JWT токене.
@@ -1988,6 +1992,7 @@ components:
             $ref: '#/components/schemas/UserContact'
       required:
         - id
+        - created_at
         - name
         - images
 
