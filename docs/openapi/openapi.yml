@@ -1908,10 +1908,6 @@ components:
           type: string
           description: Текст контакта (номер телефона, имя пользователя и т.д.)
           example: "@username"
-        link:
-          type: string
-          description: Ссылка на контакт, если клик на него должен куда-то вести.
-          example: "https://t.me/username"
         available:
           type: boolean
           description: |
@@ -1919,10 +1915,15 @@ components:
             - Если автор запроса не является владельцем контакта, то показыввать ему можно только контакты у которых available true.
             - Если автор запроса является владельцем контакта, то поле будет таким, каким его указал пользователь при редактировании своих контактов.
           example: true
+        link:
+          type: string
+          description: Ссылка на контакт, если клик на него должен куда-то вести.
+          example: "https://t.me/username"
       required:
         - id
         - type
         - text
+        - available
 
     GetUserContactsResponse:
       type: object
