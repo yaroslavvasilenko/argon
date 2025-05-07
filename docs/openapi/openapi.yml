@@ -754,6 +754,14 @@ paths:
           schema:
             type: string
           description: ID пользователя
+        - name: Accept-Language
+          in: header
+          description: Язык локализации (по умолчанию ИСПАНСКИЙ)
+          schema:
+            type: string
+            enum: [en, ru, es]
+            default: es
+          required: false
         - name: Authorization
           in: header
           schema:
@@ -770,12 +778,26 @@ paths:
               properties:
                 description:
                   type: string
-                  description: Новое описание пользователя
+                  description: Новое описание пользователя на произвольном языке. Должно быть сохранено как originalDescription.
                   example: "John Doe"
                   maxLength: 5000
       responses:
         '200':
-          description: Описание пользователя успешно изменено.
+          description: Описание пользователя успешно изменено. Возвращает обновленную информацию о пользователе на языке оригинала и указанном Accept-Language.
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  description:
+                    type: string
+                    description: Новое описание пользователя на языке Accept-Language.
+                    example: "John Doe"
+                    maxLength: 5000
+                  originalDescription:
+                    type: string
+                    description: Новое описание пользователя на языке оригинала.
+                    example: "Джон До"
         '400':
           $ref: "#/components/responses/InvalidRequest"
         '401':
