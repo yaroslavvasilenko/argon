@@ -9,6 +9,7 @@ import (
 
 	"github.com/yaroslavvasilenko/argon/config"
 	"github.com/yaroslavvasilenko/argon/database"
+	"github.com/yaroslavvasilenko/argon/internal/auth"
 	"github.com/yaroslavvasilenko/argon/internal/core/db"
 	"github.com/yaroslavvasilenko/argon/internal/core/image"
 	"github.com/yaroslavvasilenko/argon/internal/core/logger"
@@ -53,6 +54,15 @@ func main() {
 		exit("creating minio client", err)
 	}
 
+	authSvc, err := auth.NewZitadelAuthService(
+		ctx,
+		cfg.Zitadel.Domain,
+		cfg.Zitadel.KeyPath,
+	)
+	if err != nil {
+		exit("initializing zitadel auth service", err)
+	}
+
 	storages := modules.NewStorages(cfg, gorm, pool, minio)
 	services := modules.NewServices(storages, pool, lg)
 
@@ -66,7 +76,7 @@ func main() {
 
 	controller := modules.NewControllers(services)
 	// init router
-	r := router.NewApiRouter(controller)
+	r := router.NewApiRouter(controller, authSvc)
 
 	go func() {
 		err = r.Listen(":" + cfg.App.Port)

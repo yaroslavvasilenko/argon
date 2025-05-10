@@ -3,14 +3,18 @@ package router
 import (
 	"github.com/gofiber/fiber/v2"
 	"github.com/gofiber/fiber/v2/middleware/cors"
+	"github.com/yaroslavvasilenko/argon/internal/auth"
 	"github.com/yaroslavvasilenko/argon/internal/middleware"
 	"github.com/yaroslavvasilenko/argon/internal/modules"
 )
 
 const AppName = "argon"
 
-func NewApiRouter(controllers *modules.Controllers) *fiber.App {
-	// Application (fiber)
+// NewApiRouter now takes authSvc and wires the JWT check on /api/v1/*
+func NewApiRouter(
+	controllers *modules.Controllers,
+	authSvc auth.Service,
+) *fiber.App {
 	r := fiber.New(fiber.Config{
 		ErrorHandler:            ErrorHandler,
 		DisableStartupMessage:   false,
@@ -21,48 +25,44 @@ func NewApiRouter(controllers *modules.Controllers) *fiber.App {
 		//BodyLimit:               128 * 1024 * 1024,
 	})
 
-	// Добавляем CORS middleware для разрешения запросов с любых адресов
+	// CORS & Language (unprotected)
 	r.Use(cors.New(cors.Config{
-		AllowOrigins:     "*",
-		AllowMethods:     "GET,POST,PUT,DELETE,OPTIONS",
-		AllowHeaders:     "Origin, Content-Type, Accept, Authorization",
-		AllowCredentials: false,
-		ExposeHeaders:    "Content-Length, Content-Type",
+		AllowOrigins: "*",
+		AllowMethods: "GET,POST,PUT,DELETE,OPTIONS",
+		AllowHeaders: "Origin, Content-Type, Accept, Authorization",
 	}))
-
-	// Добавляем middleware для обработки языка
 	r.Use(middleware.Language())
 
+	// health‑check, open to all
 	r.Get("/ping", controllers.Listing.Ping)
 
-	//  poster
-	r.Post("/api/v1/listing", controllers.Listing.CreateListing)
-	r.Get("/api/v1/listing/:listing_id", controllers.Listing.GetListing)
-	r.Delete("/api/v1/listing/:listing_id", controllers.Listing.DeleteListing)
-	r.Put("/api/v1/listing/:listing_id", controllers.Listing.UpdateListing)
+	// group all /api/v1 routes under the JWT‐middleware
+	protected := r.Group("", middleware.AuthMiddleware(authSvc))
 
-	//  search
-	r.Post("/api/v1/search", controllers.Listing.SearchListings)
-	r.Get("/api/v1/search/params", controllers.Listing.SearchListingsParams)
+	//  ── Listing ─────────────────────────────────────────
+	r.Get("/listing/:listing_id", controllers.Listing.GetListing)
+	protected.Post("/listing", controllers.Listing.CreateListing)
+	protected.Put("/listing/:listing_id", controllers.Listing.UpdateListing)
+	protected.Delete("/listing/:listing_id", controllers.Listing.DeleteListing)
 
-	//  categories
-	r.Get("/api/v1/categories", controllers.Listing.GetCategories)
-	r.Post("/api/v1/categories/characteristics", controllers.Listing.GetCharacteristicsForCategory)
-	r.Get("/api/v1/categories/filters", controllers.Listing.GetFiltersForCategory)
+	//  ── Search ──────────────────────────────────────────
+	r.Post("/search", controllers.Listing.SearchListings)
+	r.Get("/search/params", controllers.Listing.SearchListingsParams)
 
-	//  currency
-	r.Get("/api/v1/currency", controllers.Currency.GetCurrency)
+	//  ── Categories ──────────────────────────────────────
+	r.Get("/categories", controllers.Listing.GetCategories)
+	r.Post("/categories/characteristics", controllers.Listing.GetCharacteristicsForCategory)
+	r.Get("/categories/filters", controllers.Listing.GetFiltersForCategory)
 
-	//  location
-	r.Post("/api/v1/location", controllers.Location.GetLocation)
+	//  ── Currency & Location ─────────────────────────────
+	r.Get("/currency", controllers.Currency.GetCurrency)
+	r.Post("/location", controllers.Location.GetLocation)
 
-	//  boost
-	r.Post("/api/v1/boost/:listing_id", controllers.Boost.UpdateBoost)
-	r.Get("/api/v1/boost/:listing_id", controllers.Boost.GetBoost)
-
-	// images
-	r.Post("/api/v1/images/upload", controllers.Image.UploadImage)
-	r.Get("/api/v1/images/get/:image_id", controllers.Image.GetImage)
+	//  ── Boost & Images ──────────────────────────────────
+	protected.Post("/boost/:listing_id", controllers.Boost.UpdateBoost)
+	r.Get("/boost/:listing_id", controllers.Boost.GetBoost)
+	protected.Post("/images/upload", controllers.Image.UploadImage)
+	r.Get("/images/get/:image_id", controllers.Image.GetImage)
 
 	return r
 }
